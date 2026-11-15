@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opção 1: Cadastro Completo em Etapas (Wizard Desktop) — PreviOffice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0B192E;
+      --primary-hover: #132742;
+      --secondary: #C89543;
+      --secondary-hover: #b38234;
+      --secondary-subtle: #FDF8ED;
+      --background: #F8FAFC;
+      --surface: #FFFFFF;
+      --surface-alt: #F1F5F9;
+      --border: #E2E8F0;
+      --text-primary: #0B192E;
+      --text-secondary: #475569;
+      --text-muted: #94A3B8;
+      --success-bg: #DCFCE7;
+      --success-text: #16A34A;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background-color: var(--background); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* BARRA DE COMPARAÇÃO NO TOPO */
+    .compare-bar {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      border-bottom: 2px solid var(--secondary);
+    }
+    .compare-links { display: flex; gap: 12px; }
+    .compare-link {
+      color: #FFFFFF;
+      text-decoration: none;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .compare-link:hover { background-color: rgba(255, 255, 255, 0.15); }
+    .compare-link.active { background-color: var(--secondary); color: #0B192E; border-color: var(--secondary); }
+
+    /* CONTAINER PRINCIPAL */
+    .wizard-container {
+      max-width: 920px;
+      margin: 32px auto;
+      padding: 0 20px 40px 20px;
+      width: 100%;
+      flex-grow: 1;
+    }
+
+    .wizard-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    /* STEPPER HEADER */
+    .stepper-header {
+      padding: 24px 32px 16px 32px;
+      background-color: #FFFFFF;
+      border-bottom: 1px solid var(--border);
+    }
+    .stepper-progress-track {
+      height: 6px;
+      background-color: var(--surface-alt);
+      border-radius: 3px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .stepper-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--secondary), #dfad5e);
+      width: 25%;
+      transition: width 0.3s ease;
+    }
+
+    .stepper-nav {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+    }
+    .step-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+    }
+    .step-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background-color: var(--surface-alt);
+      border: 2px solid var(--border);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      transition: all 0.2s ease;
+    }
+    .step-node.active .step-circle {
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: #FFFFFF;
+      box-shadow: 0 0 0 4px rgba(11, 25, 46, 0.1);
+    }
+    .step-node.completed .step-circle {
+      background-color: var(--success-bg);
+      border-color: var(--success-text);
+      color: var(--success-text);
+    }
+    .step-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .step-node.active .step-label {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* CONTEÚDO DAS ETAPAS */
+    .step-content {
+      padding: 32px;
+      display: none;
+    }
+    .step-content.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-title-box {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--surface-alt);
+      padding-bottom: 12px;
+    }
+    .step-title-box h3 { font-size: 18px; font-weight: 800; color: var(--primary); }
+    .step-title-box p { font-size: 13px; color: var(--text-secondary); margin-top: 3px; }
+
+    /* GRID DE FORMULÁRIO */
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-grid-4 { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .form-group label { font-size: 12.5px; font-weight: 600; color: var(--primary); }
+    .form-control {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background-color: var(--surface-alt);
+      font-size: 13.5px;
+      color: var(--text-primary);
+      outline: none;
+      transition: all 0.15s ease;
+    }
+    .form-control:focus {
+      border-color: var(--secondary);
+      background-color: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(200, 149, 67, 0.15);
+    }
+
+    /* UPLOAD DE FOTO DO CLIENTE */
+    .photo-upload-box {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 20px;
+      background-color: var(--surface-alt);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--border);
+      margin-bottom: 20px;
+    }
+    .photo-preview {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--secondary), #dfad5e);
+      color: #0B192E;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 800;
+      border: 3px solid #FFFFFF;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* FOOTER DO WIZARD */
+    .wizard-footer {
+      padding: 20px 32px;
+      background-color: var(--surface-alt);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-accent { background-color: var(--secondary); color: #0B192E; font-weight: 700; }
+    .btn-accent:hover { background-color: var(--secondary-hover); }
+    .btn-primary { background-color: var(--primary); color: #FFFFFF; }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+    .btn-secondary { background-color: #FFFFFF; border: 1px solid var(--border); color: var(--text-secondary); }
+    .btn-secondary:hover { background-color: #F1F5F9; color: var(--text-primary); }
+
+    /* RESUMO FINAL */
+    .review-box {
+      background-color: var(--surface-alt);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .review-item { display: flex; justify-content: space-between; font-size: 13.5px; padding-bottom: 8px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .review-item strong { color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <!-- BARRA SUPERIOR DE COMPARAÇÃO -->
+  <div class="compare-bar">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-weight: 800; color: var(--secondary);">§ PreviOffice</span>
+      <span>· Comparador de Design de Cadastro</span>
+    </div>
+    <div class="compare-links">
+      <a href="index.html" class="compare-link">← Voltar à Recepção</a>
+      <a href="cadastro-wizard.html" class="compare-link active">Opção 1: Modo Wizard (Etapas)</a>
+      <a href="cadastro-completo.html" class="compare-link">Opção 2: Modo Ficha Única</a>
+    </div>
+  </div>
+
+  <div class="wizard-container">
+    <div class="wizard-card">
+      <!-- CABEÇALHO DO WIZARD -->
+      <div class="stepper-header">
+        <div class="stepper-progress-track">
+          <div class="stepper-progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="stepper-nav">
+          <div class="step-node active" id="node-1" onclick="goToStep(1)">
+            <div class="step-circle">1</div>
+            <span class="step-label">Pessoais</span>
+          </div>
+          <div class="step-node" id="node-2" onclick="goToStep(2)">
+            <div class="step-circle">2</div>
+            <span class="step-label">Endereço</span>
+          </div>
+          <div class="step-node" id="node-3" onclick="goToStep(3)">
+            <div class="step-circle">3</div>
+            <span class="step-label">Previdência</span>
+          </div>
+          <div class="step-node" id="node-4" onclick="goToStep(4)">
+            <div class="step-circle">4</div>
+            <span class="step-label">Foto & INSS</span>
+          </div>
+          <div class="step-node" id="node-5" onclick="goToStep(5)">
+            <div class="step-circle">5</div>
+            <span class="step-label">Conclusão</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 1: DADOS PESSOAIS -->
+      <div class="step-content active" id="step-1">
+        <div class="step-title-box">
+          <h3>1. Qualificação Civil do Segurado</h3>
+          <p>Dados essenciais para a Procuração Ad Judicia e petição inicial no INSS / Justiça Federal.</p>
+        </div>
+
+        <div class="form-group">
+          <label>Nome Completo do Cliente *</label>
+          <input type="text" class="form-control" id="wizNome" value="Maria de Lourdes da Silva">
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>CPF *</label>
+            <input type="text" class="form-control" id="wizCpf" value="452.128.901-22">
+          </div>
+          <div class="form-group">
+            <label>RG (com órgão expedidor)</label>
+            <input type="text" class="form-control" id="wizRg" placeholder="Ex: 2.345.678 SSP/DF">
+          </div>
+          <div class="form-group">
+            <label>Data de Nascimento</label>
+            <input type="date" class="form-control" id="wizNasc" value="1963-04-12">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Estado Civil</label>
+            <select class="form-control" id="wizEstadoCivil">
+              <option value="Casado(a)">Casado(a)</option>
+              <option value="Solteiro(a)">Solteiro(a)</option>
+              <option value="União Estável">União Estável</option>
+              <option value="Divorciado(a)">Divorciado(a)</option>
+              <option value="Viúvo(a)">Viúvo(a)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Profissão / Ocupação</label>
+            <input type="text" class="form-control" id="wizProfissao" value="Trabalhadora Rural / Agricultora">
+          </div>
+          <div class="form-group">
+            <label>Naturalidade (Cidade/UF)</label>
+            <input type="text" class="form-control" id="wizNaturalidade" placeholder="Ex: Taguatinga/DF">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Nome Completo da Mãe (Conferência no INSS/CNIS)</label>
+            <input type="text" class="form-control" id="wizMae" placeholder="Nome da mãe igual certidão">
+          </div>
+          <div class="form-group">
+            <label>Nome do Pai</label>
+            <input type="text" class="form-control" id="wizPai" placeholder="Nome do pai (se constar)">
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 2: ENDEREÇO -->
+      <div class="step-content" id="step-2">
+        <div class="step-title-box">
+          <h3>2. Endereço e Contatos</h3>
+          <p>Define a competência territorial e os canais oficiais para comunicação do escritório.</p>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>CEP</label>
+            <input type="text" class="form-control" id="wizCep" placeholder="72000-000">
+          </div>
+          <div class="form-group" style="grid-column: span 2;">
+            <label>Logradouro (Rua, Avenida, Chácara, Lote)</label>
+            <input type="text" class="form-control" id="wizRua" placeholder="Ex: Chácara São José, Gleba B">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Número</label>
+            <input type="text" class="form-control" id="wizNumero" placeholder="S/N ou nº">
+          </div>
+          <div class="form-group">
+            <label>Complemento</label>
+            <input type="text" class="form-control" id="wizComplemento" placeholder="Ex: Casa 02">
+          </div>
+          <div class="form-group">
+            <label>Bairro / Assentamento</label>
+            <input type="text" class="form-control" id="wizBairro" placeholder="Ex: Zona Rural">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Cidade / Município</label>
+            <input type="text" class="form-control" id="wizCidade" value="Brasília">
+          </div>
+          <div class="form-group">
+            <label>Estado (UF)</label>
+            <input type="text" class="form-control" id="wizUf" value="DF">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Celular / WhatsApp *</label>
+            <input type="text" class="form-control" id="wizCelular" value="(61) 98412-3456">
+          </div>
+          <div class="form-group">
+            <label>E-mail (opcional)</label>
+            <input type="email" class="form-control" id="wizEmail" placeholder="cliente@email.com">
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 3: PREVIDÊNCIA & SOCIOECONÔMICAS -->
+      <div class="step-content" id="step-3">
+        <div class="step-title-box">
+          <h3>3. Dados Previdenciários & Socioeconômicos</h3>
+          <p>Informações de benefício, contribuições e dependentes para cálculos e BPC/LOAS.</p>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Benefício Pretendido *</label>
+            <input type="text" class="form-control" id="wizBeneficio" value="Aposentadoria Rural por Idade">
+          </div>
+          <div class="form-group">
+            <label>Já Possui Benefício Ativo no INSS?</label>
+            <select class="form-control" id="wizPossuiBeneficio">
+              <option value="nao">Não, nunca recebeu</option>
+              <option value="sim">Sim, já recebe benefício</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Número do Benefício (NB - 10 dígitos, se houver)</label>
+            <input type="text" class="form-control" id="wizNb" placeholder="000.000.000-0">
+          </div>
+          <div class="form-group">
+            <label>Categorias Especiais</label>
+            <select class="form-control" id="wizEspecial">
+              <option value="rural">Segurado Especial (Trabalhador Rural)</option>
+              <option value="urbano">Urbano Comum</option>
+              <option value="especial">Atividade Especial (Insalubridade / Ruído)</option>
+              <option value="pcd">Pessoa com Deficiência (PCD)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Renda Mensal Declarada (R$)</label>
+            <input type="text" class="form-control" id="wizRenda" placeholder="Ex: 1.412,00">
+          </div>
+          <div class="form-group">
+            <label>Número de Dependentes Familiares</label>
+            <input type="number" class="form-control" id="wizDep" value="0" min="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- ETAPA 4: FOTO & MEU INSS -->
+      <div class="step-content" id="step-4">
+        <div class="step-title-box">
+          <h3>4. Foto de Rosto & Credencial Meu INSS</h3>
+          <p>Reconhecimento visual do segurado e dados sensíveis de consulta administrativa.</p>
+        </div>
+
+        <div class="photo-upload-box">
+          <div class="photo-preview" id="wizPhotoPreview">ML</div>
+          <div style="flex-grow: 1;">
+            <div style="font-weight: 700; font-size: 14px; color: var(--primary);">Foto de Rosto do Cliente</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+              Sincronizada automaticamente do aplicativo mobile ou enviada de uma pasta local do computador.
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+              <button class="btn btn-secondary" onclick="document.getElementById('wizFileInput').click()">
+                📁 Escolher da Pasta
+              </button>
+              <button class="btn btn-secondary" onclick="simulateCloudSync()">
+                📱 Sincronizar da Nuvem
+              </button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="wizFileInput" style="display: none;" accept="image/*" onchange="handleWizPhoto(event)">
+
+        <div class="form-group">
+          <label>Senha do Portal "Meu INSS" (Cifrada com AES-256 no banco)</label>
+          <input type="password" class="form-control" id="wizSenhaInss" placeholder="••••••••••••" value="gov123456">
+          <span style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+            🔒 Dado ultra-sensível: nunca exposto em relatórios e protegido por criptografia de ponta a ponta.
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label>Observações Estratégicas do Advogado</label>
+          <textarea class="form-control" id="wizObs" placeholder="Ex: Cliente possui bloco de notas fiscais de 1995 a 2004. Falta homologação da certidão de casamento."></textarea>
+        </div>
+      </div>
+
+      <!-- ETAPA 5: REVISÃO E FECHAMENTO -->
+      <div class="step-content" id="step-5">
+        <div class="step-title-box">
+          <h3>5. Ficha Cadastral 100% Pronta!</h3>
+          <p>Confira os dados consolidados antes de emitir a Procuração Ad Judicia e o Contrato de Honorários.</p>
+        </div>
+
+        <div class="review-box">
+          <div class="review-item">
+            <span>Segurado:</span>
+            <strong id="revNome">Maria de Lourdes da Silva</strong>
+          </div>
+          <div class="review-item">
+            <span>CPF & Contato:</span>
+            <strong id="revCpfTel">452.128.901-22 · (61) 98412-3456</strong>
+          </div>
+          <div class="review-item">
+            <span>Benefício Pretendido:</span>
+            <strong id="revBeneficio" style="color: var(--secondary);">Aposentadoria Rural por Idade</strong>
+          </div>
+          <div class="review-item">
+            <span>Município / Jurisdição:</span>
+            <strong id="revCidade">Brasília/DF</strong>
+          </div>
+          <div class="review-item">
+            <span>Status da Qualificação Civil:</span>
+            <strong style="color: var(--success-text);">✓ Completa (Apta para Procuração OAB)</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER DE NAVEGAÇÃO -->
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" id="btnPrev" onclick="prevStep()" style="visibility: hidden;">
+          ← Voltar
+        </button>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary" onclick="alert('Rascunho salvo na nuvem com sucesso!')">
+            💾 Salvar Rascunho
+          </button>
+          <button class="btn btn-accent" id="btnNext" onclick="nextStep()">
+            Avançar para Endereço →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentStep = 1;
+    const totalSteps = 5;
+
+    const stepLabels = [
+      "Avançar para Endereço →",
+      "Avançar para Previdência →",
+      "Avançar para Foto & INSS →",
+      "Revisar Ficha Cadastral →",
+      "⚖️ Emitir Procuração & Contrato"
+    ];
+
+    function updateView() {
+      // Atualiza conteúdos
+      for (let i = 1; i <= totalSteps; i++) {
+        document.getElementById(`step-${i}`).classList.toggle('active', i === currentStep);
+        const node = document.getElementById(`node-${i}`);
+        node.classList.toggle('active', i === currentStep);
+        node.classList.toggle('completed', i < currentStep);
+      }
+
+      // Atualiza barra de progresso
+      const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
+      document.getElementById('progressFill').style.width = `${progressPercent === 0 ? 15 : progressPercent}%`;
+
+      // Atualiza botões
+      document.getElementById('btnPrev').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+      const btnNext = document.getElementById('btnNext');
+      btnNext.innerHTML = stepLabels[currentStep - 1];
+
+      if (currentStep === 5) {
+        document.getElementById('revNome').innerText = document.getElementById('wizNome').value;
+        document.getElementById('revCpfTel').innerText = `${document.getElementById('wizCpf').value} · ${document.getElementById('wizCelular').value}`;
+        document.getElementById('revBeneficio').innerText = document.getElementById('wizBeneficio').value;
+        document.getElementById('revCidade').innerText = `${document.getElementById('wizCidade').value}/${document.getElementById('wizUf').value}`;
+      }
+    }
+
+    function nextStep() {
+      if (currentStep < totalSteps) {
+        currentStep++;
+        updateView();
+      } else {
+        alert("🎉 Parabéns! Cadastro concluído com sucesso.\n\nContrato de Honorários e Procuração Ad Judicia prontos para impressão ou assinatura eletrônica.");
+        window.location.href = "index.html";
+      }
+    }
+
+    function prevStep() {
+      if (currentStep > 1) {
+        currentStep--;
+        updateView();
+      }
+    }
+
+    function goToStep(step) {
+      currentStep = step;
+      updateView();
+    }
+
+    function handleWizPhoto(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('wizPhotoPreview').innerHTML = `<img src="${e.target.result}" alt="Foto">`;
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function simulateCloudSync() {
+      alert("📱 Foto capturada pelo aplicativo Android sincronizada com sucesso!");
+      document.getElementById('wizPhotoPreview').innerHTML = `<img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80" alt="Foto">`;
+    }
+  </script>
+</body>
+</html>

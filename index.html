@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PreviOffice — CRM Previdenciário & Gestão de Atendimentos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0B192E;            /* Azul Marinho Institucional */
+      --primary-hover: #132742;
+      --secondary: #C89543;          /* Dourado Nobre OAB */
+      --secondary-hover: #b38234;
+      --secondary-subtle: #FDF8ED;
+      --background: #F8FAFC;         /* Fundo de Tela */
+      --surface: #FFFFFF;            /* Fundo de Cartões e Painéis */
+      --surface-alt: #F1F5F9;        /* Fundo de Inputs e Linhas */
+      --border: #E2E8F0;             /* Divisores Sutis */
+      --text-primary: #0B192E;      /* Títulos e Destaques */
+      --text-secondary: #475569;    /* Subtítulos e Rótulos */
+      --text-muted: #94A3B8;        /* Dicas e Placeholders */
+      --success-bg: #DCFCE7;
+      --success-text: #16A34A;
+      --warning-bg: #FEF3C7;
+      --warning-text: #D97706;
+      --info-bg: #E0F2FE;
+      --info-text: #0284C7;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(11, 25, 46, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--text-primary);
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ========================================================
+       SIDEBAR LATERAL FIXA
+       ======================================================== */
+    .sidebar {
+      width: 260px;
+      background-color: var(--primary);
+      color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: width 0.25s ease;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 40;
+    }
+
+    .sidebar-brand {
+      padding: 24px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--secondary), #dfad5e);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0B192E;
+      font-weight: 800;
+      font-size: 20px;
+      box-shadow: 0 2px 8px rgba(200, 149, 67, 0.4);
+    }
+
+    .brand-text h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #FFFFFF;
+    }
+
+    .brand-text span {
+      font-size: 11px;
+      color: var(--secondary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .sidebar-menu {
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    .menu-section {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.4);
+      padding: 16px 12px 6px 12px;
+      font-weight: 700;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-radius: var(--radius-md);
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+
+    .menu-item:hover {
+      background-color: rgba(255, 255, 255, 0.06);
+      color: #FFFFFF;
+    }
+
+    .menu-item.active {
+      background: linear-gradient(90deg, rgba(200, 149, 67, 0.15) 0%, rgba(200, 149, 67, 0.05) 100%);
+      color: #FFFFFF;
+      font-weight: 600;
+      border-left: 3px solid var(--secondary);
+    }
+
+    .menu-item svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    .menu-badge {
+      margin-left: auto;
+      background-color: var(--secondary);
+      color: #0B192E;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+
+    .user-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2563EB, #1D4ED8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: #FFFFFF;
+      font-size: 13px;
+    }
+
+    .user-info {
+      overflow: hidden;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #FFFFFF;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: #94A3B8;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ========================================================
+       CONTEÚDO PRINCIPAL
+       ======================================================== */
+    .main-wrapper {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    /* TOPBAR */
+    .topbar {
+      height: 64px;
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background-color: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 14px;
+      width: 400px;
+      transition: all 0.2s ease;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--secondary);
+      background-color: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(200, 149, 67, 0.15);
+    }
+
+    .search-box input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 13px;
+      width: 100%;
+      color: var(--text-primary);
+    }
+
+    .search-kbd {
+      font-size: 10px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 2px 6px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--secondary-subtle);
+      border: 1px solid rgba(200, 149, 67, 0.3);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--secondary);
+    }
+
+    .role-badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--secondary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: var(--radius-md);
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn-accent {
+      background-color: var(--secondary);
+      color: #0B192E;
+      box-shadow: 0 2px 6px rgba(200, 149, 67, 0.25);
+    }
+
+    .btn-accent:hover {
+      background-color: var(--secondary-hover);
+      box-shadow: 0 4px 10px rgba(200, 149, 67, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: #FFFFFF;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--surface-alt);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background-color: #E2E8F0;
+      color: var(--text-primary);
+    }
+
+    /* CORPO DA PÁGINA */
+    .content {
+      padding: 32px;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .page-header {
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .page-title h2 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .page-title p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* CARDS DE MÉTRICAS */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .metric-card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .metric-icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .metric-icon-box.gold {
+      background-color: var(--secondary-subtle);
+      color: var(--secondary);
+    }
+
+    .metric-icon-box.navy {
+      background-color: #E2E8F0;
+      color: var(--primary);
+    }
+
+    .metric-icon-box.green {
+      background-color: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .metric-icon-box.amber {
+      background-color: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .metric-info .metric-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.1;
+    }
+
+    .metric-info .metric-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* PAINEL PRINCIPAL / TABELA DE RECEPÇÃO */
+    .panel {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title-badge {
+      background-color: var(--surface-alt);
+      color: var(--text-secondary);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background-color: #FFFFFF;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .pill:hover, .pill.active {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border-color: var(--primary);
+    }
+
+    /* TABELA DENSA */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    thead th {
+      background-color: var(--surface-alt);
+      padding: 11px 20px;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background-color 0.1s ease;
+      cursor: pointer;
+    }
+
+    tbody tr:hover {
+      background-color: #F8FAFC;
+    }
+
+    tbody td {
+      padding: 14px 20px;
+      font-size: 13.5px;
+      vertical-align: middle;
+    }
+
+    /* COMPONENTES DE TABELA */
+    .client-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .client-avatar-wrapper {
+      position: relative;
+    }
+
+    .client-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #E2E8F0, #CBD5E1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 13px;
+      border: 2px solid #FFFFFF;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .client-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .sync-indicator {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background-color: #2563EB;
+      border: 2px solid #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-size: 8px;
+    }
+
+    .client-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .client-name {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .client-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .benefit-tag {
+      font-size: 11px;
+      background-color: var(--surface-alt);
+      color: var(--text-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-top: 3px;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    /* BADGES DE FREQUÊNCIA */
+    .visit-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .visit-badge.first-time {
+      background-color: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #BFDBFE;
+    }
+
+    .visit-badge.recurring {
+      background-color: var(--secondary-subtle);
+      color: #92400E;
+      border: 1px solid rgba(200, 149, 67, 0.4);
+    }
+
+    .visit-badge.hot {
+      background-color: #FEF2F2;
+      color: #B91C1C;
+      border: 1px solid #FECACA;
+    }
+
+    /* BADGES DE STATUS */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .status-prospect {
+      background-color: #F1F5F9;
+      color: #475569;
+    }
+
+    .status-pending {
+      background-color: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .status-closed {
+      background-color: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    /* BOTÕES DE AÇÃO */
+    .action-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background-color: #FFFFFF;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .action-btn:hover {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      border-color: var(--primary);
+    }
+
+    /* ========================================================
+       MODAIS
+       ======================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(11, 25, 46, 0.6);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 20px;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    .modal-card {
+      background-color: #FFFFFF;
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 580px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      animation: modalSlide 0.2s ease-out;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-card.wide {
+      max-width: 680px;
+    }
+
+    @keyframes modalSlide {
+      from { transform: translateY(15px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .modal-header {
+      background-color: var(--primary);
+      color: #FFFFFF;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: #FFFFFF;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-body {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .form-control {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background-color: var(--surface-alt);
+      font-size: 13.5px;
+      color: var(--text-primary);
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .form-control:focus {
+      border-color: var(--secondary);
+      background-color: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(200, 149, 67, 0.15);
+    }
+
+    textarea.form-control {
+      min-height: 75px;
+      resize: vertical;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      background-color: var(--surface-alt);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* CARD DE MEMÓRIA IMEDIATA (RETORNO) */
+    .memory-header-box {
+      background: linear-gradient(135deg, #F8FAFC 0%, #EDF2F7 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .memory-avatar-large {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--secondary), #d89f4b);
+      color: #0B192E;
+      font-size: 20px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(200, 149, 67, 0.3);
+      overflow: hidden;
+      border: 3px solid #FFFFFF;
+    }
+
+    .memory-avatar-large img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .memory-profile-info {
+      flex-grow: 1;
+    }
+
+    .memory-profile-name {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.3px;
+    }
+
+    .memory-profile-meta {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .memory-section {
+      background-color: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .memory-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .memory-last-visit-box {
+      background-color: #F8FAFC;
+      border-left: 3px solid var(--secondary);
+      padding: 10px 14px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-primary);
+    }
+
+    .checklist-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background-color: var(--surface-alt);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background-color 0.1s ease;
+    }
+
+    .checklist-item:hover {
+      background-color: #E2E8F0;
+    }
+
+    .checklist-item input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--secondary);
+      cursor: pointer;
+    }
+
+    .photo-sync-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #1D4ED8;
+      background-color: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    /* RESPONSIVIDADE */
+    @media (max-width: 1024px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .sidebar {
+        width: 72px;
+      }
+      .brand-text, .menu-item span, .sidebar-footer .user-info, .menu-section {
+        display: none;
+      }
+      .sidebar-brand {
+        justify-content: center;
+        padding: 20px 0;
+      }
+      .menu-item {
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      .topbar {
+        padding: 0 16px;
+      }
+      .search-box {
+        width: 180px;
+      }
+      .content {
+        padding: 20px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- SIDEBAR LATERAL FIXA -->
+  <!-- ========================================== -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">§</div>
+      <div class="brand-text">
+        <h1>PreviOffice</h1>
+        <span>SaaS Previdenciário</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <div class="menu-section">Operação do Balcão</div>
+      <a class="menu-item active">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        <span>Visitas & Clientes</span>
+        <span class="menu-badge" id="badge-total">4</span>
+      </a>
+
+      <a class="menu-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+        </svg>
+        <span>Atendimentos</span>
+      </a>
+
+      <a class="menu-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <span>Procurações & Contratos</span>
+      </a>
+
+      <div class="menu-section">Inteligência & Normas</div>
+      <a class="menu-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
+        <span>Vade Mecum Previdenciário</span>
+      </a>
+
+      <a class="menu-item">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+        </svg>
+        <span>Funil de Maturação</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-avatar" id="loggedAvatar">REC</div>
+      <div class="user-info">
+        <div class="user-name" id="loggedName">Recepção / Balcão</div>
+        <div class="user-role" id="loggedRole">Acesso Completo · Multi-usuário</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================== -->
+  <!-- CONTEÚDO PRINCIPAL -->
+  <!-- ========================================== -->
+  <div class="main-wrapper">
+    <!-- TOPBAR GLOBAL -->
+    <header class="topbar">
+      <div class="search-box">
+        <svg width="16" height="16" fill="none" stroke="#64748B" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Pesquisar por nome, WhatsApp ou CPF...">
+        <span class="search-kbd">Ctrl + K</span>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="role-badge" title="Usuário logado com permissão irrestrita à base de clientes">
+          <span class="role-badge-dot"></span>
+          Recepção · Acesso Completo
+        </div>
+        <button class="btn btn-accent" onclick="openNewModal()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Registrar Chegada / Nova Visita
+        </button>
+      </div>
+    </header>
+
+    <!-- ÁREA DE TRABALHO -->
+    <main class="content">
+      <!-- CABEÇALHO DA PÁGINA -->
+      <div class="page-header">
+        <div class="page-title">
+          <h2>Gestão de Visitas & Recepção</h2>
+          <p>Organize quem compareceu ao escritório, reconheça os retornos e consulte o Card de Memória Imediata antes do atendimento.</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <a href="cadastro-completo.html" class="btn btn-accent" style="text-decoration: none;">
+            📋 Abrir Ficha Cadastral Completa
+          </a>
+        </div>
+      </div>
+
+      <!-- CARDS DE MÉTRICAS RÁPIDAS -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon-box navy">
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+          <div class="metric-info">
+            <div class="metric-value" id="stat-today">2</div>
+            <div class="metric-label">Atendimentos Hoje</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box gold">
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+          </div>
+          <div class="metric-info">
+            <div class="metric-value" id="stat-recurring">3</div>
+            <div class="metric-label">Retornos (2+ Visitas)</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box amber">
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="metric-info">
+            <div class="metric-value" id="stat-pending">1</div>
+            <div class="metric-label">Em Maturação / Pendente</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon-box green">
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="metric-info">
+            <div class="metric-value" id="stat-closed">1</div>
+            <div class="metric-label">Contratos Fechados</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL DA TABELA -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Fila de Recepção & Base de Clientes</span>
+            <span class="panel-title-badge" id="clientCountBadge">4 cadastros</span>
+          </div>
+
+          <div class="filter-pills">
+            <button class="pill active" onclick="filterStatus('TODOS')">Todos</button>
+            <button class="pill" onclick="filterStatus('RECORRENTES')">🔁 Retornos (2+)</button>
+            <button class="pill" onclick="filterStatus('MATURACAO')">🟡 Em Maturação</button>
+            <button class="pill" onclick="filterStatus('CONTRATADO')">🟢 Contratados</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente / Identificação</th>
+                <th>Frequência</th>
+                <th>Última Passagem</th>
+                <th>Histórico / O Que Houve na Última Vez</th>
+                <th>Status do Funil</th>
+                <th style="text-align: right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Linhas geradas via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ========================================================
+       MODAL 1: CARD DE MEMÓRIA IMEDIATA (AO CLICAR NO CLIENTE)
+       ======================================================== -->
+  <div class="modal-backdrop" id="memoryModal">
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h3>
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Card de Memória Imediata do Atendimento
+        </h3>
+        <button class="modal-close" onclick="closeMemoryModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" id="memoryModalBody">
+        <!-- Preenchido dinamicamente -->
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeMemoryModal()">Fechar</button>
+        <button class="btn btn-primary" onclick="addAnotherVisit()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Registrar Novo Comparecimento
+        </button>
+        <button class="btn btn-accent" id="btnEmitContract" onclick="emitContractFromMemory()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Gerar Contrato & Procuração
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL 2: REGISTRAR NOVA VISITA / CHEGADA RÁPIDA
+       ======================================================== -->
+  <div class="modal-backdrop" id="newVisitModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>+ Registrar Comparecimento no Balcão</h3>
+        <button class="modal-close" onclick="closeNewModal()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="clientInput">Nome Completo do Cliente *</label>
+          <input type="text" id="clientInput" class="form-control" placeholder="Ex: Maria de Lourdes da Silva">
+        </div>
+
+        <div class="form-group">
+          <label for="benefitInput">Benefício Pretendido</label>
+          <input type="text" id="benefitInput" class="form-control" placeholder="Ex: Aposentadoria Rural, BPC/LOAS, Invalidez...">
+        </div>
+
+        <div class="form-group">
+          <label for="phoneInput">WhatsApp / Telefone para Contato</label>
+          <input type="text" id="phoneInput" class="form-control" placeholder="(00) 00000-0000">
+        </div>
+
+        <div class="form-group">
+          <label for="cpfInput">CPF (Opcional na 1ª visita)</label>
+          <input type="text" id="cpfInput" class="form-control" placeholder="000.000.000-00">
+        </div>
+
+        <div class="form-group">
+          <label for="notesInput">O que houve nesta visita? (Notas de Balcão)</label>
+          <textarea id="notesInput" class="form-control" placeholder="Ex: Compareceu para primeira orientação. Solicitamos cópia do CNIS e laudo com CID. Retorna semana que vem."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="statusSelect">Status Atual</label>
+          <select id="statusSelect" class="form-control">
+            <option value="PROSPECT">🟡 Visitante Inicial (Primeira Consulta)</option>
+            <option value="PENDING">🟠 Documentação Pendente (Em Maturação)</option>
+            <option value="CLOSED">🟢 Contrato Fechado (Procuração Emitida)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeNewModal()">Cancelar</button>
+        <button class="btn btn-accent" onclick="saveNewVisit()">Salvar Chegada</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="localPhotoInput" style="display: none;" accept="image/*" onchange="handleLocalPhotoSelect(event)">
+
+  <script>
+    // DADOS MOCK INICIAIS BASEADOS NO APP MOBILE E NA MEMÓRIA DO ESCRITÓRIO
+    let clients = [
+      {
+        id: 1,
+        name: "Maria de Lourdes da Silva",
+        initials: "ML",
+        phone: "(61) 98412-3456",
+        cpf: "452.128.901-22",
+        benefit: "Aposentadoria Rural por Idade",
+        visits: 3,
+        lastVisit: "Hoje às 09:15",
+        lastAttendant: "Dr. Alexandre Pontes",
+        photoSource: "📱 Sincronizado do App Mobile (Nuvem)",
+        photoUrl: "",
+        lastNotes: "Trouxe as notas fiscais de produtor rural dos anos de 1995 a 2004. Pronta para requerer aposentadoria rural.",
+        status: "PENDING",
+        pendingItems: [
+          { text: "Notas fiscais de produtor rural (1995-2004)", done: true },
+          { text: "Certidão de casamento com profissão de lavrador", done: true },
+          { text: "Declaração do Sindicato Rural homologada", done: false },
+          { text: "Senha atualizada do Meu INSS", done: true }
+        ]
+      },
+      {
+        id: 2,
+        name: "José Carlos Pereira",
+        initials: "JP",
+        phone: "(61) 99123-8877",
+        cpf: "891.034.551-88",
+        benefit: "Aposentadoria por Tempo de Contribuição",
+        visits: 2,
+        lastVisit: "Ontem às 15:40",
+        lastAttendant: "Recepção / Balcão",
+        photoSource: "📁 Foto da Pasta Local",
+        photoUrl: "",
+        lastNotes: "Calculada carência de 14 anos. Faltam 12 meses de contribuição. Orientado a recolher como facultativo.",
+        status: "PROSPECT",
+        pendingItems: [
+          { text: "Carteira física de trabalho (CTPS 1988-1994)", done: true },
+          { text: "Guias de recolhimento GPS pagas como autônomo", done: false }
+        ]
+      },
+      {
+        id: 3,
+        name: "Francisca das Chagas",
+        initials: "FC",
+        phone: "(61) 98844-1122",
+        cpf: "109.876.543-21",
+        benefit: "BPC - LOAS (Deficiência / Autismo)",
+        visits: 1,
+        lastVisit: "Hoje às 08:30",
+        lastAttendant: "Recepção / Balcão",
+        photoSource: "📱 Sincronizado do App Mobile (Nuvem)",
+        photoUrl: "",
+        lastNotes: "Primeira consulta para avaliar benefício LOAS do filho menor. Solicitado laudo médico com CID e CadÚnico atualizado.",
+        status: "PROSPECT",
+        pendingItems: [
+          { text: "Laudo médico atualizado do neurologista infantil com CID", done: false },
+          { text: "Comprovante de inscrição no CadÚnico (CRAS)", done: false },
+          { text: "Comprovante de renda familiar dos moradores da casa", done: false }
+        ]
+      },
+      {
+        id: 4,
+        name: "Antônio Ferreira Santos",
+        initials: "AF",
+        phone: "(61) 99765-4321",
+        cpf: "332.119.880-04",
+        benefit: "Aposentadoria Especial (Metalúrgica / Ruído)",
+        visits: 4,
+        lastVisit: "12/11/2026",
+        lastAttendant: "Dr. Alexandre Pontes",
+        photoSource: "📱 Sincronizado do App Mobile (Nuvem)",
+        photoUrl: "",
+        lastNotes: "Procuração assinada e contrato emitido. PPP da metalúrgica comprova 89dB contínuo. Ação protocolada.",
+        status: "CLOSED",
+        pendingItems: [
+          { text: "PPP assinado pela empresa metalúrgica", done: true },
+          { text: "LTCAT da empresa com níveis de ruído", done: true },
+          { text: "Procuração Ad Judicia assinada", done: true },
+          { text: "Contrato de Honorários assinado", done: true }
+        ]
+      }
+    ];
+
+    let currentFilter = 'TODOS';
+    let selectedClientId = null;
+
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      let filtered = clients.filter(c => {
+        if (currentFilter === 'RECORRENTES') return c.visits > 1;
+        if (currentFilter === 'MATURACAO') return c.status === 'PENDING';
+        if (currentFilter === 'CONTRATADO') return c.status === 'CLOSED';
+        return true;
+      });
+
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (searchTerm) {
+        filtered = filtered.filter(c => 
+          c.name.toLowerCase().includes(searchTerm) ||
+          c.phone.includes(searchTerm) ||
+          (c.cpf && c.cpf.includes(searchTerm)) ||
+          c.benefit.toLowerCase().includes(searchTerm) ||
+          c.lastNotes.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      document.getElementById('clientCountBadge').innerText = `${filtered.length} cadastros`;
+
+      filtered.forEach(client => {
+        const tr = document.createElement('tr');
+        tr.onclick = (e) => {
+          // Se não clicou no botão de ação, abre o Card de Memória
+          if (!e.target.closest('button')) {
+            openMemoryCard(client.id);
+          }
+        };
+
+        // Badge de visitas estilizado
+        let visitBadgeClass = client.visits === 1 ? 'first-time' : (client.visits >= 3 ? 'recurring' : 'recurring');
+        let visitBadgeText = client.visits === 1 ? '1ª Visita (Novo)' : `${client.visits}ª Visita (Retorno)`;
+
+        // Badge de status
+        let statusClass = 'status-prospect';
+        let statusLabel = 'Visitante';
+        if (client.status === 'PENDING') {
+          statusClass = 'status-pending';
+          statusLabel = 'Em Maturação';
+        } else if (client.status === 'CLOSED') {
+          statusClass = 'status-closed';
+          statusLabel = 'Contratado';
+        }
+
+        const avatarContent = client.photoUrl 
+          ? `<img src="${client.photoUrl}" alt="${client.name}">` 
+          : client.initials;
+
+        tr.innerHTML = `
+          <td>
+            <div class="client-cell">
+              <div class="client-avatar-wrapper">
+                <div class="client-avatar">${avatarContent}</div>
+                <div class="sync-indicator" title="${client.photoSource}">✓</div>
+              </div>
+              <div class="client-details">
+                <span class="client-name">${client.name}</span>
+                <span class="client-meta">${client.phone} ${client.cpf ? '· ' + client.cpf : ''}</span>
+                <span class="benefit-tag">${client.benefit}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="visit-badge ${visitBadgeClass}">
+              <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              ${visitBadgeText}
+            </span>
+          </td>
+          <td>
+            <span style="font-size: 13px; color: var(--text-primary); font-weight: 600;">${client.lastVisit}</span>
+            <span style="font-size: 11px; color: var(--text-muted); display: block;">${client.lastAttendant}</span>
+          </td>
+          <td style="max-width: 360px;">
+            <span style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; display: block;">${client.lastNotes}</span>
+          </td>
+          <td>
+            <span class="status-badge ${statusClass}">${statusLabel}</span>
+          </td>
+          <td style="text-align: right;">
+            <div class="action-cell" style="justify-content: flex-end;">
+              <button class="action-btn" title="Abrir Card de Memória Imediata" onclick="openMemoryCard(${client.id})">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+              </button>
+              <button class="action-btn" title="Registrar Nova Passagem / Visita" onclick="quickIncrementVisit(${client.id})">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      updateMetrics();
+    }
+
+    function updateMetrics() {
+      const todayCount = clients.filter(c => c.lastVisit.includes('Hoje')).length;
+      const recurringCount = clients.filter(c => c.visits > 1).length;
+      const pendingCount = clients.filter(c => c.status === 'PENDING').length;
+      const closedCount = clients.filter(c => c.status === 'CLOSED').length;
+
+      document.getElementById('stat-today').innerText = todayCount;
+      document.getElementById('stat-recurring').innerText = recurringCount;
+      document.getElementById('stat-pending').innerText = pendingCount;
+      document.getElementById('stat-closed').innerText = closedCount;
+      document.getElementById('badge-total').innerText = clients.length;
+    }
+
+    function filterStatus(status) {
+      currentFilter = status;
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      renderTable();
+    }
+
+    // ========================================================
+    // CARD DE MEMÓRIA IMEDIATA (ABERTURA & INTERAÇÃO)
+    // ========================================================
+    function openMemoryCard(clientId) {
+      selectedClientId = clientId;
+      const client = clients.find(c => c.id === clientId);
+      if (!client) return;
+
+      const body = document.getElementById('memoryModalBody');
+      const avatarContent = client.photoUrl 
+        ? `<img src="${client.photoUrl}" alt="${client.name}">` 
+        : client.initials;
+
+      // Monta checkboxes do checklist de pendências em papel
+      let checklistHtml = '';
+      if (client.pendingItems && client.pendingItems.length > 0) {
+        checklistHtml = client.pendingItems.map((item, idx) => `
+          <label class="checklist-item">
+            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="togglePendingItem(${client.id}, ${idx})">
+            <span style="${item.done ? 'text-decoration: line-through; color: var(--text-muted);' : 'font-weight: 500;'}">${item.text}</span>
+          </label>
+        `).join('');
+      } else {
+        checklistHtml = '<span style="font-size: 13px; color: var(--text-muted);">Nenhuma pendência física registrada para este cliente.</span>';
+      }
+
+      body.innerHTML = `
+        <div class="memory-header-box">
+          <div class="memory-avatar-large" id="modalAvatar">
+            ${avatarContent}
+          </div>
+          <div class="memory-profile-info">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span class="memory-profile-name">${client.name}</span>
+              <span class="visit-badge recurring">${client.visits}ª Visita</span>
+            </div>
+            <div class="memory-profile-meta">
+              <strong>${client.benefit}</strong> · ${client.phone} ${client.cpf ? '· CPF: ' + client.cpf : ''}
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+              <span class="photo-sync-badge">${client.photoSource}</span>
+              <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="document.getElementById('localPhotoInput').click()">
+                📁 Enviar Foto da Pasta
+              </button>
+            </div>
+            ${client.status !== 'CLOSED' ? `
+              <div style="margin-top: 8px; padding: 6px 10px; background-color: #FEF3C7; border: 1px solid #FDE68A; border-radius: 6px; font-size: 11.5px; color: #92400E; display: flex; align-items: center; justify-content: space-between;">
+                <span>⚠️ Triagem rápida (40% preenchido). Complete para ajuizar:</span>
+                <a href="cadastro-completo.html" class="btn btn-accent" style="padding: 3px 8px; font-size: 11px; text-decoration: none;">📋 Completar Ficha Cadastral</a>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="memory-section">
+          <div class="memory-section-title">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            O que foi feito da última vez? (${client.lastVisit} · Por: ${client.lastAttendant})
+          </div>
+          <div class="memory-last-visit-box">
+            ${client.lastNotes}
+          </div>
+        </div>
+
+        <div class="memory-section">
+          <div class="memory-section-title" style="justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+              </svg>
+              O que faltava para dar seguimento? (Checklist de Pastas Físicas)
+            </span>
+            <span style="font-size: 11px; color: var(--secondary); font-weight: 700;">Clique para marcar o que ele trouxe</span>
+          </div>
+          <div class="checklist-container">
+            ${checklistHtml}
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 4px;">
+          <label for="currentVisitNotes" style="font-size: 12.5px; font-weight: 700; color: var(--primary);">
+            Anotações Deste Retorno (O que o cliente relatou ou trouxe hoje?)
+          </label>
+          <textarea id="currentVisitNotes" class="form-control" placeholder="Ex: Entregou a declaração do sindicato rural hoje. Documentação completa e conferida com sucesso."></textarea>
+        </div>
+      `;
+
+      // Atualiza o botão de fechamento caso já esteja contratado
+      const btnContract = document.getElementById('btnEmitContract');
+      if (client.status === 'CLOSED') {
+        btnContract.innerHTML = '✓ Contrato Já Emitido';
+        btnContract.disabled = true;
+        btnContract.style.opacity = '0.7';
+      } else {
+        btnContract.innerHTML = '⚖️ Emitir Contrato & Procuração';
+        btnContract.disabled = false;
+        btnContract.style.opacity = '1';
+      }
+
+      document.getElementById('memoryModal').classList.add('active');
+    }
+
+    function closeMemoryModal() {
+      document.getElementById('memoryModal').classList.remove('active');
+      selectedClientId = null;
+    }
+
+    function togglePendingItem(clientId, itemIndex) {
+      const client = clients.find(c => c.id === clientId);
+      if (client && client.pendingItems && client.pendingItems[itemIndex]) {
+        client.pendingItems[itemIndex].done = !client.pendingItems[itemIndex].done;
+        openMemoryCard(clientId); // Re-renderiza o modal
+        renderTable();
+      }
+    }
+
+    function handleLocalPhotoSelect(event) {
+      const file = event.target.files[0];
+      if (file && selectedClientId) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const client = clients.find(c => c.id === selectedClientId);
+          if (client) {
+            client.photoUrl = e.target.result;
+            client.photoSource = "📁 Foto da Pasta Local (" + file.name + ")";
+            openMemoryCard(selectedClientId);
+            renderTable();
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function emitContractFromMemory() {
+      if (!selectedClientId) return;
+      const client = clients.find(c => c.id === selectedClientId);
+      if (!client) return;
+
+      const notes = document.getElementById('currentVisitNotes').value.trim();
+      client.status = 'CLOSED';
+      client.visits += 1;
+      client.lastVisit = "Agora";
+      client.lastAttendant = "Recepção / Dr. Alexandre Pontes";
+      if (notes) {
+        client.lastNotes = `${notes} — Contrato & Procuração Ad Judicia emitidos.`;
+      } else {
+        client.lastNotes = `Contrato & Procuração Ad Judicia formalizados na ${client.visits}ª visita.`;
+      }
+
+      alert(`✅ Sucesso! Contrato e Procuração Ad Judicia gerados para ${client.name}. O cliente agora possui status "Contratado".`);
+      closeMemoryModal();
+      renderTable();
+    }
+
+    function addAnotherVisit() {
+      if (!selectedClientId) return;
+      const client = clients.find(c => c.id === selectedClientId);
+      if (!client) return;
+
+      const notes = document.getElementById('currentVisitNotes').value.trim();
+      client.visits += 1;
+      client.lastVisit = "Agora";
+      client.lastAttendant = "Recepção / Balcão";
+      if (notes) {
+        client.lastNotes = notes;
+      }
+      if (client.status === 'PROSPECT') {
+        client.status = 'PENDING';
+      }
+
+      alert(`✅ Comparecimento da ${client.visits}ª visita registrado para ${client.name}!`);
+      closeMemoryModal();
+      renderTable();
+    }
+
+    function quickIncrementVisit(clientId) {
+      const client = clients.find(c => c.id === clientId);
+      if (client) {
+        openMemoryCard(clientId);
+      }
+    }
+
+    // ========================================================
+    // MODAL DE NOVO CADASTRO RÁPIDO
+    // ========================================================
+    function openNewModal() {
+      document.getElementById('newVisitModal').classList.add('active');
+      document.getElementById('clientInput').focus();
+    }
+
+    function closeNewModal() {
+      document.getElementById('newVisitModal').classList.remove('active');
+      document.getElementById('clientInput').value = '';
+      document.getElementById('benefitInput').value = '';
+      document.getElementById('phoneInput').value = '';
+      document.getElementById('cpfInput').value = '';
+      document.getElementById('notesInput').value = '';
+    }
+
+    function saveNewVisit() {
+      const name = document.getElementById('clientInput').value.trim();
+      const benefit = document.getElementById('benefitInput').value.trim() || 'Consulta Geral';
+      const phone = document.getElementById('phoneInput').value.trim();
+      const cpf = document.getElementById('cpfInput').value.trim();
+      const notes = document.getElementById('notesInput').value.trim() || 'Primeira orientação realizada na recepção.';
+      const status = document.getElementById('statusSelect').value;
+
+      if (!name) {
+        alert('Por favor, informe o nome do cliente.');
+        return;
+      }
+
+      // Procura se já existe para incrementar ou criar novo
+      let existing = clients.find(c => c.name.toLowerCase() === name.toLowerCase() || (cpf && c.cpf === cpf));
+      if (existing) {
+        existing.visits += 1;
+        existing.lastVisit = "Agora";
+        existing.lastNotes = notes;
+        existing.status = status;
+        if (benefit && benefit !== 'Consulta Geral') existing.benefit = benefit;
+      } else {
+        const parts = name.split(' ');
+        const initials = parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+
+        clients.unshift({
+          id: Date.now(),
+          name: name,
+          initials: initials,
+          phone: phone || '(Sem telefone)',
+          cpf: cpf || '',
+          benefit: benefit,
+          visits: 1,
+          lastVisit: "Agora",
+          lastAttendant: "Recepção / Balcão",
+          photoSource: "📱 Sincronizado do App Mobile (Nuvem)",
+          photoUrl: "",
+          lastNotes: notes,
+          status: status,
+          pendingItems: [
+            { text: "Cópia física do documento oficial de identidade (RG)", done: false },
+            { text: "Comprovante de residência atualizado", done: false },
+            { text: "Extrato previdenciário do CNIS ou carteira de trabalho", done: false }
+          ]
+        });
+      }
+
+      closeNewModal();
+      renderTable();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderTable);
+
+    // Atalho global Ctrl + K
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+      }
+    });
+
+    // Render inicial
+    renderTable();
+  </script>
+</body>
+</html>

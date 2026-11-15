@@ -1,0 +1,339 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import { Search, Filter, AlertCircle, FileText, CheckCircle2, ArrowUpRight, Clock, UserCheck } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { formatCpf } from '@/lib/domain/cpf-validator';
+import type { AttendanceType } from '@/types/attendance';
+
+export interface ReceptionTableRow {
+  id: string;
+  fullName: string;
+  cpf: string;
+  photoUrl?: string | null;
+  attendanceType: AttendanceType;
+  lastVisitAt: string;
+  totalVisits: number;
+  pendingDocuments: string[];
+  registrationProgress: number; // 0 to 100%
+  assignedAttendant: string;
+  benefitTypeNotes?: string;
+}
+
+interface ReceptionTableProps {
+  initialRows?: ReceptionTableRow[];
+  onOpenMemoryCard: (row: ReceptionTableRow) => void;
+}
+
+const DEFAULT_ROWS: ReceptionTableRow[] = [
+  {
+    id: 'cli-001',
+    fullName: 'Maria Francisca da Silva',
+    cpf: '12345678909',
+    attendanceType: 'RETURN_DOCUMENTS',
+    lastVisitAt: 'Today, 09:15',
+    totalVisits: 3,
+    pendingDocuments: ['Rural Land Contract (ITR)', 'Trade Union Declaration'],
+    registrationProgress: 35,
+    assignedAttendant: 'Camila Recepção',
+    benefitTypeNotes: 'Rural Special Retirement',
+  },
+  {
+    id: 'cli-002',
+    fullName: 'Severino Manoel dos Santos',
+    cpf: '98765432100',
+    attendanceType: 'FIRST_VISIT',
+    lastVisitAt: 'Today, 10:30',
+    totalVisits: 1,
+    pendingDocuments: ['Medical Disability Report (CID M54.5)', 'CNIS Work History'],
+    registrationProgress: 20,
+    assignedAttendant: 'Camila Recepção',
+    benefitTypeNotes: 'BPC/LOAS Disability Benefit',
+  },
+  {
+    id: 'cli-003',
+    fullName: 'Antonia Ribeiro de Lima',
+    cpf: '45678912300',
+    attendanceType: 'CONTRACT_SIGNING',
+    lastVisitAt: 'Today, 11:00',
+    totalVisits: 2,
+    pendingDocuments: [],
+    registrationProgress: 75,
+    assignedAttendant: 'Dr. Alexandre Pontes',
+    benefitTypeNotes: 'Age Retirement (Urban)',
+  },
+  {
+    id: 'cli-004',
+    fullName: 'Josefa Clementina Alves',
+    cpf: '65432198711',
+    attendanceType: 'GENERAL_QUERY',
+    lastVisitAt: 'Yesterday, 16:45',
+    totalVisits: 4,
+    pendingDocuments: ['Updated Proof of Residence'],
+    registrationProgress: 60,
+    assignedAttendant: 'Camila Recepção',
+    benefitTypeNotes: 'Social Security Administrative Review',
+  },
+];
+
+type FilterCategory = 'ALL' | 'RETURNS_ONLY' | 'FIRST_VISITS' | 'PENDING_DOCS';
+
+export function ReceptionTable({
+  initialRows = DEFAULT_ROWS,
+  onOpenMemoryCard,
+}: ReceptionTableProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL');
+
+  const filteredRows = useMemo(() => {
+    return initialRows.filter((row) => {
+      // Search matching
+      const matchesSearch =
+        row.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.cpf.includes(searchTerm.replace(/\D/g, ''));
+
+      if (!matchesSearch) return false;
+
+      // Filter category matching
+      switch (activeFilter) {
+        case 'RETURNS_ONLY':
+          return row.attendanceType === 'RETURN_DOCUMENTS' || row.totalVisits > 1;
+        case 'FIRST_VISITS':
+          return row.attendanceType === 'FIRST_VISIT' || row.totalVisits === 1;
+        case 'PENDING_DOCS':
+          return row.pendingDocuments.length > 0;
+        case 'ALL':
+        default:
+          return true;
+      }
+    });
+  }, [initialRows, searchTerm, activeFilter]);
+
+  const renderAttendanceTypeBadge = (type: AttendanceType) => {
+    switch (type) {
+      case 'FIRST_VISIT':
+        return <Badge variant="info">First Visit</Badge>;
+      case 'RETURN_DOCUMENTS':
+        return <Badge variant="warning">Document Return</Badge>;
+      case 'CONTRACT_SIGNING':
+        return <Badge variant="success">Contract Signing</Badge>;
+      case 'BENEFIT_INQUIRY':
+        return <Badge variant="neutral">Benefit Inquiry</Badge>;
+      default:
+        return <Badge variant="neutral">General Query</Badge>;
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Table Action Bar */}
+      <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by client name or CPF..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white transition-all text-slate-800 placeholder-slate-400"
+          />
+        </div>
+
+        {/* Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+          <button
+            type="button"
+            onClick={() => setActiveFilter('ALL')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              activeFilter === 'ALL'
+                ? 'bg-[#0B192E] text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            All Visits ({initialRows.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('RETURNS_ONLY')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              activeFilter === 'RETURNS_ONLY'
+                ? 'bg-[#C89543] text-[#0B192E] shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Returns Only
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('FIRST_VISITS')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              activeFilter === 'FIRST_VISITS'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            First Visits
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveFilter('PENDING_DOCS')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+              activeFilter === 'PENDING_DOCS'
+                ? 'bg-amber-600 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Missing Docs
+          </button>
+        </div>
+      </div>
+
+      {/* Table Content */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm text-slate-700">
+          <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+            <tr>
+              <th scope="col" className="px-5 py-3.5">Client Information</th>
+              <th scope="col" className="px-5 py-3.5">Visit Details</th>
+              <th scope="col" className="px-5 py-3.5">Physical Folder & Pending Docs</th>
+              <th scope="col" className="px-5 py-3.5">Registration Status</th>
+              <th scope="col" className="px-5 py-3.5">Attendant</th>
+              <th scope="col" className="px-5 py-3.5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
+                  <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                  <p className="font-medium">No client records found matching criteria.</p>
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+                  onClick={() => onOpenMemoryCard(row)}
+                >
+                  {/* Client Info */}
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs flex-shrink-0">
+                        {row.fullName.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900 group-hover:text-[#C89543] transition-colors flex items-center gap-2">
+                          {row.fullName}
+                          {row.totalVisits > 1 && (
+                            <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded">
+                              {row.totalVisits}x
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500 font-mono">
+                          CPF: {formatCpf(row.cpf)}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Visit Details */}
+                  <td className="px-5 py-4">
+                    <div className="flex flex-col gap-1 items-start">
+                      {renderAttendanceTypeBadge(row.attendanceType)}
+                      <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        {row.lastVisitAt}
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Pending Docs */}
+                  <td className="px-5 py-4">
+                    {row.pendingDocuments.length > 0 ? (
+                      <div className="flex flex-col gap-1 items-start">
+                        <div className="text-xs font-semibold text-amber-700 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{row.pendingDocuments.length} pending items</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 line-clamp-1 max-w-xs">
+                          {row.pendingDocuments.join(', ')}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>All Physical Docs Received</span>
+                      </div>
+                    )}
+                  </td>
+
+                  {/* Registration Status */}
+                  <td className="px-5 py-4">
+                    <div className="w-36">
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-500 font-medium">Progress</span>
+                        <span className="font-bold text-slate-700">{row.registrationProgress}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            row.registrationProgress >= 70
+                              ? 'bg-emerald-500'
+                              : row.registrationProgress >= 40
+                              ? 'bg-amber-500'
+                              : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${row.registrationProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Attendant */}
+                  <td className="px-5 py-4">
+                    <span className="text-xs text-slate-600 flex items-center gap-1">
+                      <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                      {row.assignedAttendant}
+                    </span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-5 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onOpenMemoryCard(row)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#0B192E] bg-slate-100 hover:bg-[#C89543]/20 hover:text-[#0B192E] transition-all flex items-center gap-1"
+                      >
+                        Memory Card
+                      </button>
+                      <Link
+                        href={`/clientes/${row.id}`}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#C89543] hover:bg-slate-100 transition-all"
+                        title="Qualify full client record"
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Table Footer */}
+      <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span>Showing {filteredRows.length} of {initialRows.length} records</span>
+        <div className="flex items-center gap-2">
+          <span>Physical Storage Policy: Physical Paper Folders (§ 0-Cost Cloud Model)</span>
+        </div>
+      </div>
+    </div>
+  );
+}
