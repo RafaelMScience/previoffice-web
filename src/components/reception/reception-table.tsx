@@ -2,9 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, Filter, AlertCircle, FileText, CheckCircle2, ArrowUpRight, Clock, UserCheck } from 'lucide-react';
+import { Search, AlertCircle, FileText, CheckCircle2, ArrowUpRight, Clock, UserCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatCpf } from '@/lib/domain/cpf-validator';
+import { useI18n } from '@/lib/i18n/i18n-context';
 import type { AttendanceType } from '@/types/attendance';
 
 export interface ReceptionTableRow {
@@ -32,9 +33,9 @@ const DEFAULT_ROWS: ReceptionTableRow[] = [
     fullName: 'Maria Francisca da Silva',
     cpf: '12345678909',
     attendanceType: 'RETURN_DOCUMENTS',
-    lastVisitAt: 'Today, 09:15',
+    lastVisitAt: '09:15',
     totalVisits: 3,
-    pendingDocuments: ['Rural Land Contract (ITR)', 'Trade Union Declaration'],
+    pendingDocuments: ['Contrato de Terra Rural (ITR)', 'Declaração do Sindicato'],
     registrationProgress: 35,
     assignedAttendant: 'Camila Recepção',
     benefitTypeNotes: 'Rural Special Retirement',
@@ -44,9 +45,9 @@ const DEFAULT_ROWS: ReceptionTableRow[] = [
     fullName: 'Severino Manoel dos Santos',
     cpf: '98765432100',
     attendanceType: 'FIRST_VISIT',
-    lastVisitAt: 'Today, 10:30',
+    lastVisitAt: '10:30',
     totalVisits: 1,
-    pendingDocuments: ['Medical Disability Report (CID M54.5)', 'CNIS Work History'],
+    pendingDocuments: ['Laudo Médico Pericial (CID M54.5)', 'Histórico CNIS'],
     registrationProgress: 20,
     assignedAttendant: 'Camila Recepção',
     benefitTypeNotes: 'BPC/LOAS Disability Benefit',
@@ -56,7 +57,7 @@ const DEFAULT_ROWS: ReceptionTableRow[] = [
     fullName: 'Antonia Ribeiro de Lima',
     cpf: '45678912300',
     attendanceType: 'CONTRACT_SIGNING',
-    lastVisitAt: 'Today, 11:00',
+    lastVisitAt: '11:00',
     totalVisits: 2,
     pendingDocuments: [],
     registrationProgress: 75,
@@ -68,9 +69,9 @@ const DEFAULT_ROWS: ReceptionTableRow[] = [
     fullName: 'Josefa Clementina Alves',
     cpf: '65432198711',
     attendanceType: 'GENERAL_QUERY',
-    lastVisitAt: 'Yesterday, 16:45',
+    lastVisitAt: '16:45',
     totalVisits: 4,
-    pendingDocuments: ['Updated Proof of Residence'],
+    pendingDocuments: ['Comprovante de Residência Atualizado'],
     registrationProgress: 60,
     assignedAttendant: 'Camila Recepção',
     benefitTypeNotes: 'Social Security Administrative Review',
@@ -83,6 +84,7 @@ export function ReceptionTable({
   initialRows = DEFAULT_ROWS,
   onOpenMemoryCard,
 }: ReceptionTableProps) {
+  const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL');
 
@@ -113,20 +115,23 @@ export function ReceptionTable({
   const renderAttendanceTypeBadge = (type: AttendanceType) => {
     switch (type) {
       case 'FIRST_VISIT':
-        return <Badge variant="info">First Visit</Badge>;
+      case 'FIRST_CONSULTATION':
+        return <Badge variant="info">{t.receptionTable.badgeFirstVisit}</Badge>;
       case 'RETURN_DOCUMENTS':
-        return <Badge variant="warning">Document Return</Badge>;
+      case 'RETURN':
+        return <Badge variant="warning">{t.receptionTable.badgeDocReturn}</Badge>;
       case 'CONTRACT_SIGNING':
-        return <Badge variant="success">Contract Signing</Badge>;
+        return <Badge variant="success">{t.receptionTable.badgeContractSigning}</Badge>;
       case 'BENEFIT_INQUIRY':
-        return <Badge variant="neutral">Benefit Inquiry</Badge>;
+      case 'BENEFIT_ANALYSIS':
+        return <Badge variant="neutral">{t.receptionTable.badgeBenefitInquiry}</Badge>;
       default:
-        return <Badge variant="neutral">General Query</Badge>;
+        return <Badge variant="neutral">{t.receptionTable.badgeGeneralQuery}</Badge>;
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
       {/* Table Action Bar */}
       <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Search Input */}
@@ -134,7 +139,7 @@ export function ReceptionTable({
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by client name or CPF..."
+            placeholder={t.receptionTable.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white transition-all text-slate-800 placeholder-slate-400"
@@ -148,44 +153,44 @@ export function ReceptionTable({
             onClick={() => setActiveFilter('ALL')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeFilter === 'ALL'
-                ? 'bg-[#0B192E] text-white shadow-sm'
+                ? 'bg-[#0B192E] text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            All Visits ({initialRows.length})
+            {t.receptionTable.filterAll} ({initialRows.length})
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter('RETURNS_ONLY')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeFilter === 'RETURNS_ONLY'
-                ? 'bg-[#C89543] text-[#0B192E] shadow-sm'
+                ? 'bg-[#C89543] text-[#0B192E] shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Returns Only
+            {t.receptionTable.filterReturns}
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter('FIRST_VISITS')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeFilter === 'FIRST_VISITS'
-                ? 'bg-blue-600 text-white shadow-sm'
+                ? 'bg-blue-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            First Visits
+            {t.receptionTable.filterFirstVisits}
           </button>
           <button
             type="button"
             onClick={() => setActiveFilter('PENDING_DOCS')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeFilter === 'PENDING_DOCS'
-                ? 'bg-amber-600 text-white shadow-sm'
+                ? 'bg-amber-600 text-white shadow-xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Missing Docs
+            {t.receptionTable.filterMissingDocs}
           </button>
         </div>
       </div>
@@ -195,12 +200,12 @@ export function ReceptionTable({
         <table className="w-full text-left text-sm text-slate-700">
           <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
             <tr>
-              <th scope="col" className="px-5 py-3.5">Client Information</th>
-              <th scope="col" className="px-5 py-3.5">Visit Details</th>
-              <th scope="col" className="px-5 py-3.5">Physical Folder & Pending Docs</th>
-              <th scope="col" className="px-5 py-3.5">Registration Status</th>
-              <th scope="col" className="px-5 py-3.5">Attendant</th>
-              <th scope="col" className="px-5 py-3.5 text-right">Actions</th>
+              <th scope="col" className="px-5 py-3.5">{t.receptionTable.colClientInfo}</th>
+              <th scope="col" className="px-5 py-3.5">{t.receptionTable.colVisitDetails}</th>
+              <th scope="col" className="px-5 py-3.5">{t.receptionTable.colFolderDocs}</th>
+              <th scope="col" className="px-5 py-3.5">{t.receptionTable.colRegistrationStatus}</th>
+              <th scope="col" className="px-5 py-3.5">{t.receptionTable.colAttendant}</th>
+              <th scope="col" className="px-5 py-3.5 text-right">{t.receptionTable.colActions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -208,7 +213,7 @@ export function ReceptionTable({
               <tr>
                 <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
                   <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                  <p className="font-medium">No client records found matching criteria.</p>
+                  <p className="font-medium">{t.receptionTable.noRecords}</p>
                 </td>
               </tr>
             ) : (
@@ -257,7 +262,7 @@ export function ReceptionTable({
                       <div className="flex flex-col gap-1 items-start">
                         <div className="text-xs font-semibold text-amber-700 flex items-center gap-1">
                           <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-                          <span>{row.pendingDocuments.length} pending items</span>
+                          <span>{row.pendingDocuments.length} {t.receptionTable.pendingCount}</span>
                         </div>
                         <div className="text-[11px] text-slate-500 line-clamp-1 max-w-xs">
                           {row.pendingDocuments.join(', ')}
@@ -266,7 +271,7 @@ export function ReceptionTable({
                     ) : (
                       <div className="text-xs font-medium text-emerald-600 flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>All Physical Docs Received</span>
+                        <span>{t.receptionTable.allDocsReceived}</span>
                       </div>
                     )}
                   </td>
@@ -275,7 +280,7 @@ export function ReceptionTable({
                   <td className="px-5 py-4">
                     <div className="w-36">
                       <div className="flex justify-between text-xs mb-1">
-                        <span className="text-slate-500 font-medium">Progress</span>
+                        <span className="text-slate-500 font-medium">{t.common.progress}</span>
                         <span className="font-bold text-slate-700">{row.registrationProgress}%</span>
                       </div>
                       <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -309,12 +314,12 @@ export function ReceptionTable({
                         onClick={() => onOpenMemoryCard(row)}
                         className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#0B192E] bg-slate-100 hover:bg-[#C89543]/20 hover:text-[#0B192E] transition-all flex items-center gap-1"
                       >
-                        Memory Card
+                        {t.receptionTable.btnMemoryCard}
                       </button>
                       <Link
                         href={`/clientes/${row.id}`}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-[#C89543] hover:bg-slate-100 transition-all"
-                        title="Qualify full client record"
+                        title={t.receptionTable.tooltipQualify}
                       >
                         <ArrowUpRight className="w-4 h-4" />
                       </Link>
@@ -328,10 +333,12 @@ export function ReceptionTable({
       </div>
 
       {/* Table Footer */}
-      <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-        <span>Showing {filteredRows.length} of {initialRows.length} records</span>
+      <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+        <span>
+          {t.receptionTable.footerShowing} {filteredRows.length} {t.receptionTable.footerOf} {initialRows.length} {t.receptionTable.footerRecords}
+        </span>
         <div className="flex items-center gap-2">
-          <span>Physical Storage Policy: Physical Paper Folders (§ 0-Cost Cloud Model)</span>
+          <span>{t.receptionTable.footerPhysicalNotice}</span>
         </div>
       </div>
     </div>

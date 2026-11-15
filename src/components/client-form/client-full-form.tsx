@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { calculateAge, checkRuralRetirementAge } from '@/lib/domain/benefit-rules';
+import { useI18n } from '@/lib/i18n/i18n-context';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
 import type { MaritalStatus, SpecialCategory } from '@/types/client';
 
@@ -25,6 +26,7 @@ interface ClientFullFormProps {
 }
 
 export function ClientFullForm({ initialData, clientId, onSave }: ClientFullFormProps) {
+  const { t } = useI18n();
   const [isPending, startTransition] = useTransition();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -109,7 +111,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
       if (onSave) {
         await onSave(payload);
       }
-      setSuccessMessage('Client qualification saved successfully.');
+      setSuccessMessage(t.clientForm.saveSuccess);
       setTimeout(() => setSuccessMessage(null), 4000);
     });
   };
@@ -118,9 +120,9 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
     <div className="flex gap-8 relative">
       {/* Anchor Navigation Sidebar (Sticky) */}
       <aside className="w-56 hidden xl:block flex-shrink-0 sticky top-20 self-start">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
-            Form Sections
+            {t.clientForm.secNav}
           </div>
           <nav className="flex flex-col gap-1 text-xs font-medium text-slate-600">
             <a
@@ -128,35 +130,35 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
             >
               <User className="w-3.5 h-3.5" />
-              <span>1. Identification</span>
+              <span>{t.clientForm.sec1}</span>
             </a>
             <a
               href="#address"
               className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
             >
               <MapPin className="w-3.5 h-3.5" />
-              <span>2. Address</span>
+              <span>{t.clientForm.sec2}</span>
             </a>
             <a
               href="#contact"
               className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
             >
               <Phone className="w-3.5 h-3.5" />
-              <span>3. Contact</span>
+              <span>{t.clientForm.sec3}</span>
             </a>
             <a
               href="#inss"
               className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>4. INSS & Gov.br</span>
+              <span>{t.clientForm.sec4}</span>
             </a>
             <a
               href="#benefit"
               className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
             >
               <Award className="w-3.5 h-3.5" />
-              <span>5. Benefit & Category</span>
+              <span>{t.clientForm.sec5}</span>
             </a>
           </nav>
 
@@ -164,28 +166,28 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           <div className="mt-6 pt-4 border-t border-slate-100">
             <div className="text-[11px] font-bold text-[#0B192E] flex items-center gap-1.5 mb-2">
               <Calculator className="w-3.5 h-3.5 text-[#C89543]" />
-              <span>Rules Engine</span>
+              <span>{t.clientForm.rulesEngineTitle}</span>
             </div>
             {age !== null ? (
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600">
-                  <span>Computed Age:</span>
-                  <span className="font-bold text-slate-900">{age} years</span>
+                  <span>{t.clientForm.computedAgeLabel}</span>
+                  <span className="font-bold text-slate-900">{age} {t.clientForm.yearsOld}</span>
                 </div>
                 {isLoasElderlyAge && (
                   <div className="bg-emerald-50 text-emerald-800 p-2 rounded text-[11px] font-medium border border-emerald-200">
-                    Age eligible for BPC/LOAS Elderly (&ge; 65).
+                    {t.clientForm.loasEligibleNotice}
                   </div>
                 )}
                 {ruralRetirementCheck && ruralRetirementCheck.isEligibleAge && (
                   <div className="bg-amber-50 text-amber-800 p-2 rounded text-[11px] font-medium border border-amber-200">
-                    Eligible for Rural Retirement age criteria ({gender === 'F' ? '55' : '60'}).
+                    {t.clientForm.ruralEligibleNotice} ({gender === 'F' ? '55' : '60'} {t.clientForm.yearsOld}).
                   </div>
                 )}
               </div>
             ) : (
               <p className="text-[11px] text-slate-400">
-                Input date of birth to preview automated eligibility checks.
+                {t.clientForm.fillBirthDateHint}
               </p>
             )}
           </div>
@@ -196,7 +198,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
       <div className="flex-1 max-w-4xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Header Action Bar */}
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <Link
@@ -206,11 +208,11 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
                 <h1 className="text-xl font-bold text-slate-900">
-                  {clientId ? 'Complete Client Qualification' : 'New Client Registration'}
+                  {clientId ? t.clientForm.titleEdit : t.clientForm.titleNew}
                 </h1>
               </div>
               <p className="text-xs text-slate-500 mt-1 ml-7">
-                32 standardized PreviOffice fields synchronized between Web and Mobile applications.
+                {t.clientForm.subtitle}
               </p>
             </div>
 
@@ -224,46 +226,46 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               <button
                 type="submit"
                 disabled={isPending}
-                className="px-5 py-2.5 rounded-lg bg-[#0B192E] text-white font-semibold text-sm hover:bg-[#142642] flex items-center gap-2 shadow-sm transition-all disabled:opacity-50"
+                className="px-5 py-2.5 rounded-lg bg-[#0B192E] text-white font-semibold text-sm hover:bg-[#142642] flex items-center gap-2 shadow-xs transition-all disabled:opacity-50"
               >
                 <Save className="w-4 h-4 text-[#C89543]" />
-                <span>{isPending ? 'Saving...' : 'Save Qualification'}</span>
+                <span>{isPending ? t.clientForm.btnSaving : t.clientForm.btnSave}</span>
               </button>
             </div>
           </div>
 
           {/* Section 1: Personal Identification */}
-          <div id="personal" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div id="personal" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <User className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">1. Personal Identification</h2>
+              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec1}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Full Legal Name *
+                  {t.clientForm.fullNameLabel}
                 </label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Maria Francisca da Silva"
+                  placeholder={t.clientForm.fullNamePlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  CPF (Numbers Only)
+                  {t.clientForm.cpfLabel}
                 </label>
                 <input
                   type="text"
                   maxLength={14}
                   value={cpf}
                   onChange={(e) => setCpf(e.target.value.replace(/\D/g, ''))}
-                  placeholder="000.000.000-00"
+                  placeholder={t.clientForm.cpfPlaceholder}
                   className={`w-full px-3.5 py-2 text-sm bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 text-slate-900 ${
                     cpfValid === false
                       ? 'border-red-400 focus:ring-red-500'
@@ -271,23 +273,23 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                   }`}
                 />
                 {cpfValid === false && (
-                  <span className="text-[11px] text-red-600 font-medium">Invalid CPF format</span>
+                  <span className="text-[11px] text-red-600 font-medium">{t.clientForm.cpfInvalid}</span>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">RG Number</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.rgLabel}</label>
                 <input
                   type="text"
                   value={rg}
                   onChange={(e) => setRg(e.target.value)}
-                  placeholder="e.g. 1.234.567"
+                  placeholder={t.clientForm.rgPlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Birth Date</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.birthDateLabel}</label>
                 <input
                   type="date"
                   value={birthDate}
@@ -297,63 +299,63 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.genderLabel}</label>
                 <select
                   value={gender}
                   onChange={(e) => setGender(e.target.value as any)}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 >
-                  <option value="F">Female</option>
-                  <option value="M">Male</option>
-                  <option value="OTHER">Other</option>
+                  <option value="F">{t.clientForm.genderFemale}</option>
+                  <option value="M">{t.clientForm.genderMale}</option>
+                  <option value="OTHER">{t.clientForm.genderOther}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Marital Status</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.maritalStatusLabel}</label>
                 <select
                   value={maritalStatus}
                   onChange={(e) => setMaritalStatus(e.target.value as MaritalStatus)}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 >
-                  <option value="SINGLE">Single</option>
-                  <option value="MARRIED">Married</option>
-                  <option value="STABLE_UNION">Stable Union</option>
-                  <option value="DIVORCED">Divorced</option>
-                  <option value="WIDOWED">Widowed</option>
-                  <option value="SEPARATED">Separated</option>
+                  <option value="SINGLE">{t.clientForm.statusSingle}</option>
+                  <option value="MARRIED">{t.clientForm.statusMarried}</option>
+                  <option value="STABLE_UNION">{t.clientForm.statusStableUnion}</option>
+                  <option value="DIVORCED">{t.clientForm.statusDivorced}</option>
+                  <option value="WIDOWED">{t.clientForm.statusWidowed}</option>
+                  <option value="SEPARATED">{t.clientForm.statusSeparated}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Profession</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.professionLabel}</label>
                 <input
                   type="text"
                   value={profession}
                   onChange={(e) => setProfession(e.target.value)}
-                  placeholder="e.g. Agricultora, Autônomo..."
+                  placeholder={t.clientForm.professionPlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Mother's Name</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.motherNameLabel}</label>
                 <input
                   type="text"
                   value={motherName}
                   onChange={(e) => setMotherName(e.target.value)}
-                  placeholder="Full name of mother"
+                  placeholder={t.clientForm.motherNamePlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Father's Name</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.fatherNameLabel}</label>
                 <input
                   type="text"
                   value={fatherName}
                   onChange={(e) => setFatherName(e.target.value)}
-                  placeholder="Full name of father"
+                  placeholder={t.clientForm.fatherNamePlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 />
               </div>
@@ -361,15 +363,15 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           </div>
 
           {/* Section 2: Address & Residence */}
-          <div id="address" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div id="address" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <MapPin className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">2. Residential Address</h2>
+              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec2}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Zip Code (CEP)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.zipCodeLabel}</label>
                 <input
                   type="text"
                   value={postalCode}
@@ -380,18 +382,18 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Street / Logradouro</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.streetLabel}</label>
                 <input
                   type="text"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
-                  placeholder="Rua, Avenida, ou Sítio / Povoado"
+                  placeholder={t.clientForm.streetPlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Number</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.numberLabel}</label>
                 <input
                   type="text"
                   value={streetNumber}
@@ -402,7 +404,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Complement</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.complementLabel}</label>
                 <input
                   type="text"
                   value={complement}
@@ -413,7 +415,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Neighborhood / District</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.neighborhoodLabel}</label>
                 <input
                   type="text"
                   value={neighborhood}
@@ -424,7 +426,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">City</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.cityLabel}</label>
                 <input
                   type="text"
                   value={city}
@@ -435,7 +437,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">State (UF)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.stateLabel}</label>
                 <input
                   type="text"
                   value={state}
@@ -448,16 +450,16 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           </div>
 
           {/* Section 3: Contact Details */}
-          <div id="contact" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div id="contact" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <Phone className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">3. Contact Channels</h2>
+              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec3}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Primary Mobile / WhatsApp *
+                  {t.clientForm.mobilePhoneLabel}
                 </label>
                 <input
                   type="text"
@@ -471,7 +473,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Secondary Phone (Landline / Relative)
+                  {t.clientForm.secondaryPhoneLabel}
                 </label>
                 <input
                   type="text"
@@ -483,7 +485,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.emailLabel}</label>
                 <input
                   type="email"
                   value={email}
@@ -496,15 +498,15 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           </div>
 
           {/* Section 4: Social Security Credentials */}
-          <div id="inss" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div id="inss" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <Lock className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">4. INSS Credentials & Physical Archive</h2>
+              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec4}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Benefit Number (NB)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.benefitNumberLabel}</label>
                 <input
                   type="text"
                   value={benefitNumber}
@@ -516,7 +518,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Meu INSS Password
+                  {t.clientForm.inssPasswordLabel}
                 </label>
                 <input
                   type="password"
@@ -528,12 +530,12 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Physical Folder Location</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.physicalLocationLabel}</label>
                 <input
                   type="text"
                   value={physicalFileLocation}
                   onChange={(e) => setPhysicalFileLocation(e.target.value)}
-                  placeholder="Cabinet A - Drawer 02 - Pasta 2026-081"
+                  placeholder={t.clientForm.physicalLocationPlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 />
               </div>
@@ -541,56 +543,56 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           </div>
 
           {/* Section 5: Benefit & Special Category */}
-          <div id="benefit" className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div id="benefit" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <Award className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">5. Benefit & Special Category</h2>
+              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec5}</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Target Social Security Benefit *
+                  {t.clientForm.desiredBenefitLabel}
                 </label>
                 <select
                   value={benefitType}
                   onChange={(e) => setBenefitType(e.target.value)}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-medium"
                 >
-                  <option value="BPC/LOAS Elderly">BPC / LOAS - Elderly (Idoso &ge; 65 anos)</option>
-                  <option value="BPC/LOAS Disability">BPC / LOAS - Person with Disability (PCD)</option>
-                  <option value="Rural Retirement">Rural Special Segurate Retirement</option>
-                  <option value="Age Retirement Urban">Urban Age Retirement</option>
-                  <option value="Temporary Disability">Temporary Disability Benefit (Auxílio-Doença)</option>
-                  <option value="Permanent Disability">Permanent Disability Retirement (Invalidez)</option>
-                  <option value="Death Pension">Death Pension (Pensão por Morte)</option>
-                  <option value="Maternity Benefit">Maternity Benefit (Salário-Maternidade)</option>
+                  <option value="BPC/LOAS Elderly">BPC / LOAS - Idoso (≥ 65 anos)</option>
+                  <option value="BPC/LOAS Disability">BPC / LOAS - Pessoa com Deficiência (PCD)</option>
+                  <option value="Rural Retirement">Aposentadoria Rural - Segurado Especial</option>
+                  <option value="Age Retirement Urban">Aposentadoria Urbana por Idade</option>
+                  <option value="Temporary Disability">Benefício por Incapacidade Temporária (Auxílio-Doença)</option>
+                  <option value="Permanent Disability">Aposentadoria por Incapacidade Permanente</option>
+                  <option value="Death Pension">Pensão por Morte</option>
+                  <option value="Maternity Benefit">Salário-Maternidade Rural/Urbano</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Special Category</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.specialCategoryLabel}</label>
                 <select
                   value={specialCategory}
                   onChange={(e) => setSpecialCategory(e.target.value as SpecialCategory)}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 >
-                  <option value="URBAN_COMMON">General / Urban Worker</option>
-                  <option value="RURAL">Rural Producer / Family Farm (Segurado Especial)</option>
-                  <option value="PCD">Person with Long-Term Disability (PCD)</option>
-                  <option value="SPECIAL_HAZARDOUS">Special Hazardous / Insalubrious</option>
+                  <option value="URBAN_COMMON">{t.clientForm.catUrban}</option>
+                  <option value="RURAL">{t.clientForm.catRural}</option>
+                  <option value="PCD">{t.clientForm.catPcd}</option>
+                  <option value="SPECIAL_HAZARDOUS">{t.clientForm.catHazardous}</option>
                 </select>
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Case Notes & Legal Strategy
+                  {t.clientForm.notesLabel}
                 </label>
                 <textarea
                   rows={4}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Record relevant details: medical conditions, rural proof documents available in physical folder, CNIS inconsistencies, etc."
+                  placeholder={t.clientForm.notesPlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
                 />
               </div>
