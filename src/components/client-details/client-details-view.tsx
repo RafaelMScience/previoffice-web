@@ -8,6 +8,7 @@ import {
   Scale,
   Sparkles,
   CheckCircle2,
+  PlusCircle,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { ClientDetailHeader } from './client-detail-header';
@@ -18,6 +19,7 @@ import { BenefitDiagnosticCard } from './benefit-diagnostic-card';
 import { LegalContractModal } from './legal-contract-modal';
 import { InactivateClientModal } from './inactivate-client-modal';
 import { CaseUpdatesPanel } from './case-updates-panel';
+import { NewCaseUpdateModal } from './new-case-update-modal';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
 import type { Client, ClientStatus } from '@/types/client';
@@ -50,6 +52,7 @@ export function ClientDetailsView({
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [isMemoryCardOpen, setIsMemoryCardOpen] = useState(false);
   const [isInactivateModalOpen, setIsInactivateModalOpen] = useState(false);
+  const [isDirectInssModalOpen, setIsDirectInssModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -187,6 +190,36 @@ export function ClientDetailsView({
         onSelectProcessTab={() => setActiveTab('process')}
       />
 
+      {/* Closed Contract - Ready to File at INSS Callout */}
+      {client.status === 'CLOSED' && caseUpdates.length === 0 && (
+        <div className="p-4 bg-linear-to-r from-emerald-50 via-white to-amber-50/50 border border-emerald-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shrink-0 shadow-xs">
+              🚀
+            </span>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">
+                {t.clientDetails.closedContractCtaTitle}
+              </h4>
+              <p className="text-xs text-slate-600 mt-0.5">
+                {t.clientDetails.closedContractCtaSub}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setActiveTab('process');
+              setIsDirectInssModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>{t.clientDetails.btnStartInssProcess}</span>
+          </button>
+        </div>
+      )}
+
       {/* Navigation Tabs */}
       <div className="bg-white rounded-xl border border-slate-200 p-1.5 flex items-center gap-1 overflow-x-auto shadow-2xs">
         <button
@@ -286,6 +319,7 @@ export function ClientDetailsView({
           clientName={client.fullName}
           clientPhone={client.mobilePhone || client.phone}
           initialUpdates={caseUpdates}
+          onUpdateAdded={(newUp) => setCaseUpdates((prev) => [newUp, ...prev])}
         />
       )}
 
@@ -356,6 +390,19 @@ export function ClientDetailsView({
         onClose={() => setIsInactivateModalOpen(false)}
         clientName={client.fullName}
         onConfirm={handleConfirmInactivation}
+      />
+
+      <NewCaseUpdateModal
+        isOpen={isDirectInssModalOpen}
+        onClose={() => setIsDirectInssModalOpen(false)}
+        clientId={client.id}
+        clientName={client.fullName}
+        defaultProcessNumber={client.benefitNumber || 'Protocolo INSS nº 1234567890'}
+        initialPreset="INSS_INIT"
+        onSave={(newUp) => {
+          setCaseUpdates((prev) => [newUp, ...prev]);
+          showToast('Requerimento do INSS protocolado com sucesso! Acompanhamento iniciado.');
+        }}
       />
     </div>
   );

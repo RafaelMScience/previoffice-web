@@ -24,6 +24,7 @@ interface CaseUpdatesPanelProps {
   clientName: string;
   clientPhone?: string;
   initialUpdates: CaseUpdate[];
+  onUpdateAdded?: (newUpdate: CaseUpdate) => void;
 }
 
 export function CaseUpdatesPanel({
@@ -31,11 +32,15 @@ export function CaseUpdatesPanel({
   clientName,
   clientPhone,
   initialUpdates,
+  onUpdateAdded,
 }: CaseUpdatesPanelProps) {
   const { t } = useI18n();
 
   const [updates, setUpdates] = useState<CaseUpdate[]>(initialUpdates);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<
+    'INSS_INIT' | 'INSS_EXIGENCE' | 'INSS_PERICIA' | 'INSS_CONCEDE' | 'JUDICIAL_INIT'
+  >('INSS_INIT');
   const [copiedProcess, setCopiedProcess] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -44,9 +49,11 @@ export function CaseUpdatesPanel({
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const currentProcessNumber = updates[0]?.processNumber || '0800123-45.2026.4.05.8201';
-  const currentAgency = updates[0]?.forumOrAgency || '1ª Vara Federal de Guarabira - JEF';
-  const currentStage = updates[0]?.stage || 'JUDICIAL_FIRST_DEGREE';
+  const currentProcessNumber =
+    updates[0]?.processNumber || 'Protocolo INSS aguardando lançamento';
+  const currentAgency =
+    updates[0]?.forumOrAgency || 'INSS - Agência da Previdência Social / Meu INSS';
+  const currentStage: CaseStage = updates[0]?.stage || 'ADMINISTRATIVE_INSS';
 
   const handleCopyProcess = () => {
     if (navigator.clipboard) {
@@ -58,6 +65,7 @@ export function CaseUpdatesPanel({
 
   const handleSaveUpdate = (newUpdate: CaseUpdate) => {
     setUpdates((prev) => [newUpdate, ...prev]);
+    onUpdateAdded?.(newUpdate);
     showToast(t.caseUpdates.toastUpdateSuccess);
   };
 
@@ -152,11 +160,72 @@ export function CaseUpdatesPanel({
 
         {/* Action Button: Insert Movement */}
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setSelectedPreset('INSS_INIT');
+            setIsModalOpen(true);
+          }}
           className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#C89543] hover:bg-[#b08137] text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0"
         >
           <PlusCircle className="w-4 h-4" />
           <span>{t.caseUpdates.btnAddUpdate}</span>
+        </button>
+      </div>
+
+      {/* Quick Action Presets on Panel */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold text-slate-700 mr-1 flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#C89543]" />
+          <span>{t.caseUpdates.presetLabel}</span>
+        </span>
+        <button
+          onClick={() => {
+            setSelectedPreset('INSS_INIT');
+            setIsModalOpen(true);
+          }}
+          className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
+        >
+          <span>🚀</span>
+          <span>{t.caseUpdates.presetInssInit}</span>
+        </button>
+        <button
+          onClick={() => {
+            setSelectedPreset('INSS_EXIGENCE');
+            setIsModalOpen(true);
+          }}
+          className="px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-900 border border-amber-200 rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
+        >
+          <span>⚠️</span>
+          <span>{t.caseUpdates.presetInssExigence}</span>
+        </button>
+        <button
+          onClick={() => {
+            setSelectedPreset('INSS_PERICIA');
+            setIsModalOpen(true);
+          }}
+          className="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-900 border border-blue-200 rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
+        >
+          <span>🩺</span>
+          <span>{t.caseUpdates.presetInssPericia}</span>
+        </button>
+        <button
+          onClick={() => {
+            setSelectedPreset('INSS_CONCEDE');
+            setIsModalOpen(true);
+          }}
+          className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg text-xs font-bold transition-colors shadow-2xs flex items-center gap-1.5"
+        >
+          <span>🏆</span>
+          <span>{t.caseUpdates.presetInssConcede}</span>
+        </button>
+        <button
+          onClick={() => {
+            setSelectedPreset('JUDICIAL_INIT');
+            setIsModalOpen(true);
+          }}
+          className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-medium transition-colors shadow-2xs flex items-center gap-1.5"
+        >
+          <span>⚖️</span>
+          <span>{t.caseUpdates.presetJudicialInit}</span>
         </button>
       </div>
 
@@ -304,6 +373,7 @@ export function CaseUpdatesPanel({
         clientId={clientId}
         clientName={clientName}
         defaultProcessNumber={currentProcessNumber}
+        initialPreset={selectedPreset}
         onSave={handleSaveUpdate}
       />
     </div>

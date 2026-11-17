@@ -341,11 +341,20 @@ export interface Translations {
     btnSaveAttendance: string;
     btnSavingAttendance: string;
     tabCaseUpdates: string;
+    closedContractCtaTitle: string;
+    closedContractCtaSub: string;
+    btnStartInssProcess: string;
   };
   caseUpdates: {
     panelTitle: string;
     panelSubtitle: string;
     btnAddUpdate: string;
+    presetLabel: string;
+    presetInssInit: string;
+    presetInssExigence: string;
+    presetInssPericia: string;
+    presetInssConcede: string;
+    presetJudicialInit: string;
     processNumberLabel: string;
     agencyLabel: string;
     stageLabel: string;

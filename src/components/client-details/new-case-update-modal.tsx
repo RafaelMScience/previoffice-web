@@ -21,6 +21,7 @@ interface NewCaseUpdateModalProps {
   clientId: string;
   clientName: string;
   defaultProcessNumber?: string;
+  initialPreset?: 'INSS_INIT' | 'INSS_EXIGENCE' | 'INSS_PERICIA' | 'INSS_CONCEDE' | 'JUDICIAL_INIT';
   onSave: (update: CaseUpdate) => void;
 }
 
@@ -29,26 +30,89 @@ export function NewCaseUpdateModal({
   onClose,
   clientId,
   clientName,
-  defaultProcessNumber = '0800123-45.2026.4.05.8201',
+  defaultProcessNumber = 'Protocolo INSS nº 1234567890',
+  initialPreset = 'INSS_INIT',
   onSave,
 }: NewCaseUpdateModalProps) {
   const { t } = useI18n();
 
   const [processNumber, setProcessNumber] = useState(defaultProcessNumber);
-  const [forumOrAgency, setForumOrAgency] = useState('1ª Vara Federal de Guarabira - JEF');
-  const [stage, setStage] = useState<CaseStage>('JUDICIAL_FIRST_DEGREE');
-  const [eventKind, setEventKind] = useState<CaseEventKind>('MEDICAL_EXAM_SCHEDULED');
+  const [forumOrAgency, setForumOrAgency] = useState('INSS - Agência da Previdência Social / Meu INSS');
+  const [stage, setStage] = useState<CaseStage>('ADMINISTRATIVE_INSS');
+  const [eventKind, setEventKind] = useState<CaseEventKind>('REQUIREMENT_FILED');
   const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
-  const [title, setTitle] = useState('Perícia Médica Judicial Agendada');
+  const [title, setTitle] = useState('Entrada do Requerimento Administrativo no INSS');
   const [description, setDescription] = useState(
-    'Designada perícia médica na especialidade ortopedia para o dia 12/12/2026 às 09:30 no consultório judicial em Guarabira.'
+    'Protocolado requerimento administrativo junto ao INSS via Meu INSS com procuração e documentos comprobatórios.'
   );
-  const [actionDeadline, setActionDeadline] = useState('2026-12-05');
+  const [actionDeadline, setActionDeadline] = useState('');
   const [notifyClientText, setNotifyClientText] = useState(
-    `Olá ${clientName}! Aqui é do escritório do Dr. Alexandre Pontes. Passando para avisar que sua perícia médica foi agendada para o dia 12/12 às 09:30. Estamos preparando tudo e entraremos em contato com as orientações!`
+    `Olá ${clientName}! Aqui é do escritório de advocacia do Dr. Alexandre Pontes. Passando para avisar que acabamos de dar entrada no seu pedido junto ao INSS! Já temos o número do protocolo e nossa equipe está acompanhando a análise do órgão.`
   );
   const [recordedBy, setRecordedBy] = useState('Dr. Alexandre Pontes');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const applyPreset = (preset: 'INSS_INIT' | 'INSS_EXIGENCE' | 'INSS_PERICIA' | 'INSS_CONCEDE' | 'JUDICIAL_INIT') => {
+    switch (preset) {
+      case 'INSS_INIT':
+        setStage('ADMINISTRATIVE_INSS');
+        setForumOrAgency('INSS - Agência da Previdência Social / Meu INSS');
+        setEventKind('REQUIREMENT_FILED');
+        setTitle('Entrada do Requerimento Administrativo no INSS');
+        setDescription('Protocolado requerimento administrativo junto ao INSS via Meu INSS com procuração e documentos comprobatórios.');
+        setNotifyClientText(
+          `Olá ${clientName}! Aqui é do escritório do Dr. Alexandre Pontes. Passando para avisar que acabamos de dar entrada no seu pedido junto ao INSS! Já temos o comprovante do protocolo e agora nossa equipe está acompanhando a análise do órgão.`
+        );
+        break;
+      case 'INSS_EXIGENCE':
+        setStage('ADMINISTRATIVE_INSS');
+        setForumOrAgency('INSS - Agência da Previdência Social / Meu INSS');
+        setEventKind('INSS_EXIGENCE');
+        setTitle('Exigência Notificada pelo INSS');
+        setDescription('Notificação emitida pelo INSS solicitando apresentação de documentos complementares rurais/urbanos no prazo de 30 dias.');
+        setActionDeadline(new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10));
+        setNotifyClientText(
+          `Olá ${clientName}! O INSS fez um pedido de conferência de documentos no seu processo. Já estamos cuidando do cumprimento dentro do prazo para a senhora ficar tranquila!`
+        );
+        break;
+      case 'INSS_PERICIA':
+        setStage('ADMINISTRATIVE_INSS');
+        setForumOrAgency('INSS - Agência da Previdência Social / Meu INSS');
+        setEventKind('MEDICAL_EXAM_SCHEDULED');
+        setTitle('Perícia Médica Agendada no INSS');
+        setDescription('Agendada perícia médica perante a Perícia Médica Federal para avaliação da incapacidade laborativa do segurado.');
+        setNotifyClientText(
+          `Olá ${clientName}! Sua perícia médica no INSS foi agendada. Estamos organizando seus laudos médicos e logo entraremos em contato com todas as instruções!`
+        );
+        break;
+      case 'INSS_CONCEDE':
+        setStage('ADMINISTRATIVE_INSS');
+        setForumOrAgency('INSS - Agência da Previdência Social / Meu INSS');
+        setEventKind('DECISION_GRANTED');
+        setTitle('Benefício Concedido pelo INSS (Vitória Administrativa)');
+        setDescription('Requerimento deferido pelo INSS com concessão definitiva do benefício previdenciário e apuração dos valores retroativos devidos.');
+        setNotifyClientText(
+          `Excelente notícia ${clientName}! O seu benefício foi CONCEDIDO com sucesso pelo INSS! Já temos a Carta de Concessão e vamos orientar a senhora sobre a data do primeiro pagamento!`
+        );
+        break;
+      case 'JUDICIAL_INIT':
+        setStage('JUDICIAL_FIRST_DEGREE');
+        setForumOrAgency('1ª Vara Federal / Juizado Especial Federal (JEF)');
+        setEventKind('REQUIREMENT_FILED');
+        setTitle('Ajuizamento de Ação Judicial na Justiça Federal');
+        setDescription('Distribuída petição inicial perante a Justiça Federal para postulação judicial dos direitos previdenciários do segurado.');
+        setNotifyClientText(
+          `Olá ${clientName}! Em razão do resultado ou demora no INSS, ajuizamos sua ação na Justiça Federal. Agora o Juiz irá analisar o pedido e estamos acompanhando!`
+        );
+        break;
+    }
+  };
+
+  React.useEffect(() => {
+    if (isOpen && initialPreset) {
+      applyPreset(initialPreset);
+    }
+  }, [isOpen, initialPreset]);
 
   if (!isOpen) return null;
 
@@ -148,6 +212,70 @@ export function NewCaseUpdateModal({
 
         {/* Form Body (Scrollable) */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-4 flex-1">
+          {/* Quick Presets Row */}
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+            <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {t.caseUpdates.presetLabel}
+            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => applyPreset('INSS_INIT')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${
+                  stage === 'ADMINISTRATIVE_INSS' && eventKind === 'REQUIREMENT_FILED'
+                    ? 'bg-[#C89543] text-white border-[#C89543] shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                🚀 {t.caseUpdates.presetInssInit}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('INSS_EXIGENCE')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${
+                  eventKind === 'INSS_EXIGENCE'
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                ⚠️ {t.caseUpdates.presetInssExigence}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('INSS_PERICIA')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${
+                  eventKind === 'MEDICAL_EXAM_SCHEDULED'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                🩺 {t.caseUpdates.presetInssPericia}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('INSS_CONCEDE')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${
+                  eventKind === 'DECISION_GRANTED'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                🏆 {t.caseUpdates.presetInssConcede}
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('JUDICIAL_INIT')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg border transition-colors ${
+                  stage === 'JUDICIAL_FIRST_DEGREE' && eventKind === 'REQUIREMENT_FILED'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                ⚖️ {t.caseUpdates.presetJudicialInit}
+              </button>
+            </div>
+          </div>
+
           {/* Row 1: Process Number & Agency */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
