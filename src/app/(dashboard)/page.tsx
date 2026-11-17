@@ -14,6 +14,7 @@ import {
 import { ReceptionTable, type ReceptionTableRow } from '@/components/reception/reception-table';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
+import { registerFastIntakeClient, getClientProfile } from '@/lib/data/mock-clients';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { Client } from '@/types/client';
 
@@ -82,8 +83,11 @@ export default function ReceptionDashboardPage() {
 
   // Handle Fast Intake Success
   const handleFastIntakeSuccess = (data: FastIntakeData) => {
+    const newId = `cli-${Date.now()}`;
+    registerFastIntakeClient(newId, data);
+
     const newRow: ReceptionTableRow = {
-      id: `cli-${Date.now()}`,
+      id: newId,
       fullName: data.fullName,
       cpf: data.cpf || '00000000000',
       attendanceType: 'FIRST_VISIT',
@@ -105,25 +109,8 @@ export default function ReceptionDashboardPage() {
   };
 
   const handleOpenMemoryCard = (row: ReceptionTableRow) => {
-    const clientObj: Client = {
-      id: row.id,
-      tenantId: 'tenant-demo',
-      fullName: row.fullName,
-      normalizedName: row.fullName.toLowerCase(),
-      cpf: row.cpf,
-      normalizedCpf: row.cpf.replace(/\D/g, ''),
-      benefitType: row.benefitTypeNotes || 'Rural Special Retirement',
-      visitCount: row.totalVisits,
-      lastVisitAt: row.lastVisitAt,
-      lastAttendantName: row.assignedAttendant,
-      status: row.totalVisits > 1 ? 'PENDING' : 'PROSPECT',
-      active: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      notes: 'Initial reception intake recorded. Physical folder pending verification.',
-    };
-
-    setSelectedClientForMemoryCard(clientObj);
+    const profile = getClientProfile(row.id);
+    setSelectedClientForMemoryCard(profile.client);
     setIsMemoryCardOpen(true);
   };
 
