@@ -15,6 +15,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { UploadDocumentModal } from './upload-document-modal';
 import type { LegalDocument, DocumentCategory } from '@/types/document';
 
 interface DocumentVaultProps {
@@ -84,9 +85,13 @@ export function DocumentVault({ clientId, clientName }: DocumentVaultProps) {
     },
   ]);
 
-  const [isUploading, setIsUploading] = useState(false);
-  const [newDocCategory, setNewDocCategory] = useState<DocumentCategory>('IDENTIFICATION');
-  const [newDocName, setNewDocName] = useState('');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const formatFileSize = (bytes: number) => {
     if (bytes >= 1024 * 1024) {
@@ -115,32 +120,21 @@ export function DocumentVault({ clientId, clientName }: DocumentVaultProps) {
     }
   };
 
-  const handleSimulateUpload = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newDocName.trim()) return;
-
-    const newDoc: LegalDocument = {
-      id: `doc-${Date.now()}`,
-      tenantId: 'tenant-default',
-      clientId,
-      originalName: `${newDocName.toLowerCase().replace(/\s+/g, '_')}.pdf`,
-      displayName: newDocName.trim(),
-      category: newDocCategory,
-      mimeType: 'application/pdf',
-      extension: '.pdf',
-      sizeBytes: Math.floor(Math.random() * 800000) + 200000,
-      storagePath: `secure_documents/${Math.random().toString(36).slice(2)}.apdoc`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
+  const handleUploadSuccess = (newDoc: LegalDocument) => {
     setDocuments((prev) => [newDoc, ...prev]);
-    setNewDocName('');
-    setIsUploading(false);
+    showToast(`Documento "${newDoc.displayName}" criptografado e anexado com sucesso!`);
   };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+      {/* Toast */}
+      {toastMessage && (
+        <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
         <div>
@@ -152,80 +146,13 @@ export function DocumentVault({ clientId, clientName }: DocumentVaultProps) {
         </div>
 
         <button
-          onClick={() => setIsUploading(!isUploading)}
+          onClick={() => setIsUploadModalOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-[#0B192E] hover:bg-[#142642] text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0"
         >
           <Upload className="w-4 h-4 text-[#C89543]" />
           <span>{t.clientDetails.uploadDocBtn}</span>
         </button>
       </div>
-
-      {/* Upload drawer form */}
-      {isUploading && (
-        <form
-          onSubmit={handleSimulateUpload}
-          className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <Upload className="w-4 h-4 text-[#C89543]" />
-              Novo Documento para a Pasta
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsUploading(false)}
-              className="text-xs text-slate-500 hover:text-slate-800"
-            >
-              Cancelar
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                {t.clientDetails.docName}
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="ex: Laudo Pericial Ortopedia 2026"
-                value={newDocName}
-                onChange={(e) => setNewDocName(e.target.value)}
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                {t.clientDetails.docCategory}
-              </label>
-              <select
-                value={newDocCategory}
-                onChange={(e) => setNewDocCategory(e.target.value as DocumentCategory)}
-                className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543]"
-              >
-                <option value="IDENTIFICATION">Identificação (RG / CPF)</option>
-                <option value="ADDRESS_PROOF">Comprovante de Residência</option>
-                <option value="EMPLOYMENT_BOOK">Carteira de Trabalho (CTPS)</option>
-                <option value="CNIS_EXTRACT">Extrato CNIS / INSS</option>
-                <option value="MEDICAL_REPORT">Laudo / Atestado Médico</option>
-                <option value="PPP_LTCAT">PPP / LTCAT / Prova Rural</option>
-                <option value="POWER_OF_ATTORNEY">Procuração / Contrato OAB</option>
-                <option value="OTHER">Outros Documentos</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="submit"
-              className="px-4 py-1.5 bg-[#C89543] hover:bg-[#b08137] text-white text-xs font-bold rounded-lg shadow-xs transition-colors"
-            >
-              Anexar ao Cofre Criptografado
-            </button>
-          </div>
-        </form>
-      )}
 
       {/* Document List */}
       <div className="mt-6 divide-y divide-slate-100">
@@ -289,6 +216,14 @@ export function DocumentVault({ clientId, clientName }: DocumentVaultProps) {
           </div>
         ))}
       </div>
+
+      {/* Upload Document Mini Window Modal */}
+      <UploadDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        clientId={clientId}
+        onUploadSuccess={handleUploadSuccess}
+      />
     </div>
   );
 }

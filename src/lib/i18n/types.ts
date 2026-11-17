@@ -272,6 +272,16 @@ export interface Translations {
     docDelivered: string;
     docPending: string;
     docDate: string;
+    uploadModalTitle: string;
+    uploadModalSubtitle: string;
+    dragDropPrompt: string;
+    dragDropSubtext: string;
+    chooseFileBtn: string;
+    fileSelected: string;
+    removeFile: string;
+    btnUploadSubmit: string;
+    btnUploadingSubmit: string;
+    uploadEncryptedBadge: string;
     diagnosticTitle: string;
     diagnosticSubtitle: string;
     retirementAgeRural: string;
