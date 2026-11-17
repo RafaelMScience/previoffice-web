@@ -16,28 +16,34 @@ import {
   ChevronDown,
   UserX,
   RotateCcw,
+  Scale,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { Client, ClientStatus } from '@/types/client';
+import type { CaseUpdate } from '@/types/case-update';
 
 interface ClientDetailHeaderProps {
   client: Client;
+  latestCaseUpdate?: CaseUpdate;
   onOpenNewAttendance: () => void;
   onOpenContracts: () => void;
   onOpenMemoryCard: () => void;
   onStatusChange?: (newStatus: ClientStatus) => void;
   onInactivateClick?: () => void;
   onReactivateClick?: () => void;
+  onSelectProcessTab?: () => void;
 }
 
 export function ClientDetailHeader({
   client,
+  latestCaseUpdate,
   onOpenNewAttendance,
   onOpenContracts,
   onOpenMemoryCard,
   onStatusChange,
   onInactivateClick,
   onReactivateClick,
+  onSelectProcessTab,
 }: ClientDetailHeaderProps) {
   const { t } = useI18n();
   const [isStatusMenuOpen, setIsStatusMenuOpen] = React.useState(false);
@@ -174,6 +180,12 @@ export function ClientDetailHeader({
             )}
           </div>
 
+          {/* LGPD Compliance Badge */}
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{t.clientDetails.lgpdComplianceBadge}</span>
+          </div>
+
           <span className="text-xs text-slate-400 font-mono">ID: {client.id.slice(0, 8)}</span>
         </div>
       </div>
@@ -203,6 +215,61 @@ export function ClientDetailHeader({
               <span>{t.clientDetails.btnReactivate}</span>
             </button>
           )}
+        </div>
+      )}
+
+      {/* Latest Procedural Update Banner */}
+      {latestCaseUpdate && (
+        <div className="mb-4 p-3.5 bg-linear-to-r from-amber-50/90 via-white to-amber-50/50 border border-amber-200 rounded-xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <span className="p-1 rounded-lg bg-amber-100 text-amber-800 shrink-0">
+              <Scale className="w-4 h-4" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-amber-950 uppercase tracking-wide text-[10px] bg-amber-200/60 px-2 py-0.5 rounded">
+                  {t.clientDetails.latestUpdateNotification}
+                </span>
+                <span className="text-slate-500 font-mono text-[11px]">
+                  {new Date(latestCaseUpdate.eventDate).toLocaleDateString('pt-BR')} • {latestCaseUpdate.forumOrAgency}
+                </span>
+              </div>
+              <p className="font-semibold text-slate-800 mt-0.5">
+                {latestCaseUpdate.title}
+                {latestCaseUpdate.description && (
+                  <span className="font-normal text-slate-600 block sm:inline sm:ml-1">
+                    — {latestCaseUpdate.description}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {latestCaseUpdate.notifyClientText && cleanPhone && (
+              <a
+                href={`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(
+                  latestCaseUpdate.notifyClientText
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-xs shadow-xs"
+                title="Avisar cliente sobre este andamento via WhatsApp"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>{t.clientDetails.btnNotifyClient}</span>
+              </a>
+            )}
+            {onSelectProcessTab && (
+              <button
+                type="button"
+                onClick={onSelectProcessTab}
+                className="px-2.5 py-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg font-semibold text-xs transition-colors"
+              >
+                Ver histórico
+              </button>
+            )}
+          </div>
         </div>
       )}
 

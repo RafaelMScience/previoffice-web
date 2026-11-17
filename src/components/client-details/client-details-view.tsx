@@ -160,6 +160,7 @@ export function ClientDetailsView({
     email: client.email,
     benefitNumber: client.benefitNumber,
     benefitType: client.benefitType,
+    physicalFileLocation: client.physicalFileLocation,
     notes: client.notes,
   };
 
@@ -176,12 +177,14 @@ export function ClientDetailsView({
       {/* Executive Client Header */}
       <ClientDetailHeader
         client={client}
+        latestCaseUpdate={caseUpdates[0]}
         onOpenNewAttendance={() => setIsAttendanceModalOpen(true)}
         onOpenContracts={() => setIsContractModalOpen(true)}
         onOpenMemoryCard={() => setIsMemoryCardOpen(true)}
         onStatusChange={handleStatusChange}
         onInactivateClick={() => setIsInactivateModalOpen(true)}
         onReactivateClick={handleReactivate}
+        onSelectProcessTab={() => setActiveTab('process')}
       />
 
       {/* Navigation Tabs */}

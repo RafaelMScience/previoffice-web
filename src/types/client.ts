@@ -71,6 +71,7 @@ export interface Client {
 
   // Sensitive & Security
   encryptedInssPassword?: string; // AES-256-GCM encrypted column
+  physicalFileLocation?: string; // e.g. "Armário A - Gaveta 02 - Pasta 2026-081"
   photoReference?: string; // Path or cloud storage reference (.apimg)
   notes?: string;
 
