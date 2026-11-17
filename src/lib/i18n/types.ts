@@ -76,6 +76,25 @@ export interface Translations {
     footerRecords: string;
     footerPhysicalNotice: string;
   };
+  fastIntake: {
+    modalTitle: string;
+    modalSubtitle: string;
+    speedBadge: string;
+    fullNameLabel: string;
+    fullNamePlaceholder: string;
+    phoneLabel: string;
+    phonePlaceholder: string;
+    cpfLabel: string;
+    cpfPlaceholder: string;
+    cpfOptionalNote: string;
+    cpfInvalid: string;
+    benefitLabel: string;
+    notesLabel: string;
+    notesPlaceholder: string;
+    btnSubmit: string;
+    btnSubmitting: string;
+    successMessage: string;
+  };
   memoryCard: {
     title: string;
     subtitle: string;

@@ -9,16 +9,100 @@ import {
   PlusCircle,
   FolderOpen,
   ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import { ReceptionTable, type ReceptionTableRow } from '@/components/reception/reception-table';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
+import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { Client } from '@/types/client';
 
 export default function ReceptionDashboardPage() {
   const { t } = useI18n();
+
+  // Reception table state
+  const [receptionRows, setReceptionRows] = useState<ReceptionTableRow[]>([
+    {
+      id: 'cli-001',
+      fullName: 'Maria Francisca da Silva',
+      cpf: '12345678909',
+      attendanceType: 'RETURN_DOCUMENTS',
+      lastVisitAt: '09:15',
+      totalVisits: 3,
+      pendingDocuments: ['Contrato de Terra Rural (ITR)', 'Declaração do Sindicato'],
+      registrationProgress: 35,
+      assignedAttendant: 'Camila Recepção',
+      benefitTypeNotes: 'Rural Special Retirement',
+    },
+    {
+      id: 'cli-002',
+      fullName: 'Severino Manoel dos Santos',
+      cpf: '98765432100',
+      attendanceType: 'FIRST_VISIT',
+      lastVisitAt: '10:30',
+      totalVisits: 1,
+      pendingDocuments: ['Laudo Médico Pericial (CID M54.5)', 'Histórico CNIS'],
+      registrationProgress: 20,
+      assignedAttendant: 'Camila Recepção',
+      benefitTypeNotes: 'BPC/LOAS Disability Benefit',
+    },
+    {
+      id: 'cli-003',
+      fullName: 'Antonia Ribeiro de Lima',
+      cpf: '45678912300',
+      attendanceType: 'CONTRACT_SIGNING',
+      lastVisitAt: '11:00',
+      totalVisits: 2,
+      pendingDocuments: [],
+      registrationProgress: 75,
+      assignedAttendant: 'Dr. Alexandre Pontes',
+      benefitTypeNotes: 'Age Retirement (Urban)',
+    },
+    {
+      id: 'cli-004',
+      fullName: 'Josefa Clementina Alves',
+      cpf: '65432198711',
+      attendanceType: 'GENERAL_QUERY',
+      lastVisitAt: '16:45',
+      totalVisits: 4,
+      pendingDocuments: ['Comprovante de Residência Atualizado'],
+      registrationProgress: 60,
+      assignedAttendant: 'Camila Recepção',
+      benefitTypeNotes: 'Social Security Administrative Review',
+    },
+  ]);
+
+  const [visitsTodayCount, setVisitsTodayCount] = useState(12);
+  const [fastIntakeSuccessMsg, setFastIntakeSuccessMsg] = useState<string | null>(null);
+
+  // Modals state
+  const [isFastIntakeOpen, setIsFastIntakeOpen] = useState(false);
   const [selectedClientForMemoryCard, setSelectedClientForMemoryCard] = useState<Client | null>(null);
   const [isMemoryCardOpen, setIsMemoryCardOpen] = useState(false);
+
+  // Handle Fast Intake Success
+  const handleFastIntakeSuccess = (data: FastIntakeData) => {
+    const newRow: ReceptionTableRow = {
+      id: `cli-${Date.now()}`,
+      fullName: data.fullName,
+      cpf: data.cpf || '00000000000',
+      attendanceType: 'FIRST_VISIT',
+      lastVisitAt: 'Agora / Just now',
+      totalVisits: 1,
+      pendingDocuments: ['Verificação de Documentos Físicos'],
+      registrationProgress: 20,
+      assignedAttendant: 'Camila Recepção',
+      benefitTypeNotes: data.benefit,
+    };
+
+    setReceptionRows((prev) => [newRow, ...prev]);
+    setVisitsTodayCount((prev) => prev + 1);
+
+    setFastIntakeSuccessMsg(
+      `${t.fastIntake.successMessage} (${data.fullName} — ${data.phone})`
+    );
+    setTimeout(() => setFastIntakeSuccessMsg(null), 5000);
+  };
 
   const handleOpenMemoryCard = (row: ReceptionTableRow) => {
     const clientObj: Client = {
@@ -61,14 +145,31 @@ export default function ReceptionDashboardPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => alert(t.topbar.newIntake)}
-            className="px-4 py-2.5 rounded-lg bg-[#C89543] text-[#0B192E] font-bold text-xs uppercase tracking-wider hover:bg-[#d5a557] flex items-center gap-2 shadow-xs transition-all"
+            onClick={() => setIsFastIntakeOpen(true)}
+            className="px-5 py-2.5 rounded-lg bg-[#C89543] text-[#0B192E] font-bold text-xs uppercase tracking-wider hover:bg-[#d5a557] flex items-center gap-2 shadow-sm transition-all"
           >
-            <PlusCircle className="w-4 h-4" />
+            <PlusCircle className="w-4 h-4 stroke-[2.5]" />
             <span>{t.dashboard.fastIntakeBtn}</span>
           </button>
         </div>
       </div>
+
+      {/* Success Notification Bar */}
+      {fastIntakeSuccessMsg && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <span>{fastIntakeSuccessMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFastIntakeSuccessMsg(null)}
+            className="text-emerald-700 hover:text-emerald-900 p-1"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -78,7 +179,7 @@ export default function ReceptionDashboardPage() {
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
               {t.dashboard.metricVisitsToday}
             </p>
-            <h3 className="text-2xl font-bold text-slate-900 mt-1">12</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mt-1">{visitsTodayCount}</h3>
             <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 mt-1">
               <TrendingUp className="w-3.5 h-3.5" />
               {t.dashboard.metricVsYesterday}
@@ -140,7 +241,17 @@ export default function ReceptionDashboardPage() {
       </div>
 
       {/* Main Reception Queue & Client Table */}
-      <ReceptionTable onOpenMemoryCard={handleOpenMemoryCard} />
+      <ReceptionTable
+        initialRows={receptionRows}
+        onOpenMemoryCard={handleOpenMemoryCard}
+      />
+
+      {/* Fast Intake Modal (15-second arrival registration) */}
+      <FastIntakeModal
+        isOpen={isFastIntakeOpen}
+        onClose={() => setIsFastIntakeOpen(false)}
+        onSubmitSuccess={handleFastIntakeSuccess}
+      />
 
       {/* Memory Card Modal for Return Visits */}
       <MemoryCardModal
