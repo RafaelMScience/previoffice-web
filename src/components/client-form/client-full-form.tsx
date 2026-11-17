@@ -12,6 +12,11 @@ import {
   CheckCircle,
   Calculator,
   Lock,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  ShieldCheck,
 } from 'lucide-react';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { calculateAge, checkRuralRetirementAge } from '@/lib/domain/benefit-rules';
@@ -58,6 +63,15 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   // Social Security Credentials
   const [benefitNumber, setBenefitNumber] = useState(initialData?.benefitNumber || '');
   const [inssPassword, setInssPassword] = useState(initialData?.inssPassword || '');
+  const [showInssPassword, setShowInssPassword] = useState(false);
+  const [isCopiedInss, setIsCopiedInss] = useState(false);
+
+  const handleCopyInssPassword = () => {
+    if (!inssPassword) return;
+    navigator.clipboard.writeText(inssPassword);
+    setIsCopiedInss(true);
+    setTimeout(() => setIsCopiedInss(false), 2000);
+  };
 
   // Benefit specifics
   const [benefitType, setBenefitType] = useState(initialData?.benefitType || 'BPC/LOAS Elderly');
@@ -517,16 +531,65 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t.clientForm.inssPasswordLabel}
-                </label>
-                <input
-                  type="password"
-                  value={inssPassword}
-                  onChange={(e) => setInssPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    {t.clientForm.inssPasswordLabel}
+                  </label>
+                  {inssPassword && (
+                    <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      AES-256
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type={showInssPassword ? 'text' : 'password'}
+                    value={inssPassword}
+                    onChange={(e) => setInssPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-3.5 pr-20 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono tracking-wider"
+                  />
+                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowInssPassword(!showInssPassword)}
+                      className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-200/60 transition-colors"
+                      title={
+                        showInssPassword
+                          ? t.clientForm.inssPasswordToggleHide
+                          : t.clientForm.inssPasswordToggleShow
+                      }
+                    >
+                      {showInssPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                    {inssPassword && (
+                      <button
+                        type="button"
+                        onClick={handleCopyInssPassword}
+                        className="p-1.5 text-slate-400 hover:text-[#C89543] rounded-md hover:bg-slate-200/60 transition-colors"
+                        title={
+                          isCopiedInss
+                            ? t.clientForm.inssPasswordCopied
+                            : 'Copiar senha do Meu INSS'
+                        }
+                      >
+                        {isCopiedInss ? (
+                          <Check className="w-4 h-4 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500 leading-tight">
+                  {t.clientForm.inssPasswordEncryptedHelp}
+                </p>
               </div>
 
               <div>
