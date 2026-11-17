@@ -114,7 +114,6 @@ export interface Translations {
     loasEligibleNotice: string;
     ruralEligibleNotice: string;
     fillBirthDateHint: string;
-    // Section 1
     fullNameLabel: string;
     fullNamePlaceholder: string;
     cpfLabel: string;
@@ -140,7 +139,6 @@ export interface Translations {
     motherNamePlaceholder: string;
     fatherNameLabel: string;
     fatherNamePlaceholder: string;
-    // Section 2
     zipCodeLabel: string;
     streetLabel: string;
     streetPlaceholder: string;
@@ -149,16 +147,13 @@ export interface Translations {
     neighborhoodLabel: string;
     cityLabel: string;
     stateLabel: string;
-    // Section 3
     mobilePhoneLabel: string;
     secondaryPhoneLabel: string;
     emailLabel: string;
-    // Section 4
     benefitNumberLabel: string;
     inssPasswordLabel: string;
     physicalLocationLabel: string;
     physicalLocationPlaceholder: string;
-    // Section 5
     desiredBenefitLabel: string;
     specialCategoryLabel: string;
     catUrban: string;
@@ -167,5 +162,56 @@ export interface Translations {
     catHazardous: string;
     notesLabel: string;
     notesPlaceholder: string;
+  };
+  login: {
+    title: string;
+    subtitle: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    rememberMe: string;
+    forgotPassword: string;
+    btnSubmit: string;
+    btnSubmitting: string;
+    securityBadge: string;
+    demoNote: string;
+    errorInvalidCredentials: string;
+    errorRateLimit: string;
+  };
+  adminProvisioning: {
+    pageBadge: string;
+    pageTitle: string;
+    pageSubtitle: string;
+    gateTitle: string;
+    gateSubtitle: string;
+    masterKeyLabel: string;
+    masterKeyPlaceholder: string;
+    btnUnlock: string;
+    btnVerifying: string;
+    gateError: string;
+    gateAttemptsRemaining: string;
+    formSecOffice: string;
+    formSecLawyer: string;
+    officeNameLabel: string;
+    officeNamePlaceholder: string;
+    oabNumberLabel: string;
+    oabNumberPlaceholder: string;
+    oabUfLabel: string;
+    cnpjCpfLabel: string;
+    phoneLabel: string;
+    officeEmailLabel: string;
+    officeAddressLabel: string;
+    lawyerNameLabel: string;
+    lawyerEmailLabel: string;
+    lawyerPasswordLabel: string;
+    planLabel: string;
+    planTrial: string;
+    planAnnual: string;
+    btnCreateOffice: string;
+    btnCreating: string;
+    successTitle: string;
+    successMessage: string;
+    copyAccessData: string;
   };
 }
