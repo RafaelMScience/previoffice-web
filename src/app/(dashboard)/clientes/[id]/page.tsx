@@ -2,6 +2,7 @@ import React from 'react';
 import { ClientDetailsView } from '@/components/client-details/client-details-view';
 import type { Client } from '@/types/client';
 import type { Attendance } from '@/types/attendance';
+import type { CaseUpdate } from '@/types/case-update';
 
 interface ClientPageProps {
   params: Promise<{
@@ -113,6 +114,46 @@ const MOCK_ATTENDANCES: Attendance[] = [
   },
 ];
 
+const MOCK_CASE_UPDATES: CaseUpdate[] = [
+  {
+    id: 'case-up-2',
+    tenantId: 'tenant-default',
+    clientId: 'c-8902',
+    processNumber: '0800123-45.2026.4.05.8201',
+    forumOrAgency: '1ª Vara Federal de Guarabira - Juizado Especial Federal',
+    stage: 'JUDICIAL_FIRST_DEGREE',
+    eventKind: 'MEDICAL_EXAM_SCHEDULED',
+    eventDate: '2026-11-15T14:00:00.000Z',
+    title: 'Perícia Médica Judicial Agendada',
+    description:
+      'Designada data para realização da perícia médica pelo perito judicial Dr. Roberto Mendes (Ortopedista). Realização no consultório da Justiça Federal em Guarabira/PB.',
+    actionDeadline: '2026-12-05T00:00:00.000Z',
+    notifyClientText:
+      'Olá Dona Maria Francisca! Aqui é do escritório do Dr. Alexandre Pontes. Passando para avisar que a sua perícia médica da Justiça Federal foi marcada para o dia 12/12 às 09:30. Estamos preparando seus laudos e explicaremos tudo com calma!',
+    recordedBy: 'Dr. Alexandre Pontes',
+    createdAt: '2026-11-15T14:00:00.000Z',
+    updatedAt: '2026-11-15T14:00:00.000Z',
+  },
+  {
+    id: 'case-up-1',
+    tenantId: 'tenant-default',
+    clientId: 'c-8902',
+    processNumber: '0800123-45.2026.4.05.8201',
+    forumOrAgency: '1ª Vara Federal de Guarabira - Juizado Especial Federal',
+    stage: 'JUDICIAL_FIRST_DEGREE',
+    eventKind: 'REQUIREMENT_FILED',
+    eventDate: '2026-11-05T11:20:00.000Z',
+    title: 'Petição Inicial Distribuída com Sucesso',
+    description:
+      'Ajuizada Ação de Concessão de Aposentadoria por Idade Rural c/c Pedido de Tutela de Urgência. Juntadas procuração, contrato OAB, ITR e notas fiscais de produtor rural.',
+    notifyClientText:
+      'Olá Dona Maria Francisca! O seu processo de aposentadoria já foi protocolado oficialmente na Justiça Federal com o número 0800123-45.2026.4.05.8201. Qualquer novidade avisaremos a senhora!',
+    recordedBy: 'Dr. Alexandre Pontes',
+    createdAt: '2026-11-05T11:20:00.000Z',
+    updatedAt: '2026-11-05T11:20:00.000Z',
+  },
+];
+
 export default async function ClientDetailPage({ params }: ClientPageProps) {
   const { id } = await params;
 
@@ -126,6 +167,7 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
       <ClientDetailsView
         initialClient={clientWithId}
         initialAttendances={MOCK_ATTENDANCES}
+        initialCaseUpdates={MOCK_CASE_UPDATES}
       />
     </div>
   );

@@ -17,26 +17,33 @@ import { DocumentVault } from './document-vault';
 import { BenefitDiagnosticCard } from './benefit-diagnostic-card';
 import { LegalContractModal } from './legal-contract-modal';
 import { InactivateClientModal } from './inactivate-client-modal';
+import { CaseUpdatesPanel } from './case-updates-panel';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
 import type { Client, ClientStatus } from '@/types/client';
 import type { Attendance } from '@/types/attendance';
+import type { CaseUpdate } from '@/types/case-update';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
 
 interface ClientDetailsViewProps {
   initialClient: Client;
   initialAttendances: Attendance[];
+  initialCaseUpdates?: CaseUpdate[];
 }
 
 export function ClientDetailsView({
   initialClient,
   initialAttendances,
+  initialCaseUpdates = [],
 }: ClientDetailsViewProps) {
   const { t } = useI18n();
 
   const [client, setClient] = useState<Client>(initialClient);
   const [attendances, setAttendances] = useState<Attendance[]>(initialAttendances);
-  const [activeTab, setActiveTab] = useState<'attendances' | 'profile' | 'documents' | 'diagnostic'>('attendances');
+  const [caseUpdates, setCaseUpdates] = useState<CaseUpdate[]>(initialCaseUpdates);
+  const [activeTab, setActiveTab] = useState<
+    'attendances' | 'process' | 'profile' | 'documents' | 'diagnostic'
+  >('attendances');
 
   // Modals state
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
@@ -201,6 +208,29 @@ export function ClientDetailsView({
         </button>
 
         <button
+          onClick={() => setActiveTab('process')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
+            activeTab === 'process'
+              ? 'bg-[#0B192E] text-white shadow-xs'
+              : client.status === 'CLOSED'
+              ? 'text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/60'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <Scale className="w-4 h-4 text-[#C89543]" />
+          <span>{t.clientDetails.tabCaseUpdates}</span>
+          <span
+            className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+              activeTab === 'process'
+                ? 'bg-[#C89543] text-white'
+                : 'bg-slate-200 text-slate-700'
+            }`}
+          >
+            {caseUpdates.length}
+          </span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('profile')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all shrink-0 ${
             activeTab === 'profile'
@@ -244,6 +274,15 @@ export function ClientDetailsView({
           onOpenNewAttendance={() => setIsAttendanceModalOpen(true)}
           onToggleDocumentDelivered={handleToggleDocumentDelivered}
           onFormalizeContract={handleFormalizeContract}
+        />
+      )}
+
+      {activeTab === 'process' && (
+        <CaseUpdatesPanel
+          clientId={client.id}
+          clientName={client.fullName}
+          clientPhone={client.mobilePhone || client.phone}
+          initialUpdates={caseUpdates}
         />
       )}
 
