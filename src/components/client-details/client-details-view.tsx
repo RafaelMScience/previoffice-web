@@ -16,9 +16,10 @@ import { NewAttendanceModal } from './new-attendance-modal';
 import { DocumentVault } from './document-vault';
 import { BenefitDiagnosticCard } from './benefit-diagnostic-card';
 import { LegalContractModal } from './legal-contract-modal';
+import { InactivateClientModal } from './inactivate-client-modal';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
-import type { Client } from '@/types/client';
+import type { Client, ClientStatus } from '@/types/client';
 import type { Attendance } from '@/types/attendance';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
 
@@ -41,6 +42,7 @@ export function ClientDetailsView({
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
   const [isMemoryCardOpen, setIsMemoryCardOpen] = useState(false);
+  const [isInactivateModalOpen, setIsInactivateModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -48,6 +50,47 @@ export function ClientDetailsView({
     setTimeout(() => {
       setToastMessage(null);
     }, 4000);
+  };
+
+  const handleStatusChange = (newStatus: ClientStatus) => {
+    setClient((prev) => ({
+      ...prev,
+      status: newStatus,
+      active: newStatus !== 'INACTIVE',
+    }));
+    showToast(`Status do cliente alterado para: ${newStatus}`);
+  };
+
+  const handleConfirmInactivation = (reason: string, notes: string) => {
+    setClient((prev) => ({
+      ...prev,
+      status: 'INACTIVE',
+      active: false,
+      inactivationReason: reason,
+      inactivatedAt: new Date().toISOString(),
+      notes: notes ? `${prev.notes || ''}\n[Encerramento: ${reason}] ${notes}`.trim() : prev.notes,
+    }));
+    showToast(t.clientDetails.inactivatedSuccessToast);
+  };
+
+  const handleReactivate = () => {
+    setClient((prev) => ({
+      ...prev,
+      status: 'PENDING',
+      active: true,
+      inactivationReason: undefined,
+      reactivatedAt: new Date().toISOString(),
+    }));
+    showToast(t.clientDetails.reactivatedSuccessToast);
+  };
+
+  const handleFormalizeContract = () => {
+    setClient((prev) => ({
+      ...prev,
+      status: 'CLOSED',
+    }));
+    setIsContractModalOpen(true);
+    showToast('Documentação completa! Status atualizado para Contrato Fechado.');
   };
 
   const handleSaveAttendance = (newAttendance: Attendance) => {
@@ -129,6 +172,9 @@ export function ClientDetailsView({
         onOpenNewAttendance={() => setIsAttendanceModalOpen(true)}
         onOpenContracts={() => setIsContractModalOpen(true)}
         onOpenMemoryCard={() => setIsMemoryCardOpen(true)}
+        onStatusChange={handleStatusChange}
+        onInactivateClick={() => setIsInactivateModalOpen(true)}
+        onReactivateClick={handleReactivate}
       />
 
       {/* Navigation Tabs */}
@@ -197,6 +243,7 @@ export function ClientDetailsView({
           attendances={attendances}
           onOpenNewAttendance={() => setIsAttendanceModalOpen(true)}
           onToggleDocumentDelivered={handleToggleDocumentDelivered}
+          onFormalizeContract={handleFormalizeContract}
         />
       )}
 
@@ -260,6 +307,13 @@ export function ClientDetailsView({
         isOpen={isMemoryCardOpen}
         onClose={() => setIsMemoryCardOpen(false)}
         onUpdateClient={handleUpdateClientFromMemory}
+      />
+
+      <InactivateClientModal
+        isOpen={isInactivateModalOpen}
+        onClose={() => setIsInactivateModalOpen(false)}
+        clientName={client.fullName}
+        onConfirm={handleConfirmInactivation}
       />
     </div>
   );

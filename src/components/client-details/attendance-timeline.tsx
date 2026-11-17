@@ -6,6 +6,7 @@ import {
   User,
   Calendar,
   FileText,
+  FileSignature,
   CheckCircle2,
   AlertCircle,
   PlusCircle,
@@ -20,12 +21,14 @@ interface AttendanceTimelineProps {
   attendances: Attendance[];
   onOpenNewAttendance: () => void;
   onToggleDocumentDelivered?: (attendanceId: string, docId: string) => void;
+  onFormalizeContract?: () => void;
 }
 
 export function AttendanceTimeline({
   attendances,
   onOpenNewAttendance,
   onToggleDocumentDelivered,
+  onFormalizeContract,
 }: AttendanceTimelineProps) {
   const { t } = useI18n();
 
@@ -217,6 +220,26 @@ export function AttendanceTimeline({
                           </div>
                         ))}
                       </div>
+
+                      {/* Prompt to close contract when all docs delivered */}
+                      {item.pendingDocuments.every((d) => d.isDelivered) && (
+                        <div className="mt-2.5 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 animate-in fade-in">
+                          <div className="flex items-center gap-2 text-xs text-emerald-800 font-semibold">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>{t.clientDetails.allDocsCompletedPrompt}</span>
+                          </div>
+                          {onFormalizeContract && (
+                            <button
+                              type="button"
+                              onClick={onFormalizeContract}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors shrink-0"
+                            >
+                              <FileSignature className="w-3.5 h-3.5" />
+                              <span>{t.clientDetails.btnFormalizeContract}</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 

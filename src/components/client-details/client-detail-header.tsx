@@ -13,15 +13,21 @@ import {
   Calendar,
   ShieldCheck,
   CheckCircle2,
+  ChevronDown,
+  UserX,
+  RotateCcw,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
-import type { Client } from '@/types/client';
+import type { Client, ClientStatus } from '@/types/client';
 
 interface ClientDetailHeaderProps {
   client: Client;
   onOpenNewAttendance: () => void;
   onOpenContracts: () => void;
   onOpenMemoryCard: () => void;
+  onStatusChange?: (newStatus: ClientStatus) => void;
+  onInactivateClick?: () => void;
+  onReactivateClick?: () => void;
 }
 
 export function ClientDetailHeader({
@@ -29,8 +35,12 @@ export function ClientDetailHeader({
   onOpenNewAttendance,
   onOpenContracts,
   onOpenMemoryCard,
+  onStatusChange,
+  onInactivateClick,
+  onReactivateClick,
 }: ClientDetailHeaderProps) {
   const { t } = useI18n();
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = React.useState(false);
 
   const getStatusBadge = () => {
     switch (client.status) {
@@ -93,11 +103,108 @@ export function ClientDetailHeader({
           <span>Voltar ao Painel da Fila</span>
         </Link>
 
-        <div className="flex items-center gap-2">
-          {getStatusBadge()}
+        <div className="flex items-center gap-3">
+          {/* Status Dropdown Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+              className="inline-flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-[#C89543] rounded-full"
+              title={t.clientDetails.btnChangeStatus}
+            >
+              {getStatusBadge()}
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 hover:text-slate-700" />
+            </button>
+
+            {isStatusMenuOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-30 py-1.5 text-xs animate-in fade-in">
+                <span className="block px-3 py-1 font-bold text-slate-400 uppercase tracking-wider text-[10px]">
+                  {t.clientDetails.btnChangeStatus}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onStatusChange && onStatusChange('PROSPECT');
+                    setIsStatusMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-medium"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  <span>{t.clientDetails.statusProspect}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onStatusChange && onStatusChange('PENDING');
+                    setIsStatusMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-medium"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <span>{t.clientDetails.statusPending}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onStatusChange && onStatusChange('CLOSED');
+                    setIsStatusMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 font-medium"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <span>{t.clientDetails.statusClosed}</span>
+                </button>
+
+                <div className="my-1 border-t border-slate-100" />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    onInactivateClick && onInactivateClick();
+                    setIsStatusMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-rose-50 flex items-center gap-2 text-rose-700 font-medium"
+                >
+                  <UserX className="w-3.5 h-3.5" />
+                  <span>{t.clientDetails.btnInactivate}</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           <span className="text-xs text-slate-400 font-mono">ID: {client.id.slice(0, 8)}</span>
         </div>
       </div>
+
+      {/* Inactive Client Alert Banner */}
+      {!client.active && (
+        <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <UserX className="w-4 h-4 text-rose-600 shrink-0" />
+            <div>
+              <span className="font-bold">{t.clientDetails.clientInactivatedBanner}:</span>{' '}
+              {client.inactivationReason || 'Desistência / Encerramento do caso'}{' '}
+              {client.inactivatedAt && (
+                <span className="text-slate-500 font-mono text-[11px]">
+                  ({new Date(client.inactivatedAt).toLocaleDateString('pt-BR')})
+                </span>
+              )}
+            </div>
+          </div>
+
+          {onReactivateClick && (
+            <button
+              onClick={onReactivateClick}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-rose-100 text-rose-800 text-xs font-bold rounded-lg border border-rose-300 transition-colors shrink-0"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{t.clientDetails.btnReactivate}</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Main header body */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
