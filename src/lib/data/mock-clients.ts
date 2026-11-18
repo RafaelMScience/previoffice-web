@@ -517,3 +517,35 @@ export function getClientProfile(id: string): ClientProfileBundle {
     caseUpdates: [],
   };
 }
+
+export interface AttendanceWithClient extends Attendance {
+  clientName: string;
+  clientCpf: string;
+  clientPhone?: string;
+  clientBenefitType?: string;
+}
+
+/**
+ * Returns all registered attendances aggregated across all clients
+ */
+export function getAllAttendancesWithClient(): AttendanceWithClient[] {
+  const list: AttendanceWithClient[] = [];
+  const processedClientIds = new Set<string>();
+
+  for (const bundle of Object.values(MOCK_CLIENTS_MAP)) {
+    if (processedClientIds.has(bundle.client.id)) continue;
+    processedClientIds.add(bundle.client.id);
+
+    for (const att of bundle.attendances) {
+      list.push({
+        ...att,
+        clientName: bundle.client.fullName,
+        clientCpf: bundle.client.cpf || '',
+        clientPhone: bundle.client.mobilePhone || bundle.client.phone,
+        clientBenefitType: bundle.client.benefitType,
+      });
+    }
+  }
+
+  return list.sort((a, b) => new Date(b.attendedAt).getTime() - new Date(a.attendedAt).getTime());
+}
