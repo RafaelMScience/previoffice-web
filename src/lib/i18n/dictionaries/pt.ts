@@ -346,6 +346,9 @@ export const ptTranslations: Translations = {
     closedContractCtaTitle: 'Contrato Fechado! O caso está pronto para ser protocolado.',
     closedContractCtaSub: 'Procuração e contrato formalizados. Registre o protocolo de entrada do requerimento no INSS para iniciar o acompanhamento.',
     btnStartInssProcess: 'Dar Entrada no INSS',
+    btnClientPdfReport: 'Ficha em PDF',
+    clientPdfModalTitle: 'Ficha Cadastral e Relatório em PDF',
+    clientPdfModalSubtitle: 'Visualize, personalize as seções e imprima o documento do cliente com espaço formal para assinaturas.',
   },
   caseUpdates: {
     panelTitle: 'Acompanhamento do Processo & Movimentações',

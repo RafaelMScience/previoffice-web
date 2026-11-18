@@ -344,6 +344,9 @@ export interface Translations {
     closedContractCtaTitle: string;
     closedContractCtaSub: string;
     btnStartInssProcess: string;
+    btnClientPdfReport: string;
+    clientPdfModalTitle: string;
+    clientPdfModalSubtitle: string;
   };
   caseUpdates: {
     panelTitle: string;

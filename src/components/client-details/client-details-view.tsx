@@ -17,6 +17,7 @@ import { NewAttendanceModal } from './new-attendance-modal';
 import { DocumentVault } from './document-vault';
 import { BenefitDiagnosticCard } from './benefit-diagnostic-card';
 import { LegalContractModal } from './legal-contract-modal';
+import { ClientPdfReportModal } from './client-pdf-report-modal';
 import { InactivateClientModal } from './inactivate-client-modal';
 import { CaseUpdatesPanel } from './case-updates-panel';
 import { NewCaseUpdateModal } from './new-case-update-modal';
@@ -50,6 +51,7 @@ export function ClientDetailsView({
   // Modals state
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+  const [isPdfReportModalOpen, setIsPdfReportModalOpen] = useState(false);
   const [isMemoryCardOpen, setIsMemoryCardOpen] = useState(false);
   const [isInactivateModalOpen, setIsInactivateModalOpen] = useState(false);
   const [isDirectInssModalOpen, setIsDirectInssModalOpen] = useState(false);
@@ -183,6 +185,7 @@ export function ClientDetailsView({
         latestCaseUpdate={caseUpdates[0]}
         onOpenNewAttendance={() => setIsAttendanceModalOpen(true)}
         onOpenContracts={() => setIsContractModalOpen(true)}
+        onOpenPdfReport={() => setIsPdfReportModalOpen(true)}
         onOpenMemoryCard={() => setIsMemoryCardOpen(true)}
         onStatusChange={handleStatusChange}
         onInactivateClick={() => setIsInactivateModalOpen(true)}
@@ -376,6 +379,13 @@ export function ClientDetailsView({
         client={client}
         isOpen={isContractModalOpen}
         onClose={() => setIsContractModalOpen(false)}
+      />
+
+      <ClientPdfReportModal
+        client={client}
+        attendances={attendances}
+        isOpen={isPdfReportModalOpen}
+        onClose={() => setIsPdfReportModalOpen(false)}
       />
 
       <MemoryCardModal
