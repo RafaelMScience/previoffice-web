@@ -19,11 +19,14 @@ import {
   GitCommit,
   ShieldCheck,
   FileCheck2,
+  X,
+  FilterX,
 } from 'lucide-react';
 import { getAllAttendancesWithClient, type AttendanceWithClient } from '@/lib/data/mock-clients';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import type { AttendanceType } from '@/types/attendance';
+import { NewGeneralAttendanceModal } from '@/components/attendances/new-general-attendance-modal';
 
 export default function AttendancesPage() {
   const { t } = useI18n();
@@ -37,6 +40,34 @@ export default function AttendancesPage() {
   const [filterType, setFilterType] = useState<
     'ALL' | 'RETURN_DOCUMENTS' | 'FIRST_CONSULTATION' | 'CONTRACT_SIGNING'
   >('ALL');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleSaveAttendance = (newAtt: AttendanceWithClient) => {
+    setAttendances((prev) => [newAtt, ...prev]);
+    setIsModalOpen(false);
+    setToastMessage(`Atendimento de "${newAtt.clientName}" registrado com sucesso!`);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 4500);
+  };
+
+  const handleToggleDocStatus = (attendanceId: string, docId: string) => {
+    setAttendances((prev) =>
+      prev.map((att) => {
+        if (att.id !== attendanceId) return att;
+        const updatedDocs = (att.pendingDocuments || []).map((doc) =>
+          doc.id === docId ? { ...doc, isDelivered: !doc.isDelivered } : doc
+        );
+        return { ...att, pendingDocuments: updatedDocs };
+      })
+    );
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterType('ALL');
+  };
 
   // Filtered attendances
   const filteredAttendances = useMemo(() => {
@@ -95,7 +126,24 @@ export default function AttendancesPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Banner with Dual-View Switcher */}
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-xl flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span className="text-xs font-bold">{toastMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="text-emerald-700 hover:text-emerald-900 text-xs font-bold p-1"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Top Banner with Dual-View Switcher & Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-[#0B192E] via-[#10233f] to-[#142642] text-white p-6 rounded-2xl shadow-xs border border-white/10">
         <div>
           <div className="flex items-center gap-2 text-[#C89543] font-semibold text-xs tracking-wider uppercase mb-1">
@@ -110,32 +158,44 @@ export default function AttendancesPage() {
           </p>
         </div>
 
-        {/* View Switcher Controls */}
-        <div className="flex items-center gap-2 bg-black/30 p-1.5 rounded-xl border border-white/10 shrink-0">
-          <button
-            type="button"
-            onClick={() => setViewMode('table')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === 'table'
-                ? 'bg-[#C89543] text-white shadow-xs'
-                : 'text-white/70 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            <LayoutList className="w-4 h-4" />
-            <span>Tabela Operacional</span>
-          </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* View Switcher Controls */}
+          <div className="flex items-center gap-1.5 bg-black/30 p-1.5 rounded-xl border border-white/10 shrink-0">
+            <button
+              type="button"
+              onClick={() => setViewMode('table')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'table'
+                  ? 'bg-[#C89543] text-white shadow-xs'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <LayoutList className="w-4 h-4" />
+              <span>Tabela Operacional</span>
+            </button>
 
+            <button
+              type="button"
+              onClick={() => setViewMode('timeline')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                viewMode === 'timeline'
+                  ? 'bg-[#C89543] text-white shadow-xs'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <GitCommit className="w-4 h-4" />
+              <span>Linha do Tempo</span>
+            </button>
+          </div>
+
+          {/* New Attendance Button */}
           <button
             type="button"
-            onClick={() => setViewMode('timeline')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-              viewMode === 'timeline'
-                ? 'bg-[#C89543] text-white shadow-xs'
-                : 'text-white/70 hover:text-white hover:bg-white/10'
-            }`}
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#C89543] hover:bg-[#d6a452] text-white shadow-md transition-all active:scale-95 shrink-0"
           >
-            <GitCommit className="w-4 h-4" />
-            <span>Linha do Tempo</span>
+            <PlusCircle className="w-4 h-4" />
+            <span>Registrar Atendimento</span>
           </button>
         </div>
       </div>
@@ -219,8 +279,18 @@ export default function AttendancesPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por cliente, CPF, objetivo..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
+            className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
+              title="Limpar busca"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Filter Pills */}
@@ -292,7 +362,19 @@ export default function AttendancesPage() {
                 {filteredAttendances.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
-                      Nenhum atendimento localizado com os filtros selecionados.
+                      <div className="max-w-xs mx-auto space-y-3">
+                        <p className="text-sm">Nenhum atendimento localizado com os filtros selecionados.</p>
+                        {(searchTerm || filterType !== 'ALL') && (
+                          <button
+                            type="button"
+                            onClick={handleClearFilters}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0B192E] bg-slate-100 hover:bg-slate-200 transition-colors"
+                          >
+                            <FilterX className="w-3.5 h-3.5" />
+                            <span>Limpar Filtros</span>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -407,134 +489,173 @@ export default function AttendancesPage() {
             </span>
           </div>
 
-          <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-2.5 sm:before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
-            {filteredAttendances.map((att, idx) => {
-              const isFirst = idx === 0;
+          {filteredAttendances.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 space-y-3">
+              <p className="text-sm">Nenhum atendimento localizado na linha do tempo com os filtros selecionados.</p>
+              {(searchTerm || filterType !== 'ALL') && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0B192E] bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  <FilterX className="w-3.5 h-3.5" />
+                  <span>Limpar Filtros</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-2.5 sm:before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+              {filteredAttendances.map((att, idx) => {
+                const isFirst = idx === 0;
 
-              return (
-                <div key={att.id} className="relative group">
-                  {/* Timeline Dot */}
-                  <div
-                    className={`absolute -left-6 sm:-left-8 top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                      isFirst
-                        ? 'bg-[#C89543] border-[#0B192E] text-white shadow-xs'
-                        : 'bg-white border-slate-300 text-slate-500'
-                    }`}
-                  >
+                return (
+                  <div key={att.id} className="relative group">
+                    {/* Timeline Dot */}
                     <div
-                      className={`w-2 h-2 rounded-full ${
-                        isFirst ? 'bg-white' : 'bg-slate-400'
+                      className={`absolute -left-6 sm:-left-8 top-1.5 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        isFirst
+                          ? 'bg-[#C89543] border-[#0B192E] text-white shadow-xs'
+                          : 'bg-white border-slate-300 text-slate-500'
                       }`}
-                    />
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="bg-slate-50/70 hover:bg-slate-50 p-5 rounded-xl border border-slate-200 transition-colors space-y-3">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60">
-                      <div className="flex items-center gap-2.5 flex-wrap">
-                        {getAttendanceTypeBadge(att.attendanceType)}
-                        <Link
-                          href={`/clientes/${att.clientId}`}
-                          className="font-bold text-sm text-[#0B192E] hover:text-[#C89543] transition-colors"
-                        >
-                          {att.clientName}
-                        </Link>
-                        <span className="text-xs text-slate-500 font-mono">
-                          CPF: {formatCpf(att.clientCpf)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-xs text-slate-500">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>
-                          {new Date(att.attendedAt).toLocaleDateString('pt-BR')} às{' '}
-                          {new Date(att.attendedAt).toLocaleTimeString('pt-BR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
+                    >
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          isFirst ? 'bg-white' : 'bg-slate-400'
+                        }`}
+                      />
                     </div>
 
-                    {/* Objective */}
-                    <div className="text-xs font-semibold text-slate-800">
-                      <span className="text-slate-500 font-normal">Objetivo: </span>
-                      {att.objective}
-                    </div>
+                    {/* Card Content */}
+                    <div className="bg-slate-50/70 hover:bg-slate-50 p-5 rounded-xl border border-slate-200 transition-colors space-y-3">
+                      {/* Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          {getAttendanceTypeBadge(att.attendanceType)}
+                          <Link
+                            href={`/clientes/${att.clientId}`}
+                            className="font-bold text-sm text-[#0B192E] hover:text-[#C89543] transition-colors"
+                          >
+                            {att.clientName}
+                          </Link>
+                          <span className="text-xs text-slate-500 font-mono">
+                            CPF: {formatCpf(att.clientCpf)}
+                          </span>
+                        </div>
 
-                    {/* Narrative History */}
-                    {att.narrativeHistory && (
-                      <div className="text-xs text-slate-700 bg-white p-3 rounded-lg border border-slate-200/80 leading-relaxed">
-                        <span className="block font-bold text-slate-900 mb-1">
-                          Relato do Cliente:
-                        </span>
-                        <p className="whitespace-pre-line">{att.narrativeHistory}</p>
-                      </div>
-                    )}
-
-                    {/* Legal Strategy */}
-                    {att.notes && (
-                      <div className="text-xs text-amber-900 bg-amber-50/60 p-3 rounded-lg border border-amber-200/60 leading-relaxed">
-                        <span className="block font-bold text-amber-950 mb-1">
-                          Estratégia e Orientação Jurídica:
-                        </span>
-                        <p>{att.notes}</p>
-                      </div>
-                    )}
-
-                    {/* Pending Documents Checklist */}
-                    {att.pendingDocuments && att.pendingDocuments.length > 0 && (
-                      <div className="pt-1">
-                        <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                          Documentos Vinculados à Visita:
-                        </span>
-                        <div className="space-y-1.5">
-                          {att.pendingDocuments.map((doc) => (
-                            <div
-                              key={doc.id}
-                              className="flex items-center gap-2 text-xs text-slate-700"
-                            >
-                              <span
-                                className={`w-4 h-4 rounded-sm border flex items-center justify-center font-bold text-[9px] ${
-                                  doc.isDelivered
-                                    ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
-                                    : 'bg-white border-slate-300 text-transparent'
-                                }`}
-                              >
-                                {doc.isDelivered ? '✓' : ''}
-                              </span>
-                              <span className={doc.isDelivered ? 'line-through text-slate-400' : ''}>
-                                {doc.description}
-                              </span>
-                            </div>
-                          ))}
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                          <span>
+                            {new Date(att.attendedAt).toLocaleDateString('pt-BR')} às{' '}
+                            {new Date(att.attendedAt).toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
                         </div>
                       </div>
-                    )}
 
-                    {/* Card Footer */}
-                    <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200/60">
-                      <span className="flex items-center gap-1.5">
-                        <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Atendente: {att.attendantName || 'Dr. Alexandre Pontes'}</span>
-                      </span>
+                      {/* Objective */}
+                      <div className="text-xs font-semibold text-slate-800">
+                        <span className="text-slate-500 font-normal">Objetivo: </span>
+                        {att.objective}
+                      </div>
 
-                      <Link
-                        href={`/clientes/${att.clientId}`}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#C89543] hover:text-[#0B192E] transition-colors"
-                      >
-                        <span>Abrir Mesa do Advogado</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Link>
+                      {/* Narrative History */}
+                      {att.narrativeHistory && (
+                        <div className="text-xs text-slate-700 bg-white p-3 rounded-lg border border-slate-200/80 leading-relaxed">
+                          <span className="block font-bold text-slate-900 mb-1">
+                            Relato do Cliente:
+                          </span>
+                          <p className="whitespace-pre-line">{att.narrativeHistory}</p>
+                        </div>
+                      )}
+
+                      {/* Legal Strategy */}
+                      {att.notes && (
+                        <div className="text-xs text-amber-900 bg-amber-50/60 p-3 rounded-lg border border-amber-200/60 leading-relaxed">
+                          <span className="block font-bold text-amber-950 mb-1">
+                            Estratégia e Orientação Jurídica:
+                          </span>
+                          <p>{att.notes}</p>
+                        </div>
+                      )}
+
+                      {/* Pending Documents Checklist */}
+                      {att.pendingDocuments && att.pendingDocuments.length > 0 && (
+                        <div className="pt-1">
+                          <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                            Documentos Vinculados (clique para alternar status):
+                          </span>
+                          <div className="space-y-1.5">
+                            {att.pendingDocuments.map((doc) => (
+                              <button
+                                key={doc.id}
+                                type="button"
+                                onClick={() => handleToggleDocStatus(att.id, doc.id)}
+                                className="flex items-center gap-2 text-xs text-slate-700 hover:text-slate-900 group/doc text-left w-full py-1 px-1.5 -mx-1.5 rounded-lg hover:bg-slate-200/50 transition-colors"
+                                title={
+                                  doc.isDelivered
+                                    ? 'Documento entregue. Clique para desmarcar.'
+                                    : 'Documento pendente. Clique para marcar como recebido.'
+                                }
+                              >
+                                <span
+                                  className={`w-4 h-4 rounded-sm border flex items-center justify-center font-bold text-[9px] transition-colors shrink-0 ${
+                                    doc.isDelivered
+                                      ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                                      : 'bg-white border-slate-300 text-transparent group-hover/doc:border-[#C89543]'
+                                  }`}
+                                >
+                                  {doc.isDelivered ? '✓' : ''}
+                                </span>
+                                <span
+                                  className={`flex-1 ${
+                                    doc.isDelivered ? 'line-through text-slate-400' : 'text-slate-800'
+                                  }`}
+                                >
+                                  {doc.description}
+                                </span>
+                                {doc.isDelivered && (
+                                  <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">
+                                    Entregue
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Card Footer */}
+                      <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200/60">
+                        <span className="flex items-center gap-1.5">
+                          <UserCheck className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Atendente: {att.attendantName || 'Dr. Alexandre Pontes'}</span>
+                        </span>
+
+                        <Link
+                          href={`/clientes/${att.clientId}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#0B192E] hover:bg-[#142642] hover:text-[#C89543] transition-colors shadow-2xs"
+                        >
+                          <span>Abrir Mesa do Advogado</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
+
+      {/* New General Attendance Modal */}
+      <NewGeneralAttendanceModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveAttendance}
+      />
     </div>
   );
 }
