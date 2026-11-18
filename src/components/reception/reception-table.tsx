@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Search, AlertCircle, FileText, CheckCircle2, ArrowUpRight, Clock, UserCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatCpf } from '@/lib/domain/cpf-validator';
@@ -85,6 +86,7 @@ export function ReceptionTable({
   onOpenMemoryCard,
 }: ReceptionTableProps) {
   const { t } = useI18n();
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL');
 
@@ -220,8 +222,8 @@ export function ReceptionTable({
               filteredRows.map((row) => (
                 <tr
                   key={row.id}
-                  className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
-                  onClick={() => onOpenMemoryCard(row)}
+                  className="hover:bg-amber-50/40 transition-colors group cursor-pointer"
+                  onClick={() => router.push(`/clientes/${row.id}`)}
                 >
                   {/* Client Info */}
                   <td className="px-5 py-4">
@@ -312,16 +314,18 @@ export function ReceptionTable({
                       <button
                         type="button"
                         onClick={() => onOpenMemoryCard(row)}
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#0B192E] bg-slate-100 hover:bg-[#C89543]/20 hover:text-[#0B192E] transition-all flex items-center gap-1"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all flex items-center gap-1"
+                        title={t.receptionTable.btnMemoryCard}
                       >
                         {t.receptionTable.btnMemoryCard}
                       </button>
                       <Link
                         href={`/clientes/${row.id}`}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-[#C89543] hover:bg-slate-100 transition-all"
-                        title={t.receptionTable.tooltipQualify}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#0B192E] hover:bg-[#142642] group-hover:bg-[#C89543] transition-colors shadow-2xs"
+                        title="Atender Cliente / Abrir Mesa do Advogado"
                       >
-                        <ArrowUpRight className="w-4 h-4" />
+                        <span>Atender</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
                   </td>

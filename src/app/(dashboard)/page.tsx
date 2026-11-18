@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Users,
   FileCheck2,
@@ -10,10 +11,12 @@ import {
   FolderOpen,
   ShieldCheck,
   CheckCircle2,
+  ArrowUpRight,
 } from 'lucide-react';
 import { ReceptionTable, type ReceptionTableRow } from '@/components/reception/reception-table';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
+import { registerFastIntakeClient, getClientProfile } from '@/lib/data/mock-clients';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { Client } from '@/types/client';
 
@@ -82,8 +85,11 @@ export default function ReceptionDashboardPage() {
 
   // Handle Fast Intake Success
   const handleFastIntakeSuccess = (data: FastIntakeData) => {
+    const newId = `cli-${Date.now()}`;
+    registerFastIntakeClient(newId, data);
+
     const newRow: ReceptionTableRow = {
-      id: `cli-${Date.now()}`,
+      id: newId,
       fullName: data.fullName,
       cpf: data.cpf || '00000000000',
       attendanceType: 'FIRST_VISIT',
@@ -105,25 +111,8 @@ export default function ReceptionDashboardPage() {
   };
 
   const handleOpenMemoryCard = (row: ReceptionTableRow) => {
-    const clientObj: Client = {
-      id: row.id,
-      tenantId: 'tenant-demo',
-      fullName: row.fullName,
-      normalizedName: row.fullName.toLowerCase(),
-      cpf: row.cpf,
-      normalizedCpf: row.cpf.replace(/\D/g, ''),
-      benefitType: row.benefitTypeNotes || 'Rural Special Retirement',
-      visitCount: row.totalVisits,
-      lastVisitAt: row.lastVisitAt,
-      lastAttendantName: row.assignedAttendant,
-      status: row.totalVisits > 1 ? 'PENDING' : 'PROSPECT',
-      active: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      notes: 'Initial reception intake recorded. Physical folder pending verification.',
-    };
-
-    setSelectedClientForMemoryCard(clientObj);
+    const profile = getClientProfile(row.id);
+    setSelectedClientForMemoryCard(profile.client);
     setIsMemoryCardOpen(true);
   };
 
@@ -190,22 +179,29 @@ export default function ReceptionDashboardPage() {
           </div>
         </div>
 
-        {/* Metric 2 */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        {/* Metric 2: Retornos com Documentos */}
+        <Link
+          href="/attendances"
+          className="bg-white hover:bg-amber-50/40 p-5 rounded-xl border border-slate-200 hover:border-amber-300 shadow-xs hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
+          title="Ver todos os retornos na Central de Atendimentos"
+        >
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              {t.dashboard.metricDocReturns}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-amber-800 transition-colors">
+                {t.dashboard.metricDocReturns}
+              </p>
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
+            </div>
             <h3 className="text-2xl font-bold text-amber-600 mt-1">5</h3>
-            <span className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
+            <span className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-1 group-hover:underline">
               <Clock className="w-3.5 h-3.5" />
-              {t.dashboard.metricMemoryCardLabel}
+              <span>{t.dashboard.metricMemoryCardLabel} ↗</span>
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
             <FolderOpen className="w-6 h-6" />
           </div>
-        </div>
+        </Link>
 
         {/* Metric 3 */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">

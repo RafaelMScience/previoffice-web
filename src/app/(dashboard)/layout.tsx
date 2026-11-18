@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Users, FileText, Scale, BookOpen, ShieldCheck, Search, Plus } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
@@ -12,6 +13,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
+  const pathname = usePathname();
+
+  const isClients = pathname === '/' || pathname.startsWith('/clientes');
+  const isAttendances = pathname.startsWith('/attendances');
+  const isContracts = pathname.startsWith('/contracts');
+  const isVadeMecum = pathname.startsWith('/vade-mecum');
+  const isSecurity = pathname.startsWith('/security');
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
@@ -37,9 +45,13 @@ export default function DashboardLayout({
           </div>
           <Link
             href="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white font-medium text-sm bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] hover:bg-white/5 transition-all"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              isClients
+                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                : 'text-white/70 hover:bg-white/5 hover:text-white'
+            }`}
           >
-            <Users className="w-4 h-4 text-[#C89543]" />
+            <Users className={`w-4 h-4 ${isClients ? 'text-[#C89543]' : 'text-white/60'}`} />
             <span>{t.navigation.visitsAndClients}</span>
             <span className="ml-auto bg-[#C89543] text-[#0B192E] text-[11px] font-bold px-2 py-0.5 rounded-full">
               4
@@ -48,17 +60,28 @@ export default function DashboardLayout({
 
           <Link
             href="/attendances"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 font-medium text-sm hover:bg-white/5 hover:text-white transition-all"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              isAttendances
+                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                : 'text-white/70 hover:bg-white/5 hover:text-white'
+            }`}
           >
-            <FileText className="w-4 h-4" />
+            <FileText className={`w-4 h-4 ${isAttendances ? 'text-[#C89543]' : 'text-white/60'}`} />
             <span>{t.navigation.attendancesAndReturns}</span>
+            <span className="ml-auto bg-slate-800 text-slate-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
+              7
+            </span>
           </Link>
 
           <Link
             href="/contracts"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 font-medium text-sm hover:bg-white/5 hover:text-white transition-all"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              isContracts
+                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                : 'text-white/70 hover:bg-white/5 hover:text-white'
+            }`}
           >
-            <Scale className="w-4 h-4" />
+            <Scale className={`w-4 h-4 ${isContracts ? 'text-[#C89543]' : 'text-white/60'}`} />
             <span>{t.navigation.contractsAndPoa}</span>
           </Link>
 

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   User,
@@ -17,6 +18,9 @@ import {
   UserX,
   RotateCcw,
   Scale,
+  ChevronRight,
+  Home,
+  FileText,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { Client, ClientStatus } from '@/types/client';
@@ -46,6 +50,7 @@ export function ClientDetailHeader({
   onSelectProcessTab,
 }: ClientDetailHeaderProps) {
   const { t } = useI18n();
+  const router = useRouter();
   const [isStatusMenuOpen, setIsStatusMenuOpen] = React.useState(false);
 
   const getStatusBadge = () => {
@@ -99,15 +104,54 @@ export function ClientDetailHeader({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 mb-6">
-      {/* Top row: back link and breadcrumb */}
-      <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar ao Painel da Fila</span>
-        </Link>
+      {/* Top row: smart back button and breadcrumb navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-100">
+        <div className="flex items-center gap-2 flex-wrap text-xs font-medium text-slate-500">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition-colors cursor-pointer"
+            title="Voltar à tela anterior"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Voltar</span>
+          </button>
+
+          <span className="text-slate-300">|</span>
+
+          {/* Breadcrumb Navigation */}
+          <Link
+            href="/"
+            className="hover:text-[#0B192E] flex items-center gap-1 transition-colors"
+            title="Painel Geral da Fila"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span>Fila de Clientes</span>
+          </Link>
+
+          <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+
+          <Link
+            href="/attendances"
+            className="hover:text-[#C89543] flex items-center gap-1 transition-colors"
+            title="Central de Atendimentos"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Atendimentos</span>
+          </Link>
+
+          <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+
+          <span className="text-slate-900 font-semibold truncate max-w-[200px]" title={client.fullName}>
+            {client.fullName}
+          </span>
+        </div>
 
         <div className="flex items-center gap-3">
           {/* Status Dropdown Menu */}
