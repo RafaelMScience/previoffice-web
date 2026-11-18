@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
-import type { Client } from '@/types/client';
+import type { Client, MaritalStatus } from '@/types/client';
 import type { Attendance, AttendanceType } from '@/types/attendance';
 
 interface ClientPdfReportModalProps {
@@ -97,8 +97,94 @@ export function ClientPdfReportModal({
     }
   };
 
+  /**
+   * Isolated iframe print engine:
+   * Guarantees that ONLY the clean A4 sheet (#client-pdf-printable-area) is sent
+   * to the browser print dialog, completely preventing web dashboard/sidebar leakage.
+   */
   const handlePrint = () => {
-    window.print();
+    const printableArea = document.getElementById('client-pdf-printable-area');
+    if (!printableArea) {
+      window.print();
+      return;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute(
+      'style',
+      'position:fixed;right:0;bottom:0;width:0;height:0;border:none;visibility:hidden;'
+    );
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    // Capture active application styles and CSS links
+    const styleTags = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((tag) => tag.outerHTML)
+      .join('\n');
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Ficha do Cliente - ${client.fullName}</title>
+          ${styleTags}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm 12mm 12mm 12mm;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-sizing: border-box !important;
+            }
+            html, body {
+              background: #FFFFFF !important;
+              color: #0B192E !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Segoe UI", Roboto, sans-serif !important;
+            }
+            .a4-print-sheet {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              border: none !important;
+              background: #FFFFFF !important;
+            }
+            .break-inside-avoid {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="a4-print-sheet">
+            ${printableArea.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1000);
+    }, 250);
   };
 
   // Helper date parsing (immune to UTC-3 midnight timezone shifts)
@@ -135,6 +221,25 @@ export function ClientPdfReportModal({
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
+  const formatMaritalStatus = (status?: MaritalStatus | string) => {
+    switch (status) {
+      case 'SINGLE':
+        return 'Solteiro(a)';
+      case 'MARRIED':
+        return 'Casado(a)';
+      case 'STABLE_UNION':
+        return 'União Estável';
+      case 'DIVORCED':
+        return 'Divorciado(a)';
+      case 'SEPARATED':
+        return 'Separado(a)';
+      case 'WIDOWED':
+        return 'Viúvo(a)';
+      default:
+        return status || 'Não informado';
+    }
+  };
+
   const age = calculateAge(client.birthDate);
   const formattedBirth = formatBirthDate(client.birthDate);
   const generatedAt = new Date();
@@ -163,16 +268,16 @@ export function ClientPdfReportModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:static print:inset-auto print:bg-white print:p-0 print:overflow-visible"
+      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="client-pdf-title"
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 print:max-h-none print:overflow-visible print:border-none print:shadow-none print:rounded-none"
+        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
       >
-        {/* Top Controls Header (Screen Only - Hidden in Print) */}
-        <div className="print:hidden bg-[#0B192E] text-white p-5 relative shrink-0 border-b border-white/10">
+        {/* Top Controls Header (Screen Only Toolbar) */}
+        <div className="bg-[#0B192E] text-white p-4 sm:p-5 relative shrink-0 border-b border-white/10">
           <button
             onClick={onClose}
             aria-label="Fechar"
@@ -335,22 +440,24 @@ export function ClientPdfReportModal({
           </div>
         </div>
 
-        {/* Preview Scrollable Area - The Printable Document */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100 flex justify-center print:bg-white print:p-0 print:overflow-visible">
+        {/* Gray Preview Drafting Area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#CBD5E1]/60 flex justify-center items-start">
+          {/* Authentic A4 Paper Sheet (Strictly 210mm x 297mm proportions) */}
           <div
             id="client-pdf-printable-area"
-            className="print-report-container bg-white text-slate-800 shadow-lg border border-slate-200 rounded-xl w-full max-w-3xl p-6 sm:p-8 space-y-6 print:shadow-none print:border-none print:rounded-none print:p-0 print:w-full print:max-w-none print:space-y-4"
+            className="bg-white text-slate-800 shadow-2xl border border-slate-300 w-full max-w-[210mm] min-h-[297mm] p-6 sm:p-10 space-y-5 rounded-xs box-border"
+            style={{ width: '210mm' }}
           >
             {/* Header: Office Branding and Identification */}
-            <div className="border-b-2 border-[#082A52] pb-4 flex items-start justify-between">
+            <div className="border-b-2 border-[#082A52] pb-3 flex items-start justify-between w-full">
               <div>
-                <h1 className="text-xl sm:text-2xl font-black text-[#082A52] tracking-tight uppercase">
+                <h1 className="text-xl font-black text-[#082A52] tracking-tight uppercase">
                   {officeName}
                 </h1>
                 <p className="text-xs font-semibold text-[#C89543] tracking-wider uppercase mt-0.5">
                   Previdência Social • Advocacia Previdenciária & Administrativa
                 </p>
-                <p className="text-[10px] text-slate-500 mt-1">
+                <p className="text-[10px] text-slate-500 mt-0.5">
                   {lawyerName} • {lawyerOab}
                 </p>
               </div>
@@ -366,20 +473,20 @@ export function ClientPdfReportModal({
             </div>
 
             {/* Profile Overview Card (Navy & Royal Accent) */}
-            <div className="bg-[#082A52] text-white rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 shadow-sm print:border print:border-[#082A52]">
+            <div className="bg-[#082A52] text-white rounded-lg p-3.5 flex items-center gap-3.5 shadow-xs w-full">
               {/* Photo or Clean Monogram Placeholder */}
-              <div className="w-16 h-16 rounded-xl bg-white/10 border-2 border-[#C89543]/40 flex flex-col items-center justify-center shrink-0">
-                <User className="w-7 h-7 text-[#C89543]" />
-                <span className="text-[8px] font-bold tracking-wider text-slate-300 mt-0.5 uppercase">
+              <div className="w-14 h-14 rounded-lg bg-white/10 border border-[#C89543]/40 flex flex-col items-center justify-center shrink-0">
+                <User className="w-6 h-6 text-[#C89543]" />
+                <span className="text-[7px] font-bold tracking-wider text-slate-300 uppercase mt-0.5">
                   Sem Foto
                 </span>
               </div>
 
-              <div className="flex-1 text-center sm:text-left space-y-1">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <h2 className="text-lg font-black tracking-tight">{client.fullName}</h2>
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base font-black tracking-tight truncate">{client.fullName}</h2>
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider self-center sm:self-auto ${
+                    className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
                       client.status === 'INACTIVE'
                         ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                         : client.status === 'CLOSED'
@@ -397,7 +504,7 @@ export function ClientPdfReportModal({
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1 text-xs text-slate-200">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-slate-200">
                   <span>
                     <strong className="text-[#C89543]">CPF:</strong> {formatCpf(client.cpf || '')}
                   </span>
@@ -414,53 +521,55 @@ export function ClientPdfReportModal({
 
             {/* Section 1: Dados Pessoais & Documentos */}
             {(includePersonalData || includeDocuments) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
                 {/* Dados Pessoais */}
                 {includePersonalData && (
-                  <div className="bg-white border border-[#D8E5EF] rounded-xl p-3.5 space-y-2">
-                    <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                      <div className="w-5 h-5 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center">
-                        <User className="w-3 h-3" />
+                  <div className="w-full min-w-0 bg-white border border-[#D8E5EF] rounded-lg p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                      <div className="w-4 h-4 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center shrink-0">
+                        <User className="w-2.5 h-2.5" />
                       </div>
-                      <h3 className="text-xs font-bold text-[#082A52] uppercase tracking-wider">
+                      <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
                         Dados Pessoais
                       </h3>
                     </div>
 
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Nome Completo:</span>
-                        <span className="font-semibold text-[#16324F]">{client.fullName}</span>
+                    <div className="space-y-0.5 text-xs">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Nome Completo:</span>
+                        <span className="font-semibold text-[#16324F] text-right truncate pl-2">
+                          {client.fullName}
+                        </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Nascimento:</span>
-                        <span className="font-medium text-[#16324F]">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Nascimento:</span>
+                        <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {client.birthDate
                             ? `${formattedBirth} ${age !== null ? `(${age} anos)` : ''}`
                             : 'Não informado'}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Estado Civil:</span>
-                        <span className="font-medium text-[#16324F]">
-                          {client.maritalStatus || 'Não informado'}
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Estado Civil:</span>
+                        <span className="font-medium text-[#16324F] text-right truncate pl-2">
+                          {formatMaritalStatus(client.maritalStatus)}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Profissão:</span>
-                        <span className="font-medium text-[#16324F]">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Profissão:</span>
+                        <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {client.profession || 'Não informado'}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Nome da Mãe:</span>
-                        <span className="font-medium text-[#16324F]">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Nome da Mãe:</span>
+                        <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {client.motherName || 'Não informado'}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5">
-                        <span className="text-slate-500">Nome do Pai:</span>
-                        <span className="font-medium text-[#16324F]">
+                      <div className="flex justify-between items-center py-0.5">
+                        <span className="text-slate-500 shrink-0">Nome do Pai:</span>
+                        <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {client.fatherName || 'Não informado'}
                         </span>
                       </div>
@@ -470,37 +579,37 @@ export function ClientPdfReportModal({
 
                 {/* Documentos */}
                 {includeDocuments && (
-                  <div className="bg-white border border-[#D8E5EF] rounded-xl p-3.5 space-y-2">
-                    <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                      <div className="w-5 h-5 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center">
-                        <FileText className="w-3 h-3" />
+                  <div className="w-full min-w-0 bg-white border border-[#D8E5EF] rounded-lg p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                      <div className="w-4 h-4 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center shrink-0">
+                        <FileText className="w-2.5 h-2.5" />
                       </div>
-                      <h3 className="text-xs font-bold text-[#082A52] uppercase tracking-wider">
+                      <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
                         Documentos
                       </h3>
                     </div>
 
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">CPF:</span>
-                        <span className="font-mono font-bold text-[#16324F]">
+                    <div className="space-y-0.5 text-xs">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">CPF:</span>
+                        <span className="font-mono font-bold text-[#16324F] text-right">
                           {formatCpf(client.cpf || '')}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">RG:</span>
-                        <span className="font-medium text-[#16324F]">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">RG:</span>
+                        <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {client.rg ? client.rg : 'Não informado'}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Pasta Física:</span>
-                        <span className="font-mono text-[11px] font-semibold text-slate-700">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Pasta Física:</span>
+                        <span className="font-mono text-[11px] font-semibold text-slate-700 text-right truncate pl-2">
                           {client.physicalFileLocation || 'Arquivo Geral - Pasta Principal'}
                         </span>
                       </div>
-                      <div className="pt-1">
-                        <span className="block text-[10px] text-slate-500 uppercase font-semibold mb-1">
+                      <div className="pt-0.5">
+                        <span className="block text-[10px] text-slate-500 uppercase font-semibold mb-0.5">
                           Documentos Vinculados à Pasta:
                         </span>
                         <div className="text-[11px] text-slate-600 space-y-0.5">
@@ -517,47 +626,47 @@ export function ClientPdfReportModal({
 
             {/* Section 2: Endereço & Contatos */}
             {includeAddressAndContacts && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
                 {/* Endereço */}
-                <div className="bg-white border border-[#D8E5EF] rounded-xl p-3.5 space-y-2">
-                  <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                    <div className="w-5 h-5 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center">
-                      <MapPin className="w-3 h-3" />
+                <div className="w-full min-w-0 bg-white border border-[#D8E5EF] rounded-lg p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                    <div className="w-4 h-4 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center shrink-0">
+                      <MapPin className="w-2.5 h-2.5" />
                     </div>
-                    <h3 className="text-xs font-bold text-[#082A52] uppercase tracking-wider">
+                    <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
                       Endereço Residencial
                     </h3>
                   </div>
 
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500">Logradouro:</span>
-                      <span className="font-medium text-[#16324F]">
+                  <div className="space-y-0.5 text-xs">
+                    <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                      <span className="text-slate-500 shrink-0">Logradouro:</span>
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2">
                         {client.street || 'Não informado'}
                       </span>
                     </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500">Número / Compl:</span>
-                      <span className="font-medium text-[#16324F]">
+                    <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                      <span className="text-slate-500 shrink-0">Número / Compl:</span>
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2">
                         {client.streetNumber || 'S/N'}{' '}
                         {client.complement ? `(${client.complement})` : ''}
                       </span>
                     </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500">Bairro:</span>
-                      <span className="font-medium text-[#16324F]">
+                    <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                      <span className="text-slate-500 shrink-0">Bairro:</span>
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2">
                         {client.neighborhood || 'Não informado'}
                       </span>
                     </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500">Cidade / UF:</span>
-                      <span className="font-medium text-[#16324F]">
+                    <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                      <span className="text-slate-500 shrink-0">Cidade / UF:</span>
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2">
                         {client.city ? `${client.city} - ${client.state || 'PB'}` : 'Não informado'}
                       </span>
                     </div>
-                    <div className="flex justify-between py-0.5">
-                      <span className="text-slate-500">CEP:</span>
-                      <span className="font-mono font-medium text-[#16324F]">
+                    <div className="flex justify-between items-center py-0.5">
+                      <span className="text-slate-500 shrink-0">CEP:</span>
+                      <span className="font-mono font-medium text-[#16324F] text-right">
                         {client.postalCode || 'Não informado'}
                       </span>
                     </div>
@@ -565,32 +674,32 @@ export function ClientPdfReportModal({
                 </div>
 
                 {/* Contatos */}
-                <div className="bg-white border border-[#D8E5EF] rounded-xl p-3.5 space-y-2">
-                  <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                    <div className="w-5 h-5 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center">
-                      <Phone className="w-3 h-3" />
+                <div className="w-full min-w-0 bg-white border border-[#D8E5EF] rounded-lg p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                    <div className="w-4 h-4 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center shrink-0">
+                      <Phone className="w-2.5 h-2.5" />
                     </div>
-                    <h3 className="text-xs font-bold text-[#082A52] uppercase tracking-wider">
+                    <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
                       Contatos & Recados
                     </h3>
                   </div>
 
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500">Celular / WhatsApp:</span>
-                      <span className="font-medium text-[#16324F]">
+                  <div className="space-y-0.5 text-xs">
+                    <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                      <span className="text-slate-500 shrink-0">Celular / WhatsApp:</span>
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2">
                         {client.mobilePhone || 'Não informado'}
                       </span>
                     </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500">Telefone Fixo / Recado:</span>
-                      <span className="font-medium text-[#16324F]">
+                    <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                      <span className="text-slate-500 shrink-0">Telefone Fixo / Recado:</span>
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2">
                         {client.phone || 'Não informado'}
                       </span>
                     </div>
-                    <div className="flex justify-between py-0.5">
-                      <span className="text-slate-500">E-mail:</span>
-                      <span className="font-medium text-[#16324F] lowercase">
+                    <div className="flex justify-between items-center py-0.5">
+                      <span className="text-slate-500 shrink-0">E-mail:</span>
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2 lowercase">
                         {client.email || 'Não informado'}
                       </span>
                     </div>
@@ -601,43 +710,43 @@ export function ClientPdfReportModal({
 
             {/* Section 3: Informações Socioeconômicas & Previdenciárias */}
             {(includeSocioeconomic || includePrevidenciary) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full">
                 {/* Socioeconômico */}
                 {includeSocioeconomic && (
-                  <div className="bg-white border border-[#D8E5EF] rounded-xl p-3.5 space-y-2">
-                    <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                      <div className="w-5 h-5 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center">
-                        <Users className="w-3 h-3" />
+                  <div className="w-full min-w-0 bg-white border border-[#D8E5EF] rounded-lg p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                      <div className="w-4 h-4 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center shrink-0">
+                        <Users className="w-2.5 h-2.5" />
                       </div>
-                      <h3 className="text-xs font-bold text-[#082A52] uppercase tracking-wider">
+                      <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
                         Composição Socioeconômica (LOAS)
                       </h3>
                     </div>
 
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Qtd. de Dependentes:</span>
-                        <span className="font-medium text-[#16324F]">
+                    <div className="space-y-0.5 text-xs">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Qtd. de Dependentes:</span>
+                        <span className="font-medium text-[#16324F] text-right">
                           {client.dependentCount !== undefined
                             ? `${client.dependentCount} dependente(s)`
                             : 'Não informado'}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Pessoas no Grupo Familiar:</span>
-                        <span className="font-medium text-[#16324F]">
-                          {householdMembers} {householdMembers === 1 ? 'pessoa' : 'pessoas'} (titular + dependentes)
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Pessoas no Grupo:</span>
+                        <span className="font-medium text-[#16324F] text-right truncate pl-2">
+                          {householdMembers} {householdMembers === 1 ? 'pessoa' : 'pessoas'}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Renda Familiar Total:</span>
-                        <span className="font-bold text-[#16324F]">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Renda Familiar Total:</span>
+                        <span className="font-bold text-[#16324F] text-right">
                           {formatCurrency(client.monthlyIncome)}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5">
-                        <span className="text-slate-500">Renda Per Capita (LOAS):</span>
-                        <span className="font-bold text-[#0B78D0]">
+                      <div className="flex justify-between items-center py-0.5">
+                        <span className="text-slate-500 shrink-0">Renda Per Capita (LOAS):</span>
+                        <span className="font-bold text-[#0B78D0] text-right">
                           {perCapitaIncome}
                         </span>
                       </div>
@@ -647,32 +756,32 @@ export function ClientPdfReportModal({
 
                 {/* Previdenciário */}
                 {includePrevidenciary && (
-                  <div className="bg-white border border-[#D8E5EF] rounded-xl p-3.5 space-y-2">
-                    <div className="flex items-center gap-2 pb-1.5 border-b border-slate-100">
-                      <div className="w-5 h-5 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center">
-                        <Briefcase className="w-3 h-3" />
+                  <div className="w-full min-w-0 bg-white border border-[#D8E5EF] rounded-lg p-3 space-y-1.5">
+                    <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+                      <div className="w-4 h-4 rounded bg-[#EEF6FD] text-[#0B78D0] flex items-center justify-center shrink-0">
+                        <Briefcase className="w-2.5 h-2.5" />
                       </div>
-                      <h3 className="text-xs font-bold text-[#082A52] uppercase tracking-wider">
+                      <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
                         Informações Previdenciárias
                       </h3>
                     </div>
 
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Tipo de Benefício:</span>
-                        <span className="font-semibold text-[#16324F]">
+                    <div className="space-y-0.5 text-xs">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Tipo de Benefício:</span>
+                        <span className="font-semibold text-[#16324F] text-right truncate pl-2">
                           {client.benefitType || 'Não informado'}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500">Número do Benefício (NB):</span>
-                        <span className="font-mono font-medium text-[#16324F]">
+                      <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
+                        <span className="text-slate-500 shrink-0">Número do Benefício (NB):</span>
+                        <span className="font-mono font-medium text-[#16324F] text-right">
                           {client.benefitNumber || 'Não informado'}
                         </span>
                       </div>
-                      <div className="flex justify-between py-0.5">
-                        <span className="text-slate-500">Categoria Especial:</span>
-                        <span className="font-medium text-[#16324F]">
+                      <div className="flex justify-between items-center py-0.5">
+                        <span className="text-slate-500 shrink-0">Categoria Especial:</span>
+                        <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {client.specialCategories && client.specialCategories.length > 0
                             ? client.specialCategories.join(', ')
                             : 'Não informado'}
@@ -686,8 +795,8 @@ export function ClientPdfReportModal({
 
             {/* Observações / Fatos Narrados */}
             {client.notes && (
-              <div className="bg-white border border-[#D8E5EF] rounded-xl p-3.5 space-y-1.5">
-                <span className="text-xs font-bold text-[#082A52] uppercase tracking-wider block">
+              <div className="w-full min-w-0 bg-white border border-[#D8E5EF] rounded-lg p-3 space-y-1">
+                <span className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider block">
                   Observações e Relato de Fatos
                 </span>
                 <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
@@ -696,62 +805,64 @@ export function ClientPdfReportModal({
               </div>
             )}
 
-            {/* Section 4: Histórico de Atendimentos (quando ativado) */}
+            {/* Section 4: Histórico de Atendimentos */}
             {includeAttendanceHistory && (
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between pb-1.5 border-b border-[#D8E5EF]">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-[#0B78D0]" />
-                    <h3 className="text-xs font-extrabold text-[#082A52] uppercase tracking-wider">
+              <div className="space-y-2 pt-1 w-full">
+                <div className="flex items-center justify-between pb-1 border-b border-[#D8E5EF]">
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-[#0B78D0]" />
+                    <h3 className="text-[11px] font-extrabold text-[#082A52] uppercase tracking-wider">
                       Histórico de Atendimentos Presenciais
                     </h3>
                   </div>
-                  <span className="text-[10px] font-bold text-[#082A52] bg-[#EEF6FD] px-2.5 py-0.5 rounded-full border border-[#D8E5EF]">
+                  <span className="text-[9px] font-bold text-[#082A52] bg-[#EEF6FD] px-2 py-0.5 rounded-full border border-[#D8E5EF]">
                     Total de Consultas: {attendances.length || client.visitCount}
                   </span>
                 </div>
 
                 {attendances.length === 0 ? (
-                  <div className="bg-[#EEF6FD] border border-[#D8E5EF] rounded-xl p-4 text-center text-xs text-slate-600">
+                  <div className="bg-[#EEF6FD] border border-[#D8E5EF] rounded-lg p-3 text-center text-xs text-slate-600">
                     Nenhum histórico detalhado de comparecimento registrado para este segurado.
                   </div>
                 ) : (
-                  <div className="border border-[#D8E5EF] rounded-xl overflow-hidden">
+                  <div className="border border-[#D8E5EF] rounded-lg overflow-hidden w-full">
                     <table className="w-full text-left text-xs text-slate-700">
-                      <thead className="bg-[#EEF6FD] text-[10px] uppercase font-bold text-[#082A52] border-b border-[#D8E5EF]">
+                      <thead className="bg-[#EEF6FD] text-[9px] uppercase font-bold text-[#082A52] border-b border-[#D8E5EF]">
                         <tr>
-                          <th className="px-3 py-2">Data / Hora</th>
-                          <th className="px-3 py-2">Tipo de Atendimento</th>
-                          <th className="px-3 py-2">Profissional</th>
-                          <th className="px-3 py-2">Status</th>
-                          <th className="px-3 py-2">Objetivo / Observações</th>
+                          <th className="px-2.5 py-1.5">Data / Hora</th>
+                          <th className="px-2.5 py-1.5">Tipo</th>
+                          <th className="px-2.5 py-1.5">Profissional</th>
+                          <th className="px-2.5 py-1.5">Status</th>
+                          <th className="px-2.5 py-1.5">Objetivo / Observações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {attendances.map((att) => (
                           <tr key={att.id} className="hover:bg-slate-50/50 break-inside-avoid">
-                            <td className="px-3 py-2 font-mono text-[11px] whitespace-nowrap">
+                            <td className="px-2.5 py-1.5 font-mono text-[10px] whitespace-nowrap">
                               {new Date(att.attendedAt).toLocaleDateString('pt-BR')} às{' '}
                               {new Date(att.attendedAt).toLocaleTimeString('pt-BR', {
                                 hour: '2-digit',
                                 minute: '2-digit',
                               })}
                             </td>
-                            <td className="px-3 py-2 font-medium">
+                            <td className="px-2.5 py-1.5 font-medium text-[11px]">
                               {getAttendanceTypeLabel(att.attendanceType)}
                             </td>
-                            <td className="px-3 py-2 text-slate-600">
+                            <td className="px-2.5 py-1.5 text-slate-600 text-[11px]">
                               {att.attendantName || lawyerName}
                             </td>
-                            <td className="px-3 py-2">
-                              <span className="text-[9px] font-bold text-[#168447] bg-[#E3F7E9] px-1.5 py-0.5 rounded">
+                            <td className="px-2.5 py-1.5">
+                              <span className="text-[8px] font-bold text-[#168447] bg-[#E3F7E9] px-1.5 py-0.5 rounded">
                                 Realizado
                               </span>
                             </td>
-                            <td className="px-3 py-2 text-[11px] text-slate-600">
+                            <td className="px-2.5 py-1.5 text-[11px] text-slate-600">
                               <span className="font-semibold block text-[#16324F]">{att.objective}</span>
                               {att.narrativeHistory && (
-                                <span className="line-clamp-2 text-slate-500">{att.narrativeHistory}</span>
+                                <span className="line-clamp-2 text-slate-500 text-[10px]">
+                                  {att.narrativeHistory}
+                                </span>
                               )}
                             </td>
                           </tr>
@@ -765,12 +876,12 @@ export function ClientPdfReportModal({
 
             {/* Section 5: Bloco Formal de Assinaturas */}
             {(includeClientSignature || includeLawyerSignature) && (
-              <div className="pt-6 pb-2 break-inside-avoid">
-                <div className="grid grid-cols-2 gap-8 text-center">
+              <div className="pt-4 pb-1 break-inside-avoid w-full">
+                <div className="grid grid-cols-2 gap-8 text-center w-full">
                   {/* Assinatura do Cliente */}
                   {includeClientSignature && (
                     <div className="space-y-1">
-                      <div className="h-12 flex items-end justify-center">
+                      <div className="h-10 flex items-end justify-center">
                         {/* Espaço em branco para firma manuscrita */}
                       </div>
                       <div className="w-full border-t border-slate-700 pt-1.5">
@@ -780,7 +891,7 @@ export function ClientPdfReportModal({
                         <span className="block text-[10px] text-slate-500 font-mono">
                           CPF: {formatCpf(client.cpf || '')}
                         </span>
-                        <span className="block text-[9px] text-slate-400 uppercase tracking-wider">
+                        <span className="block text-[8px] text-slate-400 uppercase tracking-wider">
                           Assinatura do Cliente / Segurado
                         </span>
                       </div>
@@ -790,7 +901,7 @@ export function ClientPdfReportModal({
                   {/* Assinatura do Advogado */}
                   {includeLawyerSignature && (
                     <div className="space-y-1">
-                      <div className="h-12 flex items-end justify-center">
+                      <div className="h-10 flex items-end justify-center">
                         {/* Espaço para visto e carimbo da OAB */}
                       </div>
                       <div className="w-full border-t border-slate-700 pt-1.5">
@@ -800,7 +911,7 @@ export function ClientPdfReportModal({
                         <span className="block text-[10px] text-slate-500 font-medium">
                           {lawyerOab}
                         </span>
-                        <span className="block text-[9px] text-slate-400 uppercase tracking-wider">
+                        <span className="block text-[8px] text-slate-400 uppercase tracking-wider">
                           Advogado Responsável / Visto OAB
                         </span>
                       </div>
@@ -811,7 +922,7 @@ export function ClientPdfReportModal({
             )}
 
             {/* Rodapé Oficial da Folha */}
-            <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-[9px] text-slate-500 break-inside-avoid">
+            <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[8px] text-slate-500 break-inside-avoid w-full">
               <span className="font-semibold text-[#082A52]">
                 {officeName} — Todos os direitos reservados.
               </span>
@@ -819,10 +930,8 @@ export function ClientPdfReportModal({
                 Documento impresso em conformidade com o Estatuto da OAB e a LGPD (Lei nº 13.709/18).
               </span>
             </div>
-
           </div>
         </div>
-
       </div>
     </div>
   );
