@@ -389,4 +389,88 @@ export const enTranslations: Translations = {
     toastUpdateSuccess: 'Case update recorded successfully in client timeline!',
     toastWhatsAppOpened: 'WhatsApp message link generated and ready to send.',
   },
+  contracts: {
+    pageTitle: 'Contracts Hub & Legal Fee Management',
+    pageSubtitle: 'Manage legal fee receivables (contingent Quota Litis & installments), physical signed documents, and office standard contract templates.',
+    tabContractsHub: 'Contracts & Fee Ledger',
+    tabOfficeTemplates: 'Standard Office Templates',
+    btnNewContract: 'New Contract & Fee Agreement',
+    
+    // KPI Cards
+    kpiTotalContracted: 'Total Contracted Legal Fees',
+    kpiTotalContractedSub: 'Global pipeline across law office contracts',
+    kpiFutureReceivables: 'Future Receivables (Success Fees)',
+    kpiFutureReceivablesSub: 'Estimated Quota Litis over retroactives',
+    kpiOpenInstallments: 'Open Installments / Cashflow',
+    kpiOpenInstallmentsSub: 'Scheduled installments ledger monitoring',
+    kpiPhysicalSignedRate: 'Physical Contracts Archived',
+    kpiPhysicalSignedSub: 'Formally signed paper files in office vault',
+    
+    // Filter Tabs
+    tabFilterAll: 'All Contracts',
+    tabFilterActive: 'Active / In Progress',
+    tabFilterInstallments: 'Open Installments',
+    tabFilterPendingSignature: 'Awaiting Signature',
+    tabFilterConcluded: 'Concluded & Collected',
+    
+    // Table Columns
+    colContractNumber: 'Contract # & Issued',
+    colClient: 'Client & Contact',
+    colBenefit: 'Benefit / Object',
+    colFeeStructure: 'Fee Structure',
+    colSignatureStatus: 'Signature Status',
+    colCabinetFolder: 'Cabinet / Physical File',
+    colActions: 'Actions',
+    
+    // Badges & States
+    badgeQuotaLitis: 'Quota Litis (Success)',
+    badgeFixedInstallment: 'Fixed Installments',
+    badgeHybrid: 'Hybrid (Down Payment + Success)',
+    badgePhysicalAttached: 'Physical Signed Attached',
+    badgeSignaturePending: 'Awaiting Signature',
+    badgeDigitalSignature: 'Digital Signature',
+    
+    // Quick Actions
+    actionViewInstallments: 'View Installments & Settle',
+    actionPrintA4: 'Generate A4 Contract / PoA',
+    actionUploadSigned: 'Upload Signed Contract',
+    actionClientProfile: 'Open Client File',
+    
+    // Modals & Drawers
+    modalInstallmentsTitle: 'Financial Fee & Installments Management',
+    modalInstallmentsSubtitle: 'Track agreed installment schedules, log payment settlements, and review contingent success fee forecasts.',
+    modalUploadTitle: 'Archive Physical Signed Contract',
+    modalUploadSubtitle: 'Link the scanned signed copy to its corresponding physical folder in the office archive.',
+    modalNewContractTitle: 'Issue New Legal Representation Contract & PoA',
+    modalNewContractSubtitle: 'Select the client, choose the fee model (Quota Litis or installments), and generate the official OAB contract.',
+    modalPrintTitle: 'Official A4 Document Emission for Signing',
+    modalPrintSubtitle: 'Print the Procuração Ad Judicia and Fee Contract ready for in-person client signing.',
+    
+    // Financial Tracker
+    lblQuotaLitisRate: 'Contingent Success Rate (Quota Litis):',
+    lblEstimatedRetroactive: 'Estimated Retroactives / Cause Value:',
+    lblProjectedSuccessFee: 'Projected Success Fee:',
+    lblFixedTotal: 'Contracted Fixed Fee:',
+    lblPaidSoFar: 'Total Collected So Far:',
+    lblRemainingBalance: 'Outstanding Receivable Balance:',
+    lblInstallmentProgress: 'Installment Collection Progress:',
+    btnSettleInstallment: 'Settle Payment (Dar Baixa)',
+    settleSuccessToast: 'Installment settled successfully! Cashbook updated.',
+    
+    // Upload Drawer
+    dragDropPrompt: 'Drag and drop PDF or image of the signed contract',
+    dragDropSubtext: 'Accepted formats: PDF, JPG, PNG (max 15MB)',
+    lblCabinetLocation: 'Physical Cabinet Location *',
+    lblSignerNotes: 'Signing Notes & Modality',
+    btnConfirmUpload: 'Confirm and Archive Document',
+    uploadSuccessToast: 'Signed physical contract successfully uploaded and archived!',
+    
+    // Templates Management
+    templatesTitle: 'Office Standard Templates Library',
+    templatesSubtitle: 'Manage official contract and power of attorney templates customized for each benefit species.',
+    btnNewTemplate: 'Create Standard Template',
+    lblDefaultQuotaLitis: 'Default Success Rate:',
+    lblClausesCount: 'Clauses Count:',
+    btnPreviewTemplate: 'Preview Template',
+  },
 };

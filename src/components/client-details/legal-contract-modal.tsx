@@ -1,475 +1,753 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Printer, FileSignature, CheckCircle, Scale } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  X,
+  Printer,
+  FileSignature,
+  Scale,
+  Sparkles,
+  CheckCircle2,
+  FolderLock,
+  ShieldCheck,
+  FileText,
+  UserCheck,
+  Edit3,
+  Copy,
+  Check,
+} from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { Client } from '@/types/client';
+import type { ContractTemplate } from '@/types/contract';
+import { contractsStore } from '@/lib/data/mock-contracts';
+import { mergeTemplatePlaceholders } from '@/lib/utils/template-engine';
 
 interface LegalContractModalProps {
   client: Client;
   isOpen: boolean;
   onClose: () => void;
-  lawyerName?: string;
-  lawyerOab?: string;
-  officeName?: string;
+  onContractIssued?: (contractNumber: string) => void;
 }
+
+const LAWYER_OPTIONS = [
+  { name: 'Dr. Alexandre Pontes', oab: 'OAB/PB 18.234' },
+  { name: 'Dra. Camila Santos', oab: 'OAB/PB 22.100' },
+  { name: 'Dr. Marcos Oliveira', oab: 'OAB/PB 19.450' },
+  { name: 'Alexandre Pontes Sociedade de Advogados', oab: 'OAB/PB' },
+];
 
 export function LegalContractModal({
   client,
   isOpen,
   onClose,
-  lawyerName = 'Dr. Alexandre Pontes',
-  lawyerOab = 'OAB/PB 18.234',
-  officeName = 'Alexandre Pontes Advocacia & Consultoria Previdenciária',
+  onContractIssued,
 }: LegalContractModalProps) {
   const { t } = useI18n();
-  const [selectedDoc, setSelectedDoc] = useState<'both' | 'procuracao' | 'contrato' | 'capa'>('both');
+
+  const [templates, setTemplates] = useState<ContractTemplate[]>([]);
+  const [selectedDoc, setSelectedDoc] = useState<'contrato' | 'procuracao' | 'capa'>('contrato');
+  const [selectedLawyer, setSelectedLawyer] = useState(LAWYER_OPTIONS[0]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [isEditingCustomBody, setIsEditingCustomBody] = useState(false);
+  const [customBody, setCustomBody] = useState('');
+  const [quotaLitisPercentage, setQuotaLitisPercentage] = useState(30);
+  const [isFormSaved, setIsFormSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Load templates on open
+  useEffect(() => {
+    if (isOpen) {
+      const allTemplates = contractsStore.getTemplates();
+      setTemplates(allTemplates);
+
+      // Auto-select template matching lawyer or client benefit
+      const matchingLawyerTpl = allTemplates.find(
+        (tpl) => tpl.lawyerName === selectedLawyer.name && tpl.isDefault
+      );
+      const matchingBenefitTpl = allTemplates.find(
+        (tpl) =>
+          client.benefitType &&
+          tpl.benefitSpecies.toLowerCase().includes(client.benefitType.toLowerCase())
+      );
+      const defaultTpl = matchingLawyerTpl || matchingBenefitTpl || allTemplates[0];
+
+      if (defaultTpl) {
+        setSelectedTemplateId(defaultTpl.id);
+        if (defaultTpl.defaultQuotaLitisPercentage) {
+          setQuotaLitisPercentage(defaultTpl.defaultQuotaLitisPercentage);
+        }
+      }
+    }
+  }, [isOpen, client.benefitType, selectedLawyer.name]);
+
+  const selectedTemplate = useMemo(() => {
+    return templates.find((tpl) => tpl.id === selectedTemplateId) || templates[0];
+  }, [templates, selectedTemplateId]);
+
+  const todayFormatted = useMemo(() => {
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date());
+  }, []);
+
+  const fullAddress = useMemo(() => {
+    return [
+      client.street,
+      client.streetNumber ? `nº ${client.streetNumber}` : 'S/N',
+      client.complement,
+      client.neighborhood,
+      client.city ? `${client.city} - ${client.state || 'PB'}` : '',
+      client.postalCode ? `CEP: ${client.postalCode}` : '',
+    ]
+      .filter(Boolean)
+      .join(', ');
+  }, [client]);
+
+  const cabinetLocation = useMemo(() => {
+    return client.physicalFileLocation || 'Armário Geral do Escritório';
+  }, [client]);
+
+  // Merge template with client data whenever template, lawyer or percentage changes
+  useEffect(() => {
+    if (selectedTemplate && !isEditingCustomBody) {
+      const merged = mergeTemplatePlaceholders(selectedTemplate.contentBody, {
+        clientName: client.fullName,
+        clientCpf: client.cpf || '___.___.___-__',
+        clientRg: client.rg || 'Não informado',
+        clientMaritalStatus:
+          client.maritalStatus === 'MARRIED'
+            ? 'Casado(a)'
+            : client.maritalStatus === 'SINGLE'
+            ? 'Solteiro(a)'
+            : client.maritalStatus === 'DIVORCED'
+            ? 'Divorciado(a)'
+            : client.maritalStatus === 'WIDOWED'
+            ? 'Viúvo(a)'
+            : 'União Estável',
+        clientProfession: client.profession || 'Agricultora / Lavradora',
+        clientAddress: fullAddress || 'Domiciliado(a) no Estado da Paraíba',
+        clientPhone: client.phone || 'Não informado',
+        benefitSpecies: client.benefitType || selectedTemplate.benefitSpecies || 'Aposentadoria Previdenciária',
+        feeDescription: `${quotaLitisPercentage}% (${quotaLitisPercentage} por cento) sobre a totalidade dos valores atrasados apurados da DER à implantação`,
+        lawyerName: selectedLawyer.name,
+        lawyerOab: selectedLawyer.oab,
+        cabinetFolder: cabinetLocation,
+        fullDate: todayFormatted,
+      });
+      setCustomBody(merged);
+    }
+  }, [selectedTemplate, selectedLawyer, quotaLitisPercentage, client, fullAddress, cabinetLocation, todayFormatted, isEditingCustomBody]);
 
   if (!isOpen) return null;
 
-  const handlePrint = () => {
-    window.print();
+  const handleLawyerChange = (name: string) => {
+    const l = LAWYER_OPTIONS.find((opt) => opt.name === name) || LAWYER_OPTIONS[0];
+    setSelectedLawyer(l);
+    setIsEditingCustomBody(false);
+
+    // Pick that lawyer's default template if available
+    const lawyerDefaultTpl = templates.find(
+      (tpl) => tpl.lawyerName === l.name && tpl.isDefault
+    );
+    if (lawyerDefaultTpl) {
+      setSelectedTemplateId(lawyerDefaultTpl.id);
+    }
   };
 
-  const todayFormatted = new Date().toLocaleDateString('pt-BR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  const handleTemplateChange = (tplId: string) => {
+    setSelectedTemplateId(tplId);
+    setIsEditingCustomBody(false);
+    const tpl = templates.find((t) => t.id === tplId);
+    if (tpl) {
+      if (tpl.defaultQuotaLitisPercentage) {
+        setQuotaLitisPercentage(tpl.defaultQuotaLitisPercentage);
+      }
+      if (tpl.lawyerName) {
+        const matchingLawyer = LAWYER_OPTIONS.find((l) => l.name === tpl.lawyerName);
+        if (matchingLawyer) setSelectedLawyer(matchingLawyer);
+      }
+    }
+  };
 
-  const fullAddress = [
-    client.street,
-    client.streetNumber ? `nº ${client.streetNumber}` : 'S/N',
-    client.complement,
-    client.neighborhood,
-    client.city ? `${client.city} - ${client.state || 'PB'}` : '',
-    client.postalCode ? `CEP: ${client.postalCode}` : '',
-  ]
-    .filter(Boolean)
-    .join(', ');
+  const handleCopyText = () => {
+    const printableArea = document.getElementById('client-contract-printable-area');
+    const text = printableArea ? printableArea.innerText : customBody;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // High-fidelity isolated A4 print
+  const handlePrint = () => {
+    const printableArea = document.getElementById('client-contract-printable-area');
+    if (!printableArea) {
+      window.print();
+      return;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute(
+      'style',
+      'position:fixed;right:0;bottom:0;width:0;height:0;border:none;visibility:hidden;'
+    );
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return;
+    }
+
+    const styleTags = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((tag) => tag.outerHTML)
+      .join('\n');
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Documento Oficial OAB - ${client.fullName}</title>
+          ${styleTags}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 12mm 15mm 15mm 15mm;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+              box-sizing: border-box !important;
+            }
+            html, body {
+              background: #FFFFFF !important;
+              color: #0F172A !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+              font-size: 10.5pt !important;
+              line-height: 1.55 !important;
+            }
+            .a4-print-sheet {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #FFFFFF !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+            .break-inside-avoid {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="a4-print-sheet">
+            ${printableArea.innerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1200);
+    }, 300);
+  };
+
+  const handleFormalizeAndSaveContract = () => {
+    const contractNumber = `CTR-2026-${String(Math.floor(Math.random() * 900) + 100)}`;
+
+    contractsStore.createContract({
+      tenantId: 'tenant-001',
+      clientId: client.id,
+      clientName: client.fullName,
+      clientCpf: client.cpf || 'Não informado',
+      clientPhone: client.phone,
+      contractNumber,
+      templateId: selectedTemplate?.id,
+      templateTitle: selectedTemplate?.title,
+      benefitSpecies: client.benefitType || 'Aposentadoria Previdenciária',
+      status: 'ACTIVE',
+      feeStructure: {
+        feeModel: selectedTemplate?.defaultFeeModel || 'QUOTA_LITIS',
+        quotaLitisPercentage,
+        estimatedRetroactiveAmount: 36000,
+        estimatedSuccessFeeAmount: (36000 * quotaLitisPercentage) / 100,
+        installments: [],
+      },
+      physicalSignedStatus: 'PENDING',
+      lawyerName: selectedLawyer.name,
+      lawyerOab: selectedLawyer.oab,
+      officeName: 'Alexandre Pontes Sociedade de Advogados',
+      issuedAt: new Date().toISOString(),
+      physicalFileLocation: cabinetLocation,
+    });
+
+    setIsFormSaved(true);
+    if (onContractIssued) {
+      onContractIssued(contractNumber);
+    }
+    setTimeout(() => {
+      setIsFormSaved(false);
+      onClose();
+    }, 1800);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[94vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Header - Screen only */}
-        <div className="print:hidden bg-[#0B192E] text-white p-6 relative shrink-0">
+        <div className="bg-[#0B192E] text-white p-5 sm:p-6 relative shrink-0 border-b border-white/10">
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
+            aria-label="Fechar"
+            className="absolute top-4 right-4 text-white/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
 
           <div className="flex items-center gap-2 text-[#C89543] font-semibold text-xs tracking-wider uppercase mb-1">
             <FileSignature className="w-4 h-4" />
-            <span>{t.clientDetails.contractModalTitle}</span>
+            <span>Emissão Oficial de Procuração e Contrato OAB</span>
           </div>
 
-          <p className="text-xs text-slate-300 mb-4">
-            {t.clientDetails.contractModalSubtitle}
+          <h2 className="text-xl font-bold tracking-tight">
+            {client.fullName}
+          </h2>
+          <p className="text-xs text-slate-300 mt-0.5">
+            CPF: {client.cpf} • {client.benefitType || 'Benefício Previdenciário'} • Pasta: {cabinetLocation}
           </p>
 
-          {/* Doc Switcher */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Configuration Controls Strip */}
+          <div className="mt-4 pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Lawyer Selector */}
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-[#C89543] mb-1 flex items-center gap-1">
+                <UserCheck className="w-3 h-3" />
+                <span>Advogado Titular da Minuta</span>
+              </label>
+              <select
+                value={selectedLawyer.name}
+                onChange={(e) => handleLawyerChange(e.target.value)}
+                className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#C89543]"
+              >
+                {LAWYER_OPTIONS.map((l) => (
+                  <option key={l.name} value={l.name}>
+                    {l.name} ({l.oab})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Template Selector */}
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-[#C89543] mb-1 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                <span>Minuta Padrão Vinculada</span>
+              </label>
+              <select
+                value={selectedTemplateId}
+                onChange={(e) => handleTemplateChange(e.target.value)}
+                className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#C89543]"
+              >
+                {templates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.title} {tpl.isDefault ? '★ Padrão' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Fee percentage */}
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-[#C89543] mb-1">
+                Percentual de Êxito (Quota Litis)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={10}
+                  max={50}
+                  value={quotaLitisPercentage}
+                  onChange={(e) => {
+                    setQuotaLitisPercentage(Number(e.target.value));
+                    setIsEditingCustomBody(false);
+                  }}
+                  className="w-20 bg-slate-800 text-white border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold"
+                />
+                <span className="text-xs text-slate-300 font-semibold">% s/ atrasados</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Doc Switcher Tabs */}
+          <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/10 overflow-x-auto">
             <button
-              onClick={() => setSelectedDoc('both')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                selectedDoc === 'both'
-                  ? 'bg-[#C89543] text-white shadow-xs'
-                  : 'bg-white/10 text-white/80 hover:bg-white/20'
-              }`}
-            >
-              {t.clientDetails.docTypeBoth}
-            </button>
-            <button
-              onClick={() => setSelectedDoc('procuracao')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                selectedDoc === 'procuracao'
-                  ? 'bg-[#C89543] text-white shadow-xs'
-                  : 'bg-white/10 text-white/80 hover:bg-white/20'
-              }`}
-            >
-              {t.clientDetails.docTypePowerOfAttorney}
-            </button>
-            <button
+              type="button"
               onClick={() => setSelectedDoc('contrato')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 selectedDoc === 'contrato'
                   ? 'bg-[#C89543] text-white shadow-xs'
                   : 'bg-white/10 text-white/80 hover:bg-white/20'
               }`}
             >
-              {t.clientDetails.docTypeFeeContract}
+              <FileText className="w-3.5 h-3.5" />
+              <span>1. Contrato de Honorários OAB</span>
             </button>
+
             <button
+              type="button"
+              onClick={() => setSelectedDoc('procuracao')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                selectedDoc === 'procuracao'
+                  ? 'bg-[#C89543] text-white shadow-xs'
+                  : 'bg-white/10 text-white/80 hover:bg-white/20'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>2. Procuração Ad Judicia et Extra</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setSelectedDoc('capa')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                 selectedDoc === 'capa'
                   ? 'bg-[#C89543] text-white shadow-xs'
                   : 'bg-white/10 text-white/80 hover:bg-white/20'
               }`}
             >
-              {t.clientDetails.docTypeFolderCover}
+              <FolderLock className="w-3.5 h-3.5" />
+              <span>3. Capa de Pasta Física</span>
             </button>
           </div>
         </div>
 
-        {/* Printable Document Preview Container */}
-        <div className="overflow-y-auto p-8 sm:p-12 space-y-12 flex-1 bg-slate-50 text-slate-900 font-serif leading-relaxed text-sm print:p-0 print:bg-white print:overflow-visible">
-          {/* Document 1: Procuração Ad Judicia */}
-          {(selectedDoc === 'both' || selectedDoc === 'procuracao') && (
-            <div className="bg-white p-8 sm:p-12 rounded-xl shadow-xs border border-slate-200 print:shadow-none print:border-none print:p-0 print:m-0 break-after-page">
-              <div className="text-center pb-6 border-b border-slate-200">
-                <h2 className="text-xl font-bold uppercase tracking-wider text-slate-900 font-sans">
-                  PROCURAÇÃO &quot;AD JUDICIA ET EXTRA&quot;
-                </h2>
-                <span className="text-xs text-slate-500 font-sans mt-1 block">
-                  Poderes Gerais e Especiais para a Área Previdenciária e Administrativa
-                </span>
-              </div>
+        {/* Paper Preview Canvas */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-200/70 flex justify-center">
+          <div
+            id="client-contract-printable-area"
+            className="bg-white w-full max-w-[720px] shadow-xl rounded-sm border border-slate-300 p-8 sm:p-12 text-slate-900 text-xs sm:text-sm leading-relaxed space-y-4"
+          >
+            {/* DOCUMENT 1: CONTRATO DE HONORÁRIOS */}
+            {selectedDoc === 'contrato' && (
+              <div className="space-y-4 text-justify">
+                {/* Header */}
+                <div className="text-center border-b-2 border-[#082A52] pb-4 mb-4">
+                  <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    Alexandre Pontes Sociedade de Advogados • OAB/PB
+                  </div>
+                  <h2 className="font-bold text-base sm:text-lg text-[#082A52] uppercase mt-1">
+                    Contrato de Prestação de Serviços Advocatícios e Honorários
+                  </h2>
+                  <div className="text-xs text-[#C89543] font-bold mt-0.5">
+                    Patrocínio: {selectedLawyer.name} ({selectedLawyer.oab})
+                  </div>
+                </div>
 
-              {/* Outorgante */}
-              <div className="mt-6 text-justify space-y-4">
-                <p>
-                  <strong>OUTORGANTE:</strong>{' '}
-                  <span className="uppercase font-bold">{client.fullName}</span>, nacionalidade{' '}
-                  {client.nationality || 'brasileira'}, estado civil{' '}
-                  {client.maritalStatus || 'não informado'}, profissão{' '}
-                  {client.profession || 'do lar/agricultor(a)'}, portador(a) do RG nº{' '}
-                  {client.rg || '____________'}, inscrito(a) no CPF/MF sob o nº{' '}
-                  <strong>{client.cpf || '_______________'}</strong>, residente e domiciliado(a)
-                  em: {fullAddress || 'Endereço residencial completo do segurado'}.
-                </p>
+                {/* Edit inline toggle */}
+                <div className="print:hidden flex justify-end pb-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingCustomBody(!isEditingCustomBody)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0B78D0] hover:underline"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>{isEditingCustomBody ? 'Visualizar Formato Impresso' : 'Editar Cláusulas Específicas deste Cliente'}</span>
+                  </button>
+                </div>
 
-                <p>
-                  <strong>OUTORGADOS:</strong>{' '}
-                  <span className="font-bold">{lawyerName}</span>, advogado inscrito na Ordem dos
-                  Advogados do Brasil sob o nº <strong>{lawyerOab}</strong>, integrante da banca{' '}
-                  <strong>{officeName}</strong>, com endereço profissional para intimações e
-                  notificações na sede do escritório.
-                </p>
-
-                <p>
-                  <strong>PODERES:</strong> Por este instrumento particular de mandato, o(a)
-                  Outorgante confere aos Outorgados amplos poderes da cláusula{' '}
-                  <em>&quot;ad judicia et extra&quot;</em>, para o foro em geral, em qualquer Juízo,
-                  Instância ou Tribunal, bem como perante quaisquer repartições públicas federais,
-                  estaduais e municipais, e especialmente perante o{' '}
-                  <strong>Instituto Nacional do Seguro Social - INSS</strong>, Agências da
-                  Previdência Social (APS) e Conselho de Recursos da Previdência Social (CRPS),
-                  podendo requerer, protocolar, acompanhar benefícios de{' '}
-                  <strong>{client.benefitType || 'qualquer espécie previdenciária'}</strong>,
-                  interpor recursos, requerer cópias de processos administrativos, ter acesso e
-                  gerenciar requerimentos via sistema Meu INSS, prestar declarações, firmar termos,
-                  e com poderes especiais para transigir, acordar, firmar compromisso, desistir, dar
-                  e receber quitação, receber valores e levantar alvarás/RPVs oriundos de
-                  procedimentos administrativos ou judiciais decorrentes do objeto deste mandato.
-                </p>
-
-                <div className="pt-12 text-center space-y-2">
-                  <p className="font-sans text-xs text-slate-600">
-                    {client.city || 'Areia - PB'}, {todayFormatted}.
-                  </p>
-                  <div className="pt-10 w-72 mx-auto border-t border-slate-900 text-center">
-                    <span className="block font-bold text-xs uppercase font-sans">
-                      {client.fullName}
+                {isEditingCustomBody ? (
+                  <div className="space-y-2">
+                    <span className="text-[11px] text-amber-800 font-semibold block">
+                      Você está editando o texto exclusivo para {client.fullName}. (O modelo padrão global não será alterado).
                     </span>
-                    <span className="block text-[11px] text-slate-500 font-sans">
-                      CPF: {client.cpf || '_______________'} (Outorgante)
-                    </span>
+                    <textarea
+                      rows={14}
+                      value={customBody}
+                      onChange={(e) => setCustomBody(e.target.value)}
+                      className="w-full p-3 border border-slate-300 rounded-lg font-mono text-xs text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#0B78D0]"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-3 font-sans text-xs sm:text-sm leading-relaxed text-slate-800 whitespace-pre-wrap">
+                    {customBody}
+                  </div>
+                )}
+
+                {/* Signatures */}
+                <div className="pt-8 space-y-8 break-inside-avoid text-xs">
+                  <div className="text-right text-slate-600">
+                    Localidade, {todayFormatted}.
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 text-center pt-2">
+                    <div className="border-t border-slate-800 pt-1.5">
+                      <strong className="block text-slate-900">{client.fullName}</strong>
+                      <span className="text-[11px] text-slate-500 font-mono">CONTRATANTE • CPF: {client.cpf}</span>
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-1.5">
+                      <strong className="block text-slate-900">{selectedLawyer.name}</strong>
+                      <span className="text-[11px] text-slate-500">{selectedLawyer.oab} • CONTRATADA</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 text-left text-[11px] pt-4">
+                    <div className="border-t border-slate-400 pt-1">
+                      <span>1ª Testemunha / A Rogo:</span><br />
+                      <span>Nome: ____________________________________</span><br />
+                      <span>CPF: _____________________________________</span>
+                    </div>
+
+                    <div className="border-t border-slate-400 pt-1">
+                      <span>2ª Testemunha Instrumentária:</span><br />
+                      <span>Nome: ____________________________________</span><br />
+                      <span>CPF: _____________________________________</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Document 2: Contrato de Honorários Advocatícios */}
-          {(selectedDoc === 'both' || selectedDoc === 'contrato') && (
-            <div className="bg-white p-8 sm:p-12 rounded-xl shadow-xs border border-slate-200 print:shadow-none print:border-none print:p-0 print:m-0">
-              <div className="text-center pb-6 border-b border-slate-200">
-                <h2 className="text-xl font-bold uppercase tracking-wider text-slate-900 font-sans">
-                  CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS
-                </h2>
-                <span className="text-xs text-slate-500 font-sans mt-1 block">
-                  Regulamento nos Termos da Lei 8.906/94 (Estatuto da OAB) e Código de Ética
-                </span>
-              </div>
+            {/* DOCUMENT 2: PROCURAÇÃO AD JUDICIA */}
+            {selectedDoc === 'procuracao' && (
+              <div className="space-y-4 text-justify">
+                <div className="text-center border-b-2 border-[#082A52] pb-4 mb-4">
+                  <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    Poder Judiciário • Instituto Nacional do Seguro Social
+                  </div>
+                  <h2 className="font-bold text-base sm:text-lg text-[#082A52] uppercase mt-1">
+                    Procuração Ad Judicia et Extra
+                  </h2>
+                  <div className="text-xs text-[#168447] font-bold mt-0.5">
+                    Representação Previdenciária e Processual (Art. 105 CPC)
+                  </div>
+                </div>
 
-              <div className="mt-6 text-justify space-y-4">
-                <p>
-                  <strong>CONTRATANTE:</strong>{' '}
-                  <span className="uppercase font-bold">{client.fullName}</span>, CPF nº{' '}
-                  <strong>{client.cpf || '_______________'}</strong>, RG nº{' '}
-                  {client.rg || '____________'}, domiciliado(a) em {fullAddress}.
-                </p>
-
-                <p>
-                  <strong>CONTRATADO:</strong>{' '}
-                  <span className="font-bold">{officeName}</span>, representada por{' '}
-                  <strong>{lawyerName}</strong>, {lawyerOab}.
-                </p>
-
-                <p>
-                  <strong>CLÁUSULA 1ª - DO OBJETO:</strong> O presente instrumento tem como objeto
-                  a prestação de serviços jurídicos advocatícios para postulação administrativa
-                  e/ou judicial visando a concessão/revisão de benefício previdenciário junto ao
-                  INSS ({client.benefitType || 'Benefício Previdenciário/Assistencial'}).
-                </p>
-
-                <p>
-                  <strong>CLÁUSULA 2ª - DOS HONORÁRIOS (QUOTA LITIS / ÊXITO):</strong> Em
-                  remuneração pelos serviços ora pactuados, o(a) CONTRATANTE pagará ao CONTRATADO o
-                  percentual de <strong>30% (trinta por cento)</strong> incidente exclusivamente
-                  sobre o proveito econômico obtido (valores brutos atrasados e retroativos
-                  apurados desde a Data de Entrada do Requerimento - DER até a efetiva implantação),
-                  condicionado ao êxito da demanda, não havendo ônus em caso de insucesso.
-                </p>
-
-                <p>
-                  <strong>CLÁUSULA 3ª - DA VINCULAÇÃO E SIGILO:</strong> O CONTRATADO assume o
-                  dever de guardar sigilo profissional inviolável sobre todos os fatos, documentos e
-                  senhas do Meu INSS confiados pelo(a) CONTRATANTE, em estrita conformidade com a
-                  LGPD (Lei 13.709/18) e o Estatuto da OAB.
-                </p>
-
-                <div className="pt-12 text-center space-y-2">
-                  <p className="font-sans text-xs text-slate-600">
-                    {client.city || 'Areia - PB'}, {todayFormatted}.
+                <div className="space-y-3 text-xs leading-relaxed text-slate-800">
+                  <p>
+                    <strong>OUTORGANTE:</strong> <strong>{client.fullName}</strong>, brasileiro(a), inscrito(a) no Cadastro de Pessoas Físicas (CPF/MF) sob o nº <span className="font-mono font-bold">{client.cpf}</span>, RG nº {client.rg || 'Não informado'}, residente e domiciliado(a) em {fullAddress || 'Domicílio nesta comarca'}.
                   </p>
-                  <div className="pt-10 grid grid-cols-2 gap-8 text-center font-sans">
-                    <div className="border-t border-slate-900 pt-2">
-                      <span className="block font-bold text-xs uppercase">
-                        {client.fullName}
-                      </span>
-                      <span className="block text-[11px] text-slate-500">CONTRATANTE</span>
-                    </div>
 
-                    <div className="border-t border-slate-900 pt-2">
-                      <span className="block font-bold text-xs uppercase">{lawyerName}</span>
-                      <span className="block text-[11px] text-slate-500">
-                        {lawyerOab} - CONTRATADO
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Document 3: Capa de Pasta / Ficha Resumo de Atendimento Previdenciário */}
-          {selectedDoc === 'capa' && (
-            <div className="bg-white p-8 sm:p-12 rounded-xl shadow-xs border border-slate-200 print:shadow-none print:border-none print:p-0 print:m-0 font-sans">
-              {/* Header with Office & OAB */}
-              <div className="flex items-start justify-between pb-6 border-b-2 border-slate-900">
-                <div>
-                  <h1 className="text-xl font-bold uppercase tracking-tight text-slate-900">
-                    {officeName}
-                  </h1>
-                  <p className="text-xs text-slate-600 font-medium mt-0.5">
-                    {lawyerName} • {lawyerOab} • Especialista em Direito Previdenciário
+                  <p>
+                    <strong>OUTORGADOS:</strong> <strong>{selectedLawyer.name}</strong>, advogado inscrito na Ordem dos Advogados do Brasil sob a <strong>{selectedLawyer.oab}</strong>, bem como os advogados integrantes da sociedade <strong>ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS</strong>, com endereço profissional onde recebem notificações e intimações de estilo.
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Ficha de Controle Interno e Capa de Pasta de Processo Físico
-                  </p>
-                </div>
 
-                <div className="text-right border-2 border-dashed border-slate-400 p-3 rounded-lg bg-slate-50">
-                  <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    {t.clientDetails.coverPhysicalLocation}
-                  </span>
-                  <span className="text-sm font-bold text-slate-900 font-mono">
-                    {client.physicalFileLocation || 'Pasta Geral / Arquivo Principal'}
-                  </span>
-                  <span className="block text-[10px] text-slate-400 mt-0.5">
-                    ID: {client.id.slice(0, 8)}
-                  </span>
-                </div>
-              </div>
-
-              {/* 1. Identificação do Segurado */}
-              <div className="mt-6">
-                <h3 className="text-xs font-bold uppercase tracking-wider bg-slate-100 px-3 py-1.5 text-slate-800 border-l-4 border-[#C89543]">
-                  1. {t.clientDetails.coverClientData}
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 text-xs border border-slate-200 rounded-b-lg">
                   <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Nome do Cliente</span>
-                    <span className="font-bold text-slate-900">{client.fullName}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">CPF</span>
-                    <span className="font-mono font-bold text-slate-900">{client.cpf || 'Não informado'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">RG</span>
-                    <span className="font-mono text-slate-900">{client.rg || 'Não informado'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Data de Nascimento</span>
-                    <span className="text-slate-900">
-                      {client.birthDate ? new Date(client.birthDate).toLocaleDateString('pt-BR') : 'Não informada'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Estado Civil</span>
-                    <span className="text-slate-900">{client.maritalStatus || 'Não informado'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Profissão Declarada</span>
-                    <span className="text-slate-900">{client.profession || 'Trabalhador(a) Rural'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Nome da Mãe</span>
-                    <span className="text-slate-900">{client.motherName || 'Não informado'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Contato WhatsApp</span>
-                    <span className="font-bold text-slate-900">{client.mobilePhone || client.phone || 'Não informado'}</span>
-                  </div>
-                  <div className="col-span-2 sm:col-span-3">
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Endereço Residencial</span>
-                    <span className="text-slate-900">{fullAddress || 'Não informado'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Dados do Benefício */}
-              <div className="mt-6">
-                <h3 className="text-xs font-bold uppercase tracking-wider bg-slate-100 px-3 py-1.5 text-slate-800 border-l-4 border-[#C89543]">
-                  2. {t.clientDetails.coverBenefitData}
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 text-xs border border-slate-200 rounded-b-lg">
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Espécie do Benefício</span>
-                    <span className="font-bold text-slate-900">{client.benefitType || 'Aposentadoria por Idade Rural'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Número do Benefício (NB)</span>
-                    <span className="font-mono text-slate-900">{client.benefitNumber || 'Em postulação inicial'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Total de Visitas Presenciais</span>
-                    <span className="font-bold text-slate-900">{client.visitCount} visita(s)</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Status do Caso</span>
-                    <span className="font-bold text-slate-900">{client.status}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Atendimento Inicial</span>
-                    <span className="text-slate-900">
-                      {client.createdAt ? new Date(client.createdAt).toLocaleDateString('pt-BR') : todayFormatted}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Último Atendente</span>
-                    <span className="text-slate-900">{client.lastAttendantName || lawyerName}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. Documentação Física e Pendências */}
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider bg-slate-100 px-3 py-1.5 text-slate-800 border-l-4 border-emerald-500">
-                    3. {t.clientDetails.coverDeliveredDocs}
-                  </h3>
-                  <div className="p-3 text-xs border border-slate-200 rounded-b-lg space-y-1.5 min-h-[90px]">
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <span className="w-3.5 h-3.5 rounded-sm border border-slate-400 flex items-center justify-center font-bold text-[9px] text-emerald-600">✓</span>
-                      <span>Documento Oficial de Identidade (RG/CPF)</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <span className="w-3.5 h-3.5 rounded-sm border border-slate-400 flex items-center justify-center font-bold text-[9px] text-emerald-600">✓</span>
-                      <span>Comprovante de Residência Atualizado</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <span className="w-3.5 h-3.5 rounded-sm border border-slate-400 flex items-center justify-center font-bold text-[9px] text-emerald-600">✓</span>
-                      <span>Procuração e Contrato OAB Assinados</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xs font-bold uppercase tracking-wider bg-slate-100 px-3 py-1.5 text-slate-800 border-l-4 border-amber-500">
-                    4. {t.clientDetails.coverPendingDocs}
-                  </h3>
-                  <div className="p-3 text-xs border border-slate-200 rounded-b-lg space-y-1.5 min-h-[90px]">
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <span className="w-3.5 h-3.5 rounded-sm border border-slate-300"></span>
-                      <span>Autodeclaração Rural assinada</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <span className="w-3.5 h-3.5 rounded-sm border border-slate-300"></span>
-                      <span>Certidão do Sindicato / Notas de Produtor</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <span className="w-3.5 h-3.5 rounded-sm border border-slate-300"></span>
-                      <span>Extrato CNIS completo atualizado</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Anotações do Advogado (Pautas Manuais) */}
-              <div className="mt-6">
-                <h3 className="text-xs font-bold uppercase tracking-wider bg-slate-100 px-3 py-1.5 text-slate-800 border-l-4 border-slate-700">
-                  5. {t.clientDetails.coverObservations}
-                </h3>
-                <div className="p-4 border border-slate-200 rounded-b-lg space-y-4">
-                  {client.notes && (
-                    <p className="text-xs text-slate-700 italic bg-amber-50/50 p-2.5 rounded border border-amber-200/50">
-                      &quot;{client.notes}&quot;
+                    <h3 className="font-bold text-[#082A52] uppercase text-[11px]">
+                      PODERES DA CLÁUSULA AD JUDICIA ET EXTRA
+                    </h3>
+                    <p className="mt-0.5">
+                      Por este instrumento particular de procuração, o(a) Outorgante confere aos outorgados amplos e gerais poderes da cláusula <em>ad judicia et extra</em> para o foro em geral perante qualquer Juízo, Instância ou Tribunal, bem como perante autarquias públicas federais e estaduais, mormente o <strong>INSTITUTO NACIONAL DO SEGURO SOCIAL (INSS)</strong>, CRPS, e Justiça Federal.
                     </p>
-                  )}
-                  {/* Ruled lines for physical writing */}
-                  <div className="space-y-3 pt-2">
-                    <div className="border-b border-dashed border-slate-300 h-4"></div>
-                    <div className="border-b border-dashed border-slate-300 h-4"></div>
-                    <div className="border-b border-dashed border-slate-300 h-4"></div>
-                    <div className="border-b border-dashed border-slate-300 h-4"></div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-[#082A52] uppercase text-[11px]">
+                      PODERES ESPECIAIS EXPRESSOS (ART. 105 DO CPC)
+                    </h3>
+                    <p className="mt-0.5">
+                      Confere ainda poderes especiais e expressos para requerer, desistir, transigir, acordar, anuir, firmar compromissos, receber citações e intimações, interpor recursos administrativos e judiciais, renunciar a valores excedentes ao teto dos Juizados Especiais Federais (quando conveniente ao processo), dar e receber quitação total ou parcial, e expressamente <strong>RECEBER E LEVANTAR ALVARÁS JUDICIAIS, PRECATÓRIOS E REQUISIÇÕES DE PEQUENO VALOR (RPV)</strong> perante a Caixa Econômica Federal e o Banco do Brasil S/A, retendo a cota-parte dos honorários advocatícios contratados, substabelecer com ou sem reserva de iguais poderes, dando tudo por bom, firme e valioso.
+                    </p>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-[#082A52] uppercase text-[11px]">
+                      FINALIDADE ESPECÍFICA DO MANDATO
+                    </h3>
+                    <p className="mt-0.5">
+                      A presente procuração destina-se especificamente ao pleito, concessão e liquidação do benefício previdenciário de <strong>{client.benefitType || selectedTemplate?.benefitSpecies || 'Aposentadoria Previdenciária'}</strong> (Pasta: {cabinetLocation}).
+                    </p>
+                  </div>
+                </div>
+
+                {/* Signatures */}
+                <div className="pt-8 space-y-8 break-inside-avoid text-xs">
+                  <div className="text-right text-slate-600">
+                    Localidade, {todayFormatted}.
+                  </div>
+
+                  <div className="max-w-xs mx-auto border-t border-slate-800 pt-2 text-center">
+                    <strong className="block text-slate-900">{client.fullName}</strong>
+                    <span className="text-[11px] text-slate-500 font-mono">OUTORGANTE • CPF: {client.cpf}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 text-left text-[11px] pt-4">
+                    <div className="border-t border-slate-400 pt-1">
+                      <span>Assinatura a Rogo (caso analfabeto):</span><br />
+                      <span>Nome: ____________________________________</span><br />
+                      <span>CPF: _____________________________________</span>
+                    </div>
+
+                    <div className="border-t border-slate-400 pt-1">
+                      <span>Testemunha Instrumentária:</span><br />
+                      <span>Nome: ____________________________________</span><br />
+                      <span>CPF: _____________________________________</span>
+                    </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Signature Footer */}
-              <div className="mt-8 pt-6 border-t border-slate-300 flex items-center justify-between text-xs text-slate-600">
-                <div>
-                  <span>Data da Abertura da Pasta: {todayFormatted}</span>
+            {/* DOCUMENT 3: CAPA DE PASTA FÍSICA */}
+            {selectedDoc === 'capa' && (
+              <div className="border-4 border-double border-[#082A52] p-6 sm:p-8 rounded-lg space-y-6">
+                <div className="text-center border-b-2 border-[#082A52] pb-4">
+                  <div className="flex items-center justify-center gap-2 text-[#082A52] mb-1">
+                    <Scale className="w-5 h-5 text-[#C89543]" />
+                    <span className="font-bold uppercase tracking-wider text-xs">Alexandre Pontes Sociedade de Advogados</span>
+                  </div>
+                  <h2 className="font-extrabold text-lg sm:text-xl text-[#082A52] uppercase tracking-tight">
+                    Dossiê do Processo Previdenciário
+                  </h2>
+                  <div className="text-xs text-[#C89543] font-bold uppercase tracking-widest mt-0.5">
+                    Arquivo Físico Central • Gestão Documental OAB
+                  </div>
                 </div>
-                <div className="text-center">
-                  <div className="w-48 border-b border-slate-900 pb-1"></div>
-                  <span className="block mt-1 font-bold text-[11px] text-slate-900 uppercase">
-                    {lawyerName} ({lawyerOab})
-                  </span>
-                  <span className="block text-[10px] text-slate-500">
-                    {t.clientDetails.coverLawyerSignature}
-                  </span>
+
+                <div className="p-4 bg-slate-50 border-2 border-slate-300 rounded-xl flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+                      Identificação da Pasta
+                    </span>
+                    <div className="text-2xl font-mono font-extrabold text-[#082A52]">
+                      {client.physicalFileLocation || 'PASTA 2026-PEND'}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">
+                      Armário & Gaveta
+                    </span>
+                    <div className="text-sm font-bold text-[#C89543]">
+                      {cabinetLocation}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="text-xs font-bold text-[#082A52] uppercase tracking-wider">
+                    Dados Cadastrais do Segurado(a)
+                  </h3>
+                  <table className="w-full text-xs border-collapse">
+                    <tbody>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1.5 text-slate-500 font-medium w-40">Nome Completo:</td>
+                        <td className="py-1.5 font-bold text-slate-900">{client.fullName}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1.5 text-slate-500 font-medium">CPF do Segurado:</td>
+                        <td className="py-1.5 font-mono font-bold text-slate-900">{client.cpf}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1.5 text-slate-500 font-medium">Espécie / Objeto:</td>
+                        <td className="py-1.5 font-bold text-[#082A52]">{client.benefitType || 'Previdenciário'}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1.5 text-slate-500 font-medium">Advogado Patrono:</td>
+                        <td className="py-1.5 text-slate-800 font-semibold">{selectedLawyer.name} ({selectedLawyer.oab})</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1.5 text-slate-500 font-medium">Telefone de Contato:</td>
+                        <td className="py-1.5 text-slate-800">{client.phone || 'Não informado'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <h3 className="text-xs font-bold text-[#082A52] uppercase tracking-wider">
+                    Rol de Documentos Físicos Obrigatórios da Pasta
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-slate-400">[  ]</span>
+                      <span>Procuração Ad Judicia Original com Firma</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-slate-400">[  ]</span>
+                      <span>Contrato de Honorários OAB Assinado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-slate-400">[  ]</span>
+                      <span>Cópia de RG e CPF do Segurado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-slate-400">[  ]</span>
+                      <span>Comprovante de Endereço Atualizado</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-slate-400">[  ]</span>
+                      <span>Extrato CNIS Integral e CTPS Física</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-slate-400">[  ]</span>
+                      <span>Autodeclaração Rural / Provas ou Laudos</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Data de Autuação: {todayFormatted}</span>
+                  <span>Alexandre Pontes Advogados • OAB/PB</span>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Footer Actions - Screen only */}
-        <div className="print:hidden p-4 bg-white border-t border-slate-200 flex items-center justify-between shrink-0">
-          <span className="text-xs text-slate-500">
-            Documento formatado para papel A4 com CSS Print vetorial nativo.
-          </span>
-
-          <div className="flex items-center gap-3">
+        {/* Footer */}
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
             <button
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              type="button"
+              onClick={handleCopyText}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-all"
             >
-              {t.clientDetails.btnClose}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+              <span>{copied ? 'Copiado!' : 'Copiar Texto'}</span>
             </button>
+
             <button
+              type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[#0B192E] hover:bg-[#142642] rounded-xl shadow-xs transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#082A52] text-white hover:bg-[#0c396d] text-xs font-bold shadow-sm transition-all"
             >
               <Printer className="w-4 h-4 text-[#C89543]" />
-              <span>{t.clientDetails.btnPrint}</span>
+              <span>Imprimir em Folha A4</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-200 text-xs font-semibold transition-all"
+            >
+              Fechar
+            </button>
+
+            <button
+              type="button"
+              onClick={handleFormalizeAndSaveContract}
+              disabled={isFormSaved}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#168447] hover:bg-[#126b39] text-white text-xs font-bold shadow-md transition-all"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{isFormSaved ? 'Formalizado com Sucesso!' : 'Formalizar e Registrar no Hub'}</span>
             </button>
           </div>
         </div>

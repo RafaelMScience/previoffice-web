@@ -387,4 +387,88 @@ export interface Translations {
     toastUpdateSuccess: string;
     toastWhatsAppOpened: string;
   };
+  contracts: {
+    pageTitle: string;
+    pageSubtitle: string;
+    tabContractsHub: string;
+    tabOfficeTemplates: string;
+    btnNewContract: string;
+    
+    // KPI Cards
+    kpiTotalContracted: string;
+    kpiTotalContractedSub: string;
+    kpiFutureReceivables: string;
+    kpiFutureReceivablesSub: string;
+    kpiOpenInstallments: string;
+    kpiOpenInstallmentsSub: string;
+    kpiPhysicalSignedRate: string;
+    kpiPhysicalSignedSub: string;
+    
+    // Filter Tabs
+    tabFilterAll: string;
+    tabFilterActive: string;
+    tabFilterInstallments: string;
+    tabFilterPendingSignature: string;
+    tabFilterConcluded: string;
+    
+    // Table Columns
+    colContractNumber: string;
+    colClient: string;
+    colBenefit: string;
+    colFeeStructure: string;
+    colSignatureStatus: string;
+    colCabinetFolder: string;
+    colActions: string;
+    
+    // Badges & States
+    badgeQuotaLitis: string;
+    badgeFixedInstallment: string;
+    badgeHybrid: string;
+    badgePhysicalAttached: string;
+    badgeSignaturePending: string;
+    badgeDigitalSignature: string;
+    
+    // Quick Actions
+    actionViewInstallments: string;
+    actionPrintA4: string;
+    actionUploadSigned: string;
+    actionClientProfile: string;
+    
+    // Modals & Drawers
+    modalInstallmentsTitle: string;
+    modalInstallmentsSubtitle: string;
+    modalUploadTitle: string;
+    modalUploadSubtitle: string;
+    modalNewContractTitle: string;
+    modalNewContractSubtitle: string;
+    modalPrintTitle: string;
+    modalPrintSubtitle: string;
+    
+    // Financial Tracker
+    lblQuotaLitisRate: string;
+    lblEstimatedRetroactive: string;
+    lblProjectedSuccessFee: string;
+    lblFixedTotal: string;
+    lblPaidSoFar: string;
+    lblRemainingBalance: string;
+    lblInstallmentProgress: string;
+    btnSettleInstallment: string;
+    settleSuccessToast: string;
+    
+    // Upload Drawer
+    dragDropPrompt: string;
+    dragDropSubtext: string;
+    lblCabinetLocation: string;
+    lblSignerNotes: string;
+    btnConfirmUpload: string;
+    uploadSuccessToast: string;
+    
+    // Templates Management
+    templatesTitle: string;
+    templatesSubtitle: string;
+    btnNewTemplate: string;
+    lblDefaultQuotaLitis: string;
+    lblClausesCount: string;
+    btnPreviewTemplate: string;
+  };
 }

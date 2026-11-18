@@ -389,4 +389,88 @@ export const ptTranslations: Translations = {
     toastUpdateSuccess: 'Andamento processual registrado com sucesso no histórico do cliente!',
     toastWhatsAppOpened: 'Link do WhatsApp gerado! A mensagem pronta foi encaminhada para envio.',
   },
+  contracts: {
+    pageTitle: 'Hub Geral de Contratos & Gestão de Honorários',
+    pageSubtitle: 'Controle de honorários a receber (Quota Litis e parcelamentos), arquivo de contratos assinados fisicamente e modelos de minutas.',
+    tabContractsHub: 'Contratos & Livro Caixa',
+    tabOfficeTemplates: 'Modelos & Minutas Padrão',
+    btnNewContract: 'Novo Contrato & Honorários',
+    
+    // KPI Cards
+    kpiTotalContracted: 'Total em Honorários Contratados',
+    kpiTotalContractedSub: 'Pipeline global contratado na banca',
+    kpiFutureReceivables: 'Saldo Futuro a Receber (Êxito)',
+    kpiFutureReceivablesSub: 'Quota Litis estimada sobre atrasados',
+    kpiOpenInstallments: 'Parcelas em Aberto / Caixa',
+    kpiOpenInstallmentsSub: 'Controle de recebimento de honorários',
+    kpiPhysicalSignedRate: 'Contratos Físicos Arquivados',
+    kpiPhysicalSignedSub: 'Comprovação formal c/ firma no cofre',
+    
+    // Filter Tabs
+    tabFilterAll: 'Todos os Contratos',
+    tabFilterActive: 'Ativos / Em Andamento',
+    tabFilterInstallments: 'Parcelamento Aberto',
+    tabFilterPendingSignature: 'Pendente de Assinatura',
+    tabFilterConcluded: 'Concluídos & Recebidos',
+    
+    // Table Columns
+    colContractNumber: 'Nº Contrato & Emissão',
+    colClient: 'Cliente & Contato',
+    colBenefit: 'Benefício / Objeto',
+    colFeeStructure: 'Regime de Honorários',
+    colSignatureStatus: 'Status da Assinatura',
+    colCabinetFolder: 'Pasta / Arquivo Físico',
+    colActions: 'Ações',
+    
+    // Badges & States
+    badgeQuotaLitis: 'Quota Litis (Êxito)',
+    badgeFixedInstallment: 'Parcelamento Fixo',
+    badgeHybrid: 'Híbrido (Entrada + Êxito)',
+    badgePhysicalAttached: 'Físico Assinado Anexo',
+    badgeSignaturePending: 'Pendente de Assinatura',
+    badgeDigitalSignature: 'Assinatura Eletrônica',
+    
+    // Quick Actions
+    actionViewInstallments: 'Ver Parcelas & Baixa',
+    actionPrintA4: 'Gerar Minuta A4 / Procuração',
+    actionUploadSigned: 'Subir Contrato Assinado',
+    actionClientProfile: 'Abrir Ficha do Cliente',
+    
+    // Modals & Drawers
+    modalInstallmentsTitle: 'Controle Financeiro de Honorários e Parcelas',
+    modalInstallmentsSubtitle: 'Acompanhe as parcelas acordadas, registre baixas de pagamento e consulte a estimativa de honorários de êxito.',
+    modalUploadTitle: 'Arquivamento de Contrato Físico Assinado',
+    modalUploadSubtitle: 'Vincule a cópia digitalizada do contrato assinado pelo cliente à sua respectiva pasta no arquivo físico do escritório.',
+    modalNewContractTitle: 'Formalizar Novo Contrato de Honorários & Procuração',
+    modalNewContractSubtitle: 'Selecione o cliente, defina o regime de remuneração (Quota Litis ou parcelamento) e gere o contrato oficial da OAB.',
+    modalPrintTitle: 'Visualização e Emissão Oficial para Assinatura (A4)',
+    modalPrintSubtitle: 'Imprima a Procuração Ad Judicia e o Contrato de Honorários prontos para colheita de firma presencial.',
+    
+    // Financial Tracker
+    lblQuotaLitisRate: 'Percentual de Êxito (Quota Litis):',
+    lblEstimatedRetroactive: 'Previsão de Atrasados / Valor da Causa:',
+    lblProjectedSuccessFee: 'Honorários de Êxito Estimados:',
+    lblFixedTotal: 'Honorários Fixos Contratados:',
+    lblPaidSoFar: 'Total já Recebido:',
+    lblRemainingBalance: 'Saldo Pendente de Recebimento:',
+    lblInstallmentProgress: 'Evolução de Pagamento das Parcelas:',
+    btnSettleInstallment: 'Registrar Pagamento (Dar Baixa)',
+    settleSuccessToast: 'Parcela liquidada com sucesso! Livro caixa atualizado.',
+    
+    // Upload Drawer
+    dragDropPrompt: 'Arraste o arquivo PDF ou imagem do contrato assinado',
+    dragDropSubtext: 'Formatos aceitos: PDF, JPG, PNG (máx. 15MB)',
+    lblCabinetLocation: 'Localização da Pasta no Arquivo Físico *',
+    lblSignerNotes: 'Observações sobre a Colheita de Assinatura',
+    btnConfirmUpload: 'Confirmar e Arquivar Documento',
+    uploadSuccessToast: 'Contrato físico assinado anexado e arquivado com sucesso!',
+    
+    // Templates Management
+    templatesTitle: 'Biblioteca de Minutas & Modelos Padrão do Escritório',
+    templatesSubtitle: 'Gerencie os modelos oficiais de contratos e procurações utilizados pela banca para cada espécie de benefício.',
+    btnNewTemplate: 'Cadastrar Nova Minuta Padrão',
+    lblDefaultQuotaLitis: 'Quota Litis Padrão:',
+    lblClausesCount: 'Qtd. de Cláusulas:',
+    btnPreviewTemplate: 'Visualizar Minuta',
+  },
 };
