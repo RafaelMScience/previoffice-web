@@ -27,6 +27,7 @@ export interface Translations {
     sectionIntelligence: string;
     vadeMecum: string;
     securityAudit: string;
+    settings: string;
     receptionDesk: string;
     receptionDeskSub: string;
   };
@@ -470,5 +471,94 @@ export interface Translations {
     lblDefaultQuotaLitis: string;
     lblClausesCount: string;
     btnPreviewTemplate: string;
+  };
+  settings: {
+    pageTitle: string;
+    pageSubtitle: string;
+    tabProfile: string;
+    tabOffice: string;
+    tabTeam: string;
+    
+    // Profile
+    profileTitle: string;
+    profileSubtitle: string;
+    lblFullName: string;
+    lblEmail: string;
+    lblPhone: string;
+    lblRole: string;
+    lblOab: string;
+    lblOabNumber: string;
+    lawyer: string;
+    assistant: string;
+    intern: string;
+    saveSuccess: string;
+    btnSaveProfile: string;
+    
+    // Security & Password
+    securityTitle: string;
+    securitySubtitle: string;
+    lblCurrentPassword: string;
+    lblNewPassword: string;
+    lblConfirmPassword: string;
+    btnUpdatePassword: string;
+    
+    // 2FA
+    twoFactorTitle: string;
+    twoFactorSubtitle: string;
+    twoFactorStatusDisabled: string;
+    twoFactorDisabledNotice: string;
+    btnActivate2Fa: string;
+    
+    // Office
+    officeTitle: string;
+    officeSubtitle: string;
+    lblOfficeName: string;
+    lblTradeName: string;
+    lblCnpj: string;
+    lblOabSociety: string;
+    lblOfficeEmail: string;
+    lblOfficePhone: string;
+    lblOfficeWhatsapp: string;
+    lblAddress: string;
+    lblNumber: string;
+    lblComplement: string;
+    lblNeighborhood: string;
+    lblCity: string;
+    lblState: string;
+    lblZipCode: string;
+    lblLogoUpload: string;
+    btnSaveOffice: string;
+    
+    // Team
+    teamTitle: string;
+    teamSubtitle: string;
+    btnNewMember: string;
+    colMember: string;
+    colType: string;
+    colPermissions: string;
+    colStatus: string;
+    colLastLogin: string;
+    colActions: string;
+    
+    // Modal Member
+    modalNewMemberTitle: string;
+    modalEditMemberTitle: string;
+    modalMemberSubtitle: string;
+    lblMemberType: string;
+    lblTemporaryPassword: string;
+    permSectionTitle: string;
+    permReception: string;
+    permReceptionDesc: string;
+    permClients: string;
+    permClientsDesc: string;
+    permCases: string;
+    permCasesDesc: string;
+    permContracts: string;
+    permContractsDesc: string;
+    permTemplates: string;
+    permTemplatesDesc: string;
+    permAdmin: string;
+    permAdminDesc: string;
+    btnSaveMember: string;
   };
 }

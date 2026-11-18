@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
+import { settingsStore } from '@/lib/data/mock-settings';
 
 export interface FastIntakeData {
   fullName: string;
@@ -22,6 +23,8 @@ export interface FastIntakeData {
   cpf: string;
   benefit: string;
   notes: string;
+  registeredBy?: string;
+  assignedLawyerName?: string;
 }
 
 interface FastIntakeModalProps {
@@ -37,6 +40,11 @@ export function FastIntakeModal({
 }: FastIntakeModalProps) {
   const { t } = useI18n();
   const nameInputRef = useRef<HTMLInputElement>(null);
+
+  const teamMembers = settingsStore.getTeamMembers();
+  const activeLawyers = settingsStore.getActiveLawyers();
+  const [createdById, setCreatedById] = useState<string>('usr-004'); // Defaults to Juliana Ribeiro (Receptionist)
+  const [assignedLawyerId, setAssignedLawyerId] = useState<string>('usr-001'); // Dr. Alexandre Pontes
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -101,12 +109,17 @@ export function FastIntakeModal({
       // Simulate quick async registration
       await new Promise((resolve) => setTimeout(resolve, 350));
 
+      const creator = teamMembers.find((m) => m.id === createdById);
+      const lawyer = activeLawyers.find((m) => m.id === assignedLawyerId);
+
       onSubmitSuccess({
         fullName: fullName.trim(),
         phone: phone.trim(),
         cpf: cleanCpf || '',
         benefit,
         notes: notes.trim() || 'Entrada rápida de balcão registrada.',
+        registeredBy: creator?.fullName || 'Recepção',
+        assignedLawyerName: lawyer?.fullName || 'Dr. Alexandre Pontes',
       });
 
       onClose();
@@ -242,6 +255,58 @@ export function FastIntakeModal({
                 <option value="General Query">Consulta Geral / Outros</option>
               </select>
             </div>
+          </div>
+
+          {/* Rastreabilidade de Atendimento: Cadastrado por & Advogado Responsável */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Cadastrado por
+                </label>
+                <select
+                  value={createdById}
+                  onChange={(e) => {
+                    const newCreatedId = e.target.value;
+                    setCreatedById(newCreatedId);
+                    const member = teamMembers.find((m) => m.id === newCreatedId);
+                    if (member?.memberType === 'LAWYER') {
+                      setAssignedLawyerId(newCreatedId);
+                    }
+                  }}
+                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-800"
+                >
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.fullName} ({m.memberType === 'LAWYER' ? 'Advogado' : m.memberType === 'ASSISTANT' ? 'Assistente' : 'Estagiário'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                  Advogado que irá atender <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={assignedLawyerId}
+                  onChange={(e) => setAssignedLawyerId(e.target.value)}
+                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#082A52] rounded-lg font-bold text-[#082A52] focus:ring-1 focus:ring-[#C89543]"
+                >
+                  {activeLawyers.map((lawyer) => (
+                    <option key={lawyer.id} value={lawyer.id}>
+                      {lawyer.fullName} ({lawyer.oabNumber})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 leading-tight">
+              {teamMembers.find((m) => m.id === createdById)?.memberType === 'LAWYER'
+                ? 'Advogado logado: pode atender pessoalmente ou atribuir a outro colega.'
+                : 'Assistente / Recepção: obrigatório vincular o advogado responsável pelo caso.'}
+            </p>
           </div>
 
           {/* 5. Anotação Rápida */}

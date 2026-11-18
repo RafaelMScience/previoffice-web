@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Users, FileText, Scale, BookOpen, ShieldCheck, Search, Plus } from 'lucide-react';
+import { Users, FileText, Scale, BookOpen, ShieldCheck, Search, Plus, Settings } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 
@@ -20,6 +20,7 @@ export default function DashboardLayout({
   const isContracts = pathname.startsWith('/contracts');
   const isVadeMecum = pathname.startsWith('/vade-mecum');
   const isSecurity = pathname.startsWith('/security');
+  const isSettings = pathname.startsWith('/settings');
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
@@ -103,6 +104,18 @@ export default function DashboardLayout({
             <ShieldCheck className="w-4 h-4" />
             <span>{t.navigation.securityAudit}</span>
           </Link>
+
+          <Link
+            href="/settings"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              isSettings
+                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                : 'text-white/70 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <Settings className={`w-4 h-4 ${isSettings ? 'text-[#C89543]' : 'text-white/60'}`} />
+            <span>{t.navigation.settings}</span>
+          </Link>
         </nav>
 
         {/* Language selector in sidebar */}
@@ -110,16 +123,27 @@ export default function DashboardLayout({
           <LanguageSwitcher variant="sidebar" />
         </div>
 
-        {/* User Card */}
-        <div className="p-4 border-t border-white/10 bg-black/20 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs text-white">
-            REC
+        {/* User Card (Clickable to /settings?tab=profile) */}
+        <Link
+          href="/settings?tab=profile"
+          className="p-4 border-t border-white/10 bg-black/20 hover:bg-white/10 transition-all flex items-center gap-3 group cursor-pointer"
+          title="Ver meu perfil e configurações"
+        >
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#082A52] to-[#0B78D0] border border-[#C89543]/40 flex items-center justify-center font-bold text-xs text-white shadow-xs group-hover:scale-105 transition-transform">
+            AP
           </div>
-          <div className="overflow-hidden">
-            <div className="text-xs font-semibold text-white truncate">{t.navigation.receptionDesk}</div>
-            <div className="text-[11px] text-slate-400 truncate">{t.navigation.receptionDeskSub}</div>
+          <div className="overflow-hidden flex-1">
+            <div className="text-xs font-semibold text-white truncate group-hover:text-[#C89543] transition-colors">
+              Dr. Alexandre Pontes
+            </div>
+            <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+              <span>OAB/PB 18.234</span>
+              <span>•</span>
+              <span className="text-[10px] text-emerald-400 font-medium">Online</span>
+            </div>
           </div>
-        </div>
+          <Settings className="w-4 h-4 text-white/40 group-hover:text-[#C89543] transition-colors flex-shrink-0" />
+        </Link>
       </aside>
 
       {/* Main Container */}

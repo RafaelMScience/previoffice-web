@@ -13,6 +13,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { settingsStore } from '@/lib/data/mock-settings';
 import type { Attendance, AttendanceType, PendingPhysicalDocument } from '@/types/attendance';
 
 interface NewAttendanceModalProps {
@@ -33,7 +34,10 @@ export function NewAttendanceModal({
   const { t } = useI18n();
 
   const [attendanceType, setAttendanceType] = useState<AttendanceType>('RETURN');
-  const [attendantName, setAttendantName] = useState('Dr. Alexandre Pontes');
+  const teamMembers = settingsStore.getTeamMembers();
+  const activeLawyers = settingsStore.getActiveLawyers();
+  const [createdById, setCreatedById] = useState<string>('usr-001'); // Dr. Alexandre Pontes
+  const [assignedLawyerId, setAssignedLawyerId] = useState<string>('usr-001'); // Dr. Alexandre Pontes
   const [objective, setObjective] = useState(defaultObjective);
   const [narrativeHistory, setNarrativeHistory] = useState('');
   const [strategyNotes, setStrategyNotes] = useState('');
@@ -75,6 +79,13 @@ export function NewAttendanceModal({
     e.preventDefault();
     setIsSubmitting(true);
 
+    const creator = teamMembers.find((m) => m.id === createdById);
+    const lawyer = activeLawyers.find((m) => m.id === assignedLawyerId);
+    const attendantDisplayName =
+      creator?.id === lawyer?.id
+        ? lawyer?.fullName || 'Dr. Alexandre Pontes'
+        : `${creator?.fullName || 'Recepção'} (Atendido por ${lawyer?.fullName || 'Advogado'})`;
+
     const newAttendance: Attendance = {
       id: Math.random().toString(36).slice(2, 11),
       tenantId: 'tenant-default',
@@ -84,7 +95,7 @@ export function NewAttendanceModal({
       objective,
       narrativeHistory: narrativeHistory.trim() || undefined,
       notes: strategyNotes.trim() || undefined,
-      attendantName,
+      attendantName: attendantDisplayName,
       pendingDocuments: pendingDocs,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -138,19 +149,61 @@ export function NewAttendanceModal({
               </select>
             </div>
 
-            {/* Attendant Name */}
+            {/* Registrado por (Criador) */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {t.clientDetails.attendantLabel}
+                Registrado por (Início do Atendimento)
               </label>
-              <input
-                type="text"
-                required
-                value={attendantName}
-                onChange={(e) => setAttendantName(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-              />
+              <select
+                value={createdById}
+                onChange={(e) => {
+                  const newCreatedId = e.target.value;
+                  setCreatedById(newCreatedId);
+                  const member = teamMembers.find((m) => m.id === newCreatedId);
+                  if (member?.memberType === 'LAWYER') {
+                    setAssignedLawyerId(newCreatedId);
+                  }
+                }}
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
+              >
+                {teamMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.fullName} ({m.memberType === 'LAWYER' ? 'Advogado' : m.memberType === 'ASSISTANT' ? 'Assistente' : 'Estagiário'})
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+
+          {/* Advogado Responsável pelo Atendimento */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-slate-800">
+                Advogado Responsável pelo Atendimento <span className="text-rose-500">*</span>
+              </label>
+              {teamMembers.find((m) => m.id === createdById)?.memberType !== 'LAWYER' && (
+                <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                  Atribuição obrigatória (Operador não-advogado)
+                </span>
+              )}
+            </div>
+            <select
+              required
+              value={assignedLawyerId}
+              onChange={(e) => setAssignedLawyerId(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-white border border-[#082A52] rounded-lg font-bold text-[#082A52] focus:ring-2 focus:ring-[#C89543]"
+            >
+              {activeLawyers.map((lawyer) => (
+                <option key={lawyer.id} value={lawyer.id}>
+                  {lawyer.fullName} ({lawyer.oabNumber})
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-slate-500 mt-1">
+              {teamMembers.find((m) => m.id === createdById)?.memberType === 'LAWYER'
+                ? 'Advogados podem atender diretamente ou transferir para outro colega da banca.'
+                : 'Assistentes e estagiários devem obrigatoriamente indicar o advogado que conduzirá o atendimento.'}
+            </p>
           </div>
 
           {/* Objective */}
