@@ -200,73 +200,111 @@ export default function AttendancesPage() {
         </div>
       </div>
 
-      {/* Metrics Row */}
+      {/* Metrics Row (Interactive 1-Click Filter Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setFilterType('ALL')}
+          className={`p-5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+            filterType === 'ALL'
+              ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-[#C89543] shadow-md'
+              : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm text-slate-800'
+          }`}
+          title="Clique para filtrar: Todos os atendimentos"
+        >
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <p className={`text-xs font-semibold uppercase tracking-wider ${filterType === 'ALL' ? 'text-slate-300' : 'text-slate-500'}`}>
               Total de Atendimentos
             </p>
-            <h3 className="text-2xl font-bold text-slate-900 mt-1">{attendances.length}</h3>
-            <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1">
-              Histórico consolidado
+            <h3 className={`text-2xl font-bold mt-1 ${filterType === 'ALL' ? 'text-white' : 'text-slate-900'}`}>
+              {attendances.length}
+            </h3>
+            <span className={`text-xs font-medium flex items-center gap-1 mt-1 ${filterType === 'ALL' ? 'text-[#C89543]' : 'text-slate-500'}`}>
+              {filterType === 'ALL' ? '● Filtro ativo' : 'Histórico consolidado'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${filterType === 'ALL' ? 'bg-white/10 text-[#C89543]' : 'bg-blue-50 text-blue-600'}`}>
             <Users className="w-6 h-6" />
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setFilterType('RETURN_DOCUMENTS')}
+          className={`p-5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+            filterType === 'RETURN_DOCUMENTS'
+              ? 'bg-amber-900 text-white border-amber-900 ring-2 ring-[#C89543] shadow-md'
+              : 'bg-white border-slate-200 hover:border-amber-300 hover:shadow-sm text-slate-800'
+          }`}
+          title="Clique para filtrar: Retornos com Documentos"
+        >
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <p className={`text-xs font-semibold uppercase tracking-wider ${filterType === 'RETURN_DOCUMENTS' ? 'text-amber-200' : 'text-slate-500'}`}>
               Retornos com Documentos
             </p>
-            <h3 className="text-2xl font-bold text-amber-600 mt-1">
+            <h3 className={`text-2xl font-bold mt-1 ${filterType === 'RETURN_DOCUMENTS' ? 'text-white' : 'text-amber-600'}`}>
               {attendances.filter((a) => a.attendanceType === 'RETURN_DOCUMENTS' || a.attendanceType === 'RETURN').length}
             </h3>
-            <span className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-1">
-              Instrução probatória
+            <span className={`text-xs font-medium flex items-center gap-1 mt-1 ${filterType === 'RETURN_DOCUMENTS' ? 'text-[#C89543]' : 'text-amber-600'}`}>
+              {filterType === 'RETURN_DOCUMENTS' ? '● Filtro ativo' : 'Instrução probatória'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${filterType === 'RETURN_DOCUMENTS' ? 'bg-white/10 text-amber-200' : 'bg-amber-50 text-amber-600'}`}>
             <Clock className="w-6 h-6" />
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setFilterType('FIRST_CONSULTATION')}
+          className={`p-5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+            filterType === 'FIRST_CONSULTATION'
+              ? 'bg-blue-950 text-white border-blue-950 ring-2 ring-[#C89543] shadow-md'
+              : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm text-slate-800'
+          }`}
+          title="Clique para filtrar: 1ªs Consultas / Triagens"
+        >
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <p className={`text-xs font-semibold uppercase tracking-wider ${filterType === 'FIRST_CONSULTATION' ? 'text-blue-200' : 'text-slate-500'}`}>
               1ªs Consultas / Triagens
             </p>
-            <h3 className="text-2xl font-bold text-blue-600 mt-1">
+            <h3 className={`text-2xl font-bold mt-1 ${filterType === 'FIRST_CONSULTATION' ? 'text-white' : 'text-blue-600'}`}>
               {attendances.filter((a) => a.attendanceType === 'FIRST_CONSULTATION' || a.attendanceType === 'FIRST_VISIT').length}
             </h3>
-            <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-1">
-              Novos clientes captados
+            <span className={`text-xs font-medium flex items-center gap-1 mt-1 ${filterType === 'FIRST_CONSULTATION' ? 'text-[#C89543]' : 'text-slate-500'}`}>
+              {filterType === 'FIRST_CONSULTATION' ? '● Filtro ativo' : 'Novos clientes captados'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${filterType === 'FIRST_CONSULTATION' ? 'bg-white/10 text-blue-200' : 'bg-slate-50 text-slate-700'}`}>
             <UserCheck className="w-6 h-6" />
           </div>
-        </div>
+        </button>
 
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setFilterType('CONTRACT_SIGNING')}
+          className={`p-5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+            filterType === 'CONTRACT_SIGNING'
+              ? 'bg-emerald-950 text-white border-emerald-950 ring-2 ring-[#C89543] shadow-md'
+              : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm text-slate-800'
+          }`}
+          title="Clique para filtrar: Contratos Formalizados"
+        >
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <p className={`text-xs font-semibold uppercase tracking-wider ${filterType === 'CONTRACT_SIGNING' ? 'text-emerald-200' : 'text-slate-500'}`}>
               Contratos Formalizados
             </p>
-            <h3 className="text-2xl font-bold text-emerald-600 mt-1">
+            <h3 className={`text-2xl font-bold mt-1 ${filterType === 'CONTRACT_SIGNING' ? 'text-white' : 'text-emerald-600'}`}>
               {attendances.filter((a) => a.attendanceType === 'CONTRACT_SIGNING').length}
             </h3>
-            <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 mt-1">
-              Procuração OAB emitida
+            <span className={`text-xs font-medium flex items-center gap-1 mt-1 ${filterType === 'CONTRACT_SIGNING' ? 'text-[#C89543]' : 'text-emerald-600'}`}>
+              {filterType === 'CONTRACT_SIGNING' ? '● Filtro ativo' : 'Procuração OAB emitida'}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${filterType === 'CONTRACT_SIGNING' ? 'bg-white/10 text-emerald-200' : 'bg-emerald-50 text-emerald-600'}`}>
             <FileCheck2 className="w-6 h-6" />
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Filter and Search Bar */}
@@ -439,14 +477,34 @@ export default function AttendancesPage() {
                         {/* Pending Docs */}
                         <td className="px-5 py-4">
                           {pendingCount > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                              {pendingCount} pendente(s)
-                            </span>
+                            <div className="flex flex-col gap-0.5 items-start">
+                              <span
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 cursor-help"
+                                title={`Documentos pendentes:\n${(att.pendingDocuments || [])
+                                  .filter((d) => !d.isDelivered)
+                                  .map((d) => `• ${d.description}`)
+                                  .join('\n')}`}
+                              >
+                                <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                <span>{pendingCount} pendente(s)</span>
+                              </span>
+                              <span
+                                className="text-[11px] text-slate-500 line-clamp-1 max-w-[210px]"
+                                title={(att.pendingDocuments || [])
+                                  .filter((d) => !d.isDelivered)
+                                  .map((d) => d.description)
+                                  .join(', ')}
+                              >
+                                {(att.pendingDocuments || [])
+                                  .filter((d) => !d.isDelivered)
+                                  .map((d) => d.description)
+                                  .join(', ')}
+                              </span>
+                            </div>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              Completo
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Completo</span>
                             </span>
                           )}
                         </td>
