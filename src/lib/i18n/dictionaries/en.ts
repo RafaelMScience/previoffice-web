@@ -346,6 +346,9 @@ export const enTranslations: Translations = {
     closedContractCtaTitle: 'Contract Signed! The case is ready to be filed.',
     closedContractCtaSub: 'Power of attorney and fee contract signed. Record the initial INSS requirement protocol to begin case tracking.',
     btnStartInssProcess: 'File at INSS',
+    btnClientPdfReport: 'Client PDF File',
+    clientPdfModalTitle: 'Client Record & PDF Report',
+    clientPdfModalSubtitle: 'Preview, customize sections, and print client file with signature areas.',
   },
   caseUpdates: {
     panelTitle: 'Case Tracking & Procedural Updates',

@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Home,
   FileText,
+  Printer,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { Client, ClientStatus } from '@/types/client';
@@ -31,6 +32,7 @@ interface ClientDetailHeaderProps {
   latestCaseUpdate?: CaseUpdate;
   onOpenNewAttendance: () => void;
   onOpenContracts: () => void;
+  onOpenPdfReport?: () => void;
   onOpenMemoryCard: () => void;
   onStatusChange?: (newStatus: ClientStatus) => void;
   onInactivateClick?: () => void;
@@ -43,6 +45,7 @@ export function ClientDetailHeader({
   latestCaseUpdate,
   onOpenNewAttendance,
   onOpenContracts,
+  onOpenPdfReport,
   onOpenMemoryCard,
   onStatusChange,
   onInactivateClick,
@@ -416,6 +419,18 @@ export function ClientDetailHeader({
             <FileSignature className="w-4 h-4" />
             <span>{t.clientDetails.btnGenerateContracts}</span>
           </button>
+
+          {/* Action: Client Record & PDF Report */}
+          {onOpenPdfReport && (
+            <button
+              onClick={onOpenPdfReport}
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 shadow-2xs hover:border-slate-400 transition-colors"
+              title={t.clientDetails.clientPdfModalTitle}
+            >
+              <Printer className="w-4 h-4 text-[#0B192E]" />
+              <span>{t.clientDetails.btnClientPdfReport}</span>
+            </button>
+          )}
 
           {/* Action: Memory Card */}
           <button
