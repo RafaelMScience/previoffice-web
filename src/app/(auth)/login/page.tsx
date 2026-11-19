@@ -45,6 +45,12 @@ export default function LoginPage() {
       // Check if user has mustChangePassword active in settings store
       const member = settingsStore.findMemberByEmail(email);
       if (member && member.mustChangePassword) {
+        // Enforce credential check: temporary invite password must match before proceeding
+        if (member.temporaryPassword && password !== member.temporaryPassword) {
+          setErrorMessage(t.login.errorInvalidCredentials);
+          setLoading(false);
+          return;
+        }
         if (typeof window !== 'undefined') {
           sessionStorage.setItem(FIRST_ACCESS_EMAIL_KEY, member.email);
         }

@@ -43,36 +43,31 @@ export default function DefinirSenhaPage() {
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Initialize operator email safely from sessionStorage
+  // Initialize operator email safely from verified sessionStorage
   useEffect(() => {
     let email = '';
     if (typeof window !== 'undefined') {
       email = sessionStorage.getItem(STORAGE_EMAIL_KEY) || '';
     }
 
-    // If no email in session storage, check if any member has mustChangePassword
+    // Security Gate: If no verified email was set during login, reject to /login
     if (!email) {
-      const pendingMember = settingsStore.getTeamMembers().find((m) => m.mustChangePassword);
-      if (pendingMember) {
-        email = pendingMember.email;
-      }
+      router.push('/login');
+      return;
     }
 
-    if (email) {
-      setOperatorEmail(email);
-      const member = settingsStore.findMemberByEmail(email);
-      if (member) {
-        if (!member.mustChangePassword) {
-          // If already completed definitive password, return to dashboard
-          router.push('/');
-          return;
-        }
-        setOperatorMember(member);
+    const member = settingsStore.findMemberByEmail(email);
+    // If operator not found or already completed definitive password, kick to /login
+    if (!member || !member.mustChangePassword) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(STORAGE_EMAIL_KEY);
       }
-    } else {
-      // No pending first-access detected, return to sign in
       router.push('/login');
+      return;
     }
+
+    setOperatorEmail(email);
+    setOperatorMember(member);
   }, [router]);
 
   // Password Security Criteria Validation
@@ -148,7 +143,11 @@ export default function DefinirSenhaPage() {
       return;
     }
 
-    const targetEmail = operatorEmail.trim() || 'lucas.estagio@previoffice.adv.br';
+    const targetEmail = operatorEmail.trim();
+    if (!targetEmail) {
+      router.push('/login');
+      return;
+    }
     setLoading(true);
 
     try {

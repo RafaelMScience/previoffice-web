@@ -22,13 +22,13 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
 
-  // Security gate: Mandatory First Access redirect (no bypass possible)
+  // Security gate: If operator attempts to bypass without completing first-access, expel directly to /login
   useEffect(() => {
     if (currentUser?.mustChangePassword) {
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem(FIRST_ACCESS_EMAIL_KEY, currentUser.email);
+        sessionStorage.removeItem(FIRST_ACCESS_EMAIL_KEY);
       }
-      router.push('/definir-senha');
+      router.push('/login');
     }
   }, [currentUser, router]);
 
