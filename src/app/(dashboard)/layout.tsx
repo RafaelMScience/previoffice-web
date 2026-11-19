@@ -1,23 +1,41 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Users, FileText, Scale, BookOpen, ShieldCheck, Search, Plus, Settings } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { OperatorSwitcherModal } from '@/components/ui/operator-switcher-modal';
 
+const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const { t } = useI18n();
   const { currentUser, canAccess } = useAuth();
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+
+  // Security gate: Mandatory First Access redirect (no bypass possible)
+  useEffect(() => {
+    if (currentUser?.mustChangePassword) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(FIRST_ACCESS_EMAIL_KEY, currentUser.email);
+      }
+      router.push('/definir-senha');
+    }
+  }, [currentUser, router]);
+
+  // Block rendering while redirecting if operator must change password
+  if (currentUser?.mustChangePassword) {
+    return null;
+  }
 
   const isClients = pathname === '/' || pathname.startsWith('/clientes');
   const isAttendances = pathname.startsWith('/attendances');

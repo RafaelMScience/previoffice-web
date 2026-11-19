@@ -24,6 +24,7 @@ import { NewCaseUpdateModal } from './new-case-update-modal';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
 import { useAuth } from '@/lib/auth/auth-context';
+import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import type { Client, ClientStatus } from '@/types/client';
 import type { Attendance } from '@/types/attendance';
 import type { CaseUpdate } from '@/types/case-update';
@@ -58,6 +59,16 @@ export function ClientDetailsView({
   const [isInactivateModalOpen, setIsInactivateModalOpen] = useState(false);
   const [isDirectInssModalOpen, setIsDirectInssModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Security Gate: Protect dossier access against direct URL tampering
+  if (!canAccess('clientsManage') && !canAccess('receptionDesk')) {
+    return (
+      <AccessDeniedBoundary
+        moduleName="Dossiê do Segurado & Histórico de Atendimentos"
+        requiredPermissionLabel="Gestão de Clientes e Dossiês (clientsManage)"
+      />
+    );
+  }
 
   const showToast = (msg: string) => {
     setToastMessage(msg);

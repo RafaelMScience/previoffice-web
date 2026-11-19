@@ -62,10 +62,18 @@ export default function DefinirSenhaPage() {
       setOperatorEmail(email);
       const member = settingsStore.findMemberByEmail(email);
       if (member) {
+        if (!member.mustChangePassword) {
+          // If already completed definitive password, return to dashboard
+          router.push('/');
+          return;
+        }
         setOperatorMember(member);
       }
+    } else {
+      // No pending first-access detected, return to sign in
+      router.push('/login');
     }
-  }, []);
+  }, [router]);
 
   // Password Security Criteria Validation
   const criteria = useMemo(() => {
