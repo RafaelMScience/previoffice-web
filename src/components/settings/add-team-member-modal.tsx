@@ -13,9 +13,22 @@ import {
   Scale,
   Users,
   GraduationCap,
+  RefreshCw,
+  ShieldAlert,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
+
+function generateRandomPassword(): string {
+  const chars = '23456789';
+  const symbols = ['#', '@', '$', '!'];
+  const sym = symbols[Math.floor(Math.random() * symbols.length)];
+  let numStr = '';
+  for (let i = 0; i < 4; i++) {
+    numStr += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `Prev${sym}${numStr}`;
+}
 
 interface AddTeamMemberModalProps {
   isOpen: boolean;
@@ -64,6 +77,7 @@ export function AddTeamMemberModal({
   const [phone, setPhone] = useState('');
   const [memberType, setMemberType] = useState<MemberType>('LAWYER');
   const [oabNumber, setOabNumber] = useState('');
+  const [tempPassword, setTempPassword] = useState('');
   const [active, setActive] = useState(true);
   const [permissions, setPermissions] = useState<TeamPermissions>(DEFAULT_PERMISSIONS.LAWYER);
 
@@ -76,6 +90,7 @@ export function AddTeamMemberModal({
       setOabNumber(memberToEdit.oabNumber || '');
       setActive(memberToEdit.active);
       setPermissions(memberToEdit.permissions);
+      setTempPassword(memberToEdit.temporaryPassword || '');
     } else {
       setFullName('');
       setEmail('');
@@ -84,6 +99,7 @@ export function AddTeamMemberModal({
       setOabNumber('');
       setActive(true);
       setPermissions(DEFAULT_PERMISSIONS.LAWYER);
+      setTempPassword(generateRandomPassword());
     }
   }, [memberToEdit, isOpen]);
 
@@ -115,6 +131,8 @@ export function AddTeamMemberModal({
       oabNumber: memberType === 'LAWYER' ? oabNumber.trim() : undefined,
       active,
       permissions,
+      temporaryPassword: !memberToEdit ? tempPassword : memberToEdit.temporaryPassword,
+      mustChangePassword: !memberToEdit ? true : memberToEdit.mustChangePassword,
     });
 
     onClose();
@@ -279,14 +297,46 @@ export function AddTeamMemberModal({
             )}
           </div>
 
-          {/* Access Provisioning Notice */}
+          {/* Senha Provisória & Primeiro Acesso */}
           {!memberToEdit && (
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
-              <Lock className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
-              <div className="text-[11px] text-slate-600 leading-relaxed">
-                <span className="font-bold text-slate-800">Primeiro Acesso & Credenciais: </span>
-                Ao salvar, o sistema gera o convite corporativo seguro para o e-mail informado ({email || 'colaborador@...'}), permitindo que o usuário crie sua senha pessoal com chave criptografada.
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <KeyRound className="w-4 h-4 text-[#C89543]" />
+                  <span>Senha Provisória de Acesso</span>
+                </label>
+                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <ShieldAlert className="w-3 h-3 text-amber-600" />
+                  <span>Troca obrigatória no 1º login</span>
+                </span>
               </div>
+
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    required
+                    value={tempPassword}
+                    onChange={(e) => setTempPassword(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-xl font-mono font-bold text-slate-800 focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] outline-hidden shadow-2xs"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setTempPassword(generateRandomPassword())}
+                  className="px-3 py-2 rounded-xl text-xs font-bold bg-white border border-slate-300 hover:border-[#C89543] text-slate-700 hover:text-[#082A52] flex items-center gap-1.5 transition-all shadow-2xs"
+                  title="Gerar outra senha aleatória segura"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-[#C89543]" />
+                  <span>Gerar Outra</span>
+                </button>
+              </div>
+
+              <p className="text-[11px] text-slate-500">
+                Senha aleatória gerada com segurança. Ao salvar, você poderá copiar a mensagem formatada para enviar via WhatsApp com custo R$ 0,00.
+              </p>
             </div>
           )}
 

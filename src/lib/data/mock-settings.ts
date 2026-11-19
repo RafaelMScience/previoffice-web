@@ -226,6 +226,49 @@ class SettingsStore {
     });
     return updatedMember;
   }
+
+  public findMemberByEmail(email: string): TeamMember | undefined {
+    return this.teamMembers.find(
+      (m) => m.email.toLowerCase() === email.trim().toLowerCase()
+    );
+  }
+
+  public completeFirstAccessPassword(email: string): boolean {
+    const member = this.findMemberByEmail(email);
+    if (!member) return false;
+    this.teamMembers = this.teamMembers.map((m) => {
+      if (m.id === member.id) {
+        return {
+          ...m,
+          mustChangePassword: false,
+          temporaryPassword: undefined,
+          lastLoginAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return m;
+    });
+    return true;
+  }
+
+  public resetMemberPassword(id: string, newTempPassword: string): TeamMember | null {
+    const exists = this.teamMembers.some((m) => m.id === id);
+    if (!exists) return null;
+    let updatedMember: TeamMember | null = null;
+    this.teamMembers = this.teamMembers.map((m) => {
+      if (m.id === id) {
+        updatedMember = {
+          ...m,
+          temporaryPassword: newTempPassword,
+          mustChangePassword: true,
+          updatedAt: new Date().toISOString(),
+        };
+        return updatedMember;
+      }
+      return m;
+    });
+    return updatedMember;
+  }
 }
 
 export const settingsStore = new SettingsStore();

@@ -11,9 +11,13 @@ import {
   Scale,
   ArrowRight,
   AlertCircle,
+  KeyRound,
+  ShieldAlert,
+  CheckCircle2,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { settingsStore } from '@/lib/data/mock-settings';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,6 +29,13 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // First Access Mandatory Change State
+  const [isFirstAccessOpen, setIsFirstAccessOpen] = useState(false);
+  const [newDefinitivePassword, setNewDefinitivePassword] = useState('');
+  const [confirmDefinitivePassword, setConfirmDefinitivePassword] = useState('');
+  const [firstAccessError, setFirstAccessError] = useState('');
+  const [firstAccessSuccess, setFirstAccessSuccess] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +50,16 @@ export default function LoginPage() {
         return;
       }
 
+      // Check if user has mustChangePassword active in settings store
+      const member = settingsStore.findMemberByEmail(email);
+      if (member && member.mustChangePassword) {
+        setIsFirstAccessOpen(true);
+        setLoading(false);
+        return;
+      }
+
       // Simulate authentication check / Supabase auth session
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 600));
 
       // Successfully authenticated
       router.push('/');
@@ -48,6 +67,30 @@ export default function LoginPage() {
       setErrorMessage(t.login.errorInvalidCredentials);
       setLoading(false);
     }
+  };
+
+  const handleSaveDefinitivePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFirstAccessError('');
+
+    if (newDefinitivePassword.length < 6) {
+      setFirstAccessError('A nova senha deve possuir no mínimo 6 caracteres.');
+      return;
+    }
+
+    if (newDefinitivePassword !== confirmDefinitivePassword) {
+      setFirstAccessError('A confirmação de senha não confere.');
+      return;
+    }
+
+    // Complete first access in store
+    settingsStore.completeFirstAccessPassword(email);
+    setFirstAccessSuccess(true);
+
+    setTimeout(() => {
+      setIsFirstAccessOpen(false);
+      router.push('/');
+    }, 1200);
   };
 
   const handleFillDemo = (role: 'LAWYER' | 'RECEPTION') => {
@@ -207,6 +250,94 @@ export default function LoginPage() {
           </div>
         </div>
       </main>
+
+      {/* Modal de Primeiro Acesso - Troca Obrigatória de Senha */}
+      {isFirstAccessOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white text-slate-900 rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="p-5 bg-gradient-to-r from-[#082A52] to-[#0B192E] text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center justify-center font-bold">
+                  <ShieldAlert className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Primeiro Acesso Detectado</h3>
+                  <p className="text-xs text-slate-300">Troca obrigatória de senha temporária</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveDefinitivePassword} className="p-6 space-y-4">
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                <p className="leading-relaxed">
+                  Por diretriz de segurança do escritório <strong>Alexandre Pontes Advocacia</strong>, você deve cadastrar sua senha definitiva pessoal antes de prosseguir.
+                </p>
+              </div>
+
+              {firstAccessSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>Senha pessoal cadastrada! Entrando no sistema...</span>
+                </div>
+              )}
+
+              {firstAccessError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <span>{firstAccessError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nova Senha Definitiva <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    required
+                    value={newDefinitivePassword}
+                    onChange={(e) => setNewDefinitivePassword(e.target.value)}
+                    placeholder="Mínimo de 6 caracteres"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] outline-hidden text-slate-800 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Confirmar Nova Senha <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    required
+                    value={confirmDefinitivePassword}
+                    onChange={(e) => setConfirmDefinitivePassword(e.target.value)}
+                    placeholder="Repita a nova senha"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] outline-hidden text-slate-800 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={firstAccessSuccess}
+                  className="w-full py-2.5 rounded-xl bg-[#082A52] hover:bg-[#0B3A70] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs disabled:opacity-50"
+                >
+                  <KeyRound className="w-4 h-4 text-[#C89543]" />
+                  <span>Salvar Senha e Entrar no PreviOffice</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Security Footer Badge */}
       <footer className="text-center py-2">

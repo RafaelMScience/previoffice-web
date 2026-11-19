@@ -25,6 +25,8 @@ export interface TeamMember {
   active: boolean;
   avatarUrl?: string;
   lastLoginAt?: string;
+  temporaryPassword?: string;
+  mustChangePassword?: boolean;
   permissions: TeamPermissions;
   createdAt: string;
   updatedAt: string;
