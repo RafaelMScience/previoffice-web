@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { settingsStore } from '@/lib/data/mock-settings';
 
@@ -39,11 +40,12 @@ export function FastIntakeModal({
   onSubmitSuccess,
 }: FastIntakeModalProps) {
   const { t } = useI18n();
+  const { currentUser } = useAuth();
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const teamMembers = settingsStore.getTeamMembers();
   const activeLawyers = settingsStore.getActiveLawyers();
-  const [createdById, setCreatedById] = useState<string>('usr-004'); // Defaults to Juliana Ribeiro (Receptionist)
+  const [createdById, setCreatedById] = useState<string>(() => currentUser?.id || 'usr-004');
   const [assignedLawyerId, setAssignedLawyerId] = useState<string>('usr-001'); // Dr. Alexandre Pontes
 
   const [fullName, setFullName] = useState('');

@@ -9,6 +9,7 @@ interface AuthContextType {
   permissions: TeamPermissions;
   isAdmin: boolean;
   switchUser: (id: string) => void;
+  logout: () => void;
   availableUsers: TeamMember[];
   canAccess: (permission: keyof TeamPermissions) => boolean;
 }
@@ -38,6 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const logout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem('previoffice_first_access_email');
+    }
+    setCurrentUserId('usr-001');
+  };
+
   const currentUser = teamMembers.find((m) => m.id === currentUserId) || teamMembers[0];
   const permissions = currentUser.permissions;
   const isAdmin = Boolean(currentUser.isAdminLawyer || currentUser.permissions.adminSettings);
@@ -54,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         permissions,
         isAdmin,
         switchUser,
+        logout,
         availableUsers: teamMembers,
         canAccess,
       }}

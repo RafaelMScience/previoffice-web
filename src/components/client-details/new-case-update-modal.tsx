@@ -13,6 +13,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { CaseUpdate, CaseStage, CaseEventKind } from '@/types/case-update';
 
 interface NewCaseUpdateModalProps {
@@ -35,6 +36,7 @@ export function NewCaseUpdateModal({
   onSave,
 }: NewCaseUpdateModalProps) {
   const { t } = useI18n();
+  const { currentUser } = useAuth();
 
   const [processNumber, setProcessNumber] = useState(defaultProcessNumber);
   const [forumOrAgency, setForumOrAgency] = useState('INSS - Agência da Previdência Social / Meu INSS');
@@ -49,7 +51,7 @@ export function NewCaseUpdateModal({
   const [notifyClientText, setNotifyClientText] = useState(
     `Olá ${clientName}! Aqui é do escritório de advocacia do Dr. Alexandre Pontes. Passando para avisar que acabamos de dar entrada no seu pedido junto ao INSS! Já temos o número do protocolo e nossa equipe está acompanhando a análise do órgão.`
   );
-  const [recordedBy, setRecordedBy] = useState('Dr. Alexandre Pontes');
+  const [recordedBy, setRecordedBy] = useState(() => currentUser?.fullName || 'Dr. Alexandre Pontes');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const applyPreset = (preset: 'INSS_INIT' | 'INSS_EXIGENCE' | 'INSS_PERICIA' | 'INSS_CONCEDE' | 'JUDICIAL_INIT') => {

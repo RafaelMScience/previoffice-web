@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Users, FileText, Scale, BookOpen, ShieldCheck, Search, Plus, Settings } from 'lucide-react';
+import { Users, FileText, Scale, BookOpen, ShieldCheck, Search, Plus, Settings, LogOut } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
@@ -18,9 +18,14 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { t } = useI18n();
-  const { currentUser, canAccess } = useAuth();
+  const { currentUser, canAccess, logout } = useAuth();
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   // Security gate: If operator attempts to bypass without completing first-access, expel directly to /login
   useEffect(() => {
@@ -192,15 +197,26 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsSwitcherOpen(true)}
-            className="w-full py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-[#C89543] hover:text-[#dfad5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-            title="Alternar entre usuários cadastrados para simular as permissões"
-          >
-            <Users className="w-3 h-3" />
-            <span>Alternar Operador (RBAC)</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsSwitcherOpen(true)}
+              className="flex-1 py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-[#C89543] hover:text-[#dfad5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              title="Alternar entre usuários cadastrados para simular as permissões"
+            >
+              <Users className="w-3 h-3" />
+              <span>Alternar (RBAC)</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="py-1.5 px-2.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-[11px] font-semibold text-rose-400 hover:text-rose-300 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              title="Encerrar sessão e sair para a tela de login"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Sair</span>
+            </button>
+          </div>
         </div>
       </aside>
 

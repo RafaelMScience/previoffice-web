@@ -14,6 +14,7 @@ import {
   Building,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import { MOCK_CLIENTS_MAP, type AttendanceWithClient } from '@/lib/data/mock-clients';
 import type { AttendanceType, PendingPhysicalDocument } from '@/types/attendance';
 
@@ -29,6 +30,7 @@ export function NewGeneralAttendanceModal({
   onSave,
 }: NewGeneralAttendanceModalProps) {
   const { t } = useI18n();
+  const { currentUser } = useAuth();
 
   const clientOptions = Object.values(MOCK_CLIENTS_MAP).filter(
     (b, idx, arr) => arr.findIndex((x) => x.client.id === b.client.id) === idx
@@ -36,7 +38,7 @@ export function NewGeneralAttendanceModal({
 
   const [selectedClientId, setSelectedClientId] = useState(clientOptions[0]?.client.id || 'cli-001');
   const [attendanceType, setAttendanceType] = useState<AttendanceType>('RETURN_DOCUMENTS');
-  const [attendantName, setAttendantName] = useState('Dr. Alexandre Pontes');
+  const [attendantName, setAttendantName] = useState(() => currentUser?.fullName || 'Dr. Alexandre Pontes');
   const [objective, setObjective] = useState('Aposentadoria Rural - Entrega de Documentos e ITR');
   const [narrativeHistory, setNarrativeHistory] = useState('');
   const [strategyNotes, setStrategyNotes] = useState('');

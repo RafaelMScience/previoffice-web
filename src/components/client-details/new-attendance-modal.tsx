@@ -13,6 +13,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import { settingsStore } from '@/lib/data/mock-settings';
 import type { Attendance, AttendanceType, PendingPhysicalDocument } from '@/types/attendance';
 
@@ -32,11 +33,12 @@ export function NewAttendanceModal({
   onSave,
 }: NewAttendanceModalProps) {
   const { t } = useI18n();
+  const { currentUser } = useAuth();
 
   const [attendanceType, setAttendanceType] = useState<AttendanceType>('RETURN');
   const teamMembers = settingsStore.getTeamMembers();
   const activeLawyers = settingsStore.getActiveLawyers();
-  const [createdById, setCreatedById] = useState<string>('usr-001'); // Dr. Alexandre Pontes
+  const [createdById, setCreatedById] = useState<string>(() => currentUser?.id || 'usr-001');
   const [assignedLawyerId, setAssignedLawyerId] = useState<string>('usr-001'); // Dr. Alexandre Pontes
   const [objective, setObjective] = useState(defaultObjective);
   const [narrativeHistory, setNarrativeHistory] = useState('');
