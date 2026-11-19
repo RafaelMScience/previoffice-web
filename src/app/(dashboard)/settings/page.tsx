@@ -14,9 +14,12 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { ProfileSecurityTab } from '@/components/settings/profile-security-tab';
 import { OfficeSettingsTab } from '@/components/settings/office-settings-tab';
 import { TeamManagementTab } from '@/components/settings/team-management-tab';
+import { useAuth } from '@/lib/auth/auth-context';
+import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 
 function SettingsContent() {
   const { t } = useI18n();
+  const { canAccess } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -25,6 +28,15 @@ function SettingsContent() {
   const setTab = (tab: 'profile' | 'office' | 'team') => {
     router.push(`/settings?tab=${tab}`);
   };
+
+  if ((currentTab === 'office' || currentTab === 'team') && !canAccess('adminSettings')) {
+    return (
+      <AccessDeniedBoundary
+        moduleName="Configurações da Sociedade & Gestão de Equipe"
+        requiredPermissionLabel="Administração do Sistema & Equipe (adminSettings)"
+      />
+    );
+  }
 
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-150">
@@ -72,29 +84,33 @@ function SettingsContent() {
             <span>{t.settings.tabProfile}</span>
           </button>
 
-          <button
-            onClick={() => setTab('office')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              currentTab === 'office'
-                ? 'bg-white text-[#082A52] shadow-md ring-2 ring-[#C89543]/40'
-                : 'text-white/70 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Building2 className={`w-4 h-4 ${currentTab === 'office' ? 'text-[#C89543]' : 'text-white/60'}`} />
-            <span>{t.settings.tabOffice}</span>
-          </button>
+          {canAccess('adminSettings') && (
+            <>
+              <button
+                onClick={() => setTab('office')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  currentTab === 'office'
+                    ? 'bg-white text-[#082A52] shadow-md ring-2 ring-[#C89543]/40'
+                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Building2 className={`w-4 h-4 ${currentTab === 'office' ? 'text-[#C89543]' : 'text-white/60'}`} />
+                <span>{t.settings.tabOffice}</span>
+              </button>
 
-          <button
-            onClick={() => setTab('team')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-              currentTab === 'team'
-                ? 'bg-white text-[#082A52] shadow-md ring-2 ring-[#C89543]/40'
-                : 'text-white/70 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Users className={`w-4 h-4 ${currentTab === 'team' ? 'text-[#C89543]' : 'text-white/60'}`} />
-            <span>{t.settings.tabTeam}</span>
-          </button>
+              <button
+                onClick={() => setTab('team')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                  currentTab === 'team'
+                    ? 'bg-white text-[#082A52] shadow-md ring-2 ring-[#C89543]/40'
+                    : 'text-white/70 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Users className={`w-4 h-4 ${currentTab === 'team' ? 'text-[#C89543]' : 'text-white/60'}`} />
+                <span>{t.settings.tabTeam}</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 

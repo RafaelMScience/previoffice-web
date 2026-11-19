@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Users, FileText, Scale, BookOpen, ShieldCheck, Search, Plus, Settings } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { OperatorSwitcherModal } from '@/components/ui/operator-switcher-modal';
 
 export default function DashboardLayout({
   children,
@@ -13,7 +15,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
+  const { currentUser, canAccess } = useAuth();
   const pathname = usePathname();
+  const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
 
   const isClients = pathname === '/' || pathname.startsWith('/clientes');
   const isAttendances = pathname.startsWith('/attendances');
@@ -39,53 +43,66 @@ export default function DashboardLayout({
           </div>
         </div>
 
-        {/* Navigation Menu */}
+        {/* Navigation Menu (Filtered dynamically by RBAC permissions) */}
         <nav className="p-3 flex flex-col gap-1 flex-grow overflow-y-auto">
-          <div className="text-[10px] uppercase tracking-wider text-white/40 px-3 py-2 font-bold">
-            {t.navigation.sectionOperations}
-          </div>
-          <Link
-            href="/"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-              isClients
-                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                : 'text-white/70 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <Users className={`w-4 h-4 ${isClients ? 'text-[#C89543]' : 'text-white/60'}`} />
-            <span>{t.navigation.visitsAndClients}</span>
-            <span className="ml-auto bg-[#C89543] text-[#0B192E] text-[11px] font-bold px-2 py-0.5 rounded-full">
-              4
-            </span>
-          </Link>
+          {/* Operations Section */}
+          {(canAccess('receptionDesk') || canAccess('contractsAndFinancial')) && (
+            <>
+              <div className="text-[10px] uppercase tracking-wider text-white/40 px-3 py-2 font-bold">
+                {t.navigation.sectionOperations}
+              </div>
 
-          <Link
-            href="/attendances"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-              isAttendances
-                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                : 'text-white/70 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <FileText className={`w-4 h-4 ${isAttendances ? 'text-[#C89543]' : 'text-white/60'}`} />
-            <span>{t.navigation.attendancesAndReturns}</span>
-            <span className="ml-auto bg-slate-800 text-slate-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
-              7
-            </span>
-          </Link>
+              {canAccess('receptionDesk') && (
+                <>
+                  <Link
+                    href="/"
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                      isClients
+                        ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                        : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <Users className={`w-4 h-4 ${isClients ? 'text-[#C89543]' : 'text-white/60'}`} />
+                    <span>{t.navigation.visitsAndClients}</span>
+                    <span className="ml-auto bg-[#C89543] text-[#0B192E] text-[11px] font-bold px-2 py-0.5 rounded-full">
+                      4
+                    </span>
+                  </Link>
 
-          <Link
-            href="/contracts"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-              isContracts
-                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                : 'text-white/70 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <Scale className={`w-4 h-4 ${isContracts ? 'text-[#C89543]' : 'text-white/60'}`} />
-            <span>{t.navigation.contractsAndPoa}</span>
-          </Link>
+                  <Link
+                    href="/attendances"
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                      isAttendances
+                        ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                        : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    <FileText className={`w-4 h-4 ${isAttendances ? 'text-[#C89543]' : 'text-white/60'}`} />
+                    <span>{t.navigation.attendancesAndReturns}</span>
+                    <span className="ml-auto bg-slate-800 text-slate-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                      7
+                    </span>
+                  </Link>
+                </>
+              )}
 
+              {canAccess('contractsAndFinancial') && (
+                <Link
+                  href="/contracts"
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                    isContracts
+                      ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <Scale className={`w-4 h-4 ${isContracts ? 'text-[#C89543]' : 'text-white/60'}`} />
+                  <span>{t.navigation.contractsAndPoa}</span>
+                </Link>
+              )}
+            </>
+          )}
+
+          {/* Intelligence & Knowledge Section */}
           <div className="text-[10px] uppercase tracking-wider text-white/40 px-3 py-3 font-bold">
             {t.navigation.sectionIntelligence}
           </div>
@@ -101,29 +118,33 @@ export default function DashboardLayout({
             <span>{t.navigation.vadeMecum}</span>
           </Link>
 
-          <Link
-            href="/security"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-              isSecurity
-                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                : 'text-white/70 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <ShieldCheck className={`w-4 h-4 ${isSecurity ? 'text-[#C89543]' : 'text-white/60'}`} />
-            <span>{t.navigation.securityAudit}</span>
-          </Link>
+          {canAccess('securityAudit') && (
+            <Link
+              href="/security"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                isSecurity
+                  ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                  : 'text-white/70 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <ShieldCheck className={`w-4 h-4 ${isSecurity ? 'text-[#C89543]' : 'text-white/60'}`} />
+              <span>{t.navigation.securityAudit}</span>
+            </Link>
+          )}
 
-          <Link
-            href="/settings"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-              isSettings
-                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                : 'text-white/70 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <Settings className={`w-4 h-4 ${isSettings ? 'text-[#C89543]' : 'text-white/60'}`} />
-            <span>{t.navigation.settings}</span>
-          </Link>
+          {canAccess('adminSettings') && (
+            <Link
+              href="/settings"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                isSettings
+                  ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                  : 'text-white/70 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <Settings className={`w-4 h-4 ${isSettings ? 'text-[#C89543]' : 'text-white/60'}`} />
+              <span>{t.navigation.settings}</span>
+            </Link>
+          )}
         </nav>
 
         {/* Language selector in sidebar */}
@@ -131,28 +152,51 @@ export default function DashboardLayout({
           <LanguageSwitcher variant="sidebar" />
         </div>
 
-        {/* User Card (Clickable to /settings?tab=profile) */}
-        <Link
-          href="/settings?tab=profile"
-          className="p-4 border-t border-white/10 bg-black/20 hover:bg-white/10 transition-all flex items-center gap-3 group cursor-pointer"
-          title="Ver meu perfil e configurações"
-        >
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#082A52] to-[#0B78D0] border border-[#C89543]/40 flex items-center justify-center font-bold text-xs text-white shadow-xs group-hover:scale-105 transition-transform">
-            AP
-          </div>
-          <div className="overflow-hidden flex-1">
-            <div className="text-xs font-semibold text-white truncate group-hover:text-[#C89543] transition-colors">
-              Dr. Alexandre Pontes
+        {/* User Card with Switcher button */}
+        <div className="p-3 border-t border-white/10 bg-black/20 flex flex-col gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#082A52] to-[#0B78D0] border border-[#C89543]/40 flex items-center justify-center font-bold text-xs text-white shadow-xs">
+              {currentUser.fullName
+                .split(' ')
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join('')}
             </div>
-            <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
-              <span>OAB/PB 18.234</span>
-              <span>•</span>
-              <span className="text-[10px] text-emerald-400 font-medium">Online</span>
+            <div className="overflow-hidden flex-1">
+              <div className="text-xs font-semibold text-white truncate">
+                {currentUser.fullName}
+              </div>
+              <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                <span>
+                  {currentUser.memberType === 'LAWYER'
+                    ? (currentUser.isAdminLawyer ? 'Sócio Admin' : currentUser.oabNumber || 'Advogado')
+                    : currentUser.memberType === 'ASSISTANT'
+                    ? 'Recepção'
+                    : 'Estagiário'}
+                </span>
+                <span>•</span>
+                <span className="text-emerald-400 font-medium">Online</span>
+              </div>
             </div>
           </div>
-          <Settings className="w-4 h-4 text-white/40 group-hover:text-[#C89543] transition-colors flex-shrink-0" />
-        </Link>
+
+          <button
+            type="button"
+            onClick={() => setIsSwitcherOpen(true)}
+            className="w-full py-1.5 px-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-[#C89543] hover:text-[#dfad5e] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            title="Alternar entre usuários cadastrados para simular as permissões"
+          >
+            <Users className="w-3 h-3" />
+            <span>Alternar Operador (RBAC)</span>
+          </button>
+        </div>
       </aside>
+
+      {/* Operator Switcher Modal */}
+      <OperatorSwitcherModal
+        isOpen={isSwitcherOpen}
+        onClose={() => setIsSwitcherOpen(false)}
+      />
 
       {/* Main Container */}
       <div className="flex-grow flex flex-col h-screen overflow-y-auto">
@@ -179,13 +223,15 @@ export default function DashboardLayout({
               {t.topbar.activeSession}
             </span>
 
-            <Link
-              href="/clientes/new"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#C89543] text-[#0B192E] hover:bg-[#B38234] transition-all shadow-xs"
-            >
-              <Plus className="w-4 h-4 stroke-[2.5]" />
-              {t.topbar.newIntake}
-            </Link>
+            {canAccess('receptionDesk') && (
+              <Link
+                href="/clientes/new"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-[#C89543] text-[#0B192E] hover:bg-[#B38234] transition-all shadow-xs"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                {t.topbar.newIntake}
+              </Link>
+            )}
           </div>
         </header>
 

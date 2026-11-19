@@ -18,10 +18,13 @@ import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
 import { registerFastIntakeClient, getClientProfile } from '@/lib/data/mock-clients';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
+import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import type { Client } from '@/types/client';
 
 export default function ReceptionDashboardPage() {
   const { t } = useI18n();
+  const { canAccess } = useAuth();
 
   // Reception table state
   const [receptionRows, setReceptionRows] = useState<ReceptionTableRow[]>([
@@ -82,6 +85,15 @@ export default function ReceptionDashboardPage() {
   const [isFastIntakeOpen, setIsFastIntakeOpen] = useState(false);
   const [selectedClientForMemoryCard, setSelectedClientForMemoryCard] = useState<Client | null>(null);
   const [isMemoryCardOpen, setIsMemoryCardOpen] = useState(false);
+
+  if (!canAccess('receptionDesk')) {
+    return (
+      <AccessDeniedBoundary
+        moduleName="Visitas & Triagem de Clientes"
+        requiredPermissionLabel="Recepção e Triagem (receptionDesk)"
+      />
+    );
+  }
 
   // Handle Fast Intake Success
   const handleFastIntakeSuccess = (data: FastIntakeData) => {

@@ -19,7 +19,7 @@ import type { Attendance, AttendanceType } from '@/types/attendance';
 
 interface AttendanceTimelineProps {
   attendances: Attendance[];
-  onOpenNewAttendance: () => void;
+  onOpenNewAttendance?: () => void;
   onToggleDocumentDelivered?: (attendanceId: string, docId: string) => void;
   onFormalizeContract?: () => void;
 }
@@ -76,13 +76,15 @@ export function AttendanceTimeline({
           <p className="text-xs text-slate-500 mt-1">{t.clientDetails.timelineSubtitle}</p>
         </div>
 
-        <button
-          onClick={onOpenNewAttendance}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#0B192E] hover:bg-[#142642] text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0"
-        >
-          <PlusCircle className="w-4 h-4 text-[#C89543]" />
-          <span>{t.clientDetails.btnNewAttendance}</span>
-        </button>
+        {onOpenNewAttendance && (
+          <button
+            onClick={onOpenNewAttendance}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#0B192E] hover:bg-[#142642] text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0"
+          >
+            <PlusCircle className="w-4 h-4 text-[#C89543]" />
+            <span>{t.clientDetails.btnNewAttendance}</span>
+          </button>
+        )}
       </div>
 
       {/* Timeline items */}
@@ -92,13 +94,15 @@ export function AttendanceTimeline({
             <Clock className="w-6 h-6" />
           </div>
           <p className="text-sm font-medium text-slate-600">{t.clientDetails.noAttendancesYet}</p>
-          <button
-            onClick={onOpenNewAttendance}
-            className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-[#C89543] hover:underline"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>{t.clientDetails.btnNewAttendance}</span>
-          </button>
+          {onOpenNewAttendance && (
+            <button
+              onClick={onOpenNewAttendance}
+              className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-[#C89543] hover:underline"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>{t.clientDetails.btnNewAttendance}</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="relative pl-6 sm:pl-8 space-y-8 mt-6 before:absolute before:left-2.5 sm:before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">

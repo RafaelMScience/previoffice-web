@@ -17,6 +17,8 @@ import type {
 } from '@/types/contract';
 import { contractsStore } from '@/lib/data/mock-contracts';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
+import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 
 import { ContractsKpiCards } from '@/components/contracts/contracts-kpi-cards';
 import {
@@ -33,6 +35,7 @@ type ActiveViewTab = 'CONTRACTS' | 'TEMPLATES';
 
 export default function ContractsPage() {
   const { t } = useI18n();
+  const { canAccess } = useAuth();
 
   // Core Data State
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -69,6 +72,15 @@ export default function ContractsPage() {
   useEffect(() => {
     refreshData();
   }, []);
+
+  if (!canAccess('contractsAndFinancial')) {
+    return (
+      <AccessDeniedBoundary
+        moduleName="Contratos, Honorários & Quota Litis"
+        requiredPermissionLabel="Contratos, Honorários & Livro Caixa (contractsAndFinancial)"
+      />
+    );
+  }
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -203,30 +215,32 @@ export default function ContractsPage() {
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveViewTab('TEMPLATES')}
-            className={`flex items-center gap-2 pb-3 text-sm font-bold transition-all relative ${
-              activeViewTab === 'TEMPLATES'
-                ? 'text-[#082A52] border-b-2 border-[#082A52]'
-                : 'text-slate-400 hover:text-slate-700'
-            }`}
-          >
-            <BookOpen
-              className={`w-4 h-4 ${
-                activeViewTab === 'TEMPLATES' ? 'text-[#C89543]' : 'text-slate-400'
+          {canAccess('templatesManage') && (
+            <button
+              type="button"
+              onClick={() => setActiveViewTab('TEMPLATES')}
+              className={`flex items-center gap-2 pb-3 text-sm font-bold transition-all relative ${
+                activeViewTab === 'TEMPLATES'
+                  ? 'text-[#082A52] border-b-2 border-[#082A52]'
+                  : 'text-slate-400 hover:text-slate-700'
               }`}
-            />
-            <span>{t.contracts.tabOfficeTemplates}</span>
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-amber-50 text-amber-800 border border-amber-200">
-              {templates.length}
-            </span>
-          </button>
+            >
+              <BookOpen
+                className={`w-4 h-4 ${
+                  activeViewTab === 'TEMPLATES' ? 'text-[#C89543]' : 'text-slate-400'
+                }`}
+              />
+              <span>{t.contracts.tabOfficeTemplates}</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-amber-50 text-amber-800 border border-amber-200">
+                {templates.length}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Active Tab Content */}
-      {activeViewTab === 'CONTRACTS' ? (
+      {activeViewTab === 'CONTRACTS' || !canAccess('templatesManage') ? (
         <ContractsTable
           contracts={contracts}
           searchTerm={searchTerm}

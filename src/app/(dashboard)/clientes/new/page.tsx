@@ -14,13 +14,25 @@ import {
 import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
+import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 
 export default function NewClientIntakePage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { canAccess } = useAuth();
 
   const [mode, setMode] = useState<'FAST' | 'FULL'>('FAST');
   const [isFastModalOpen, setIsFastModalOpen] = useState(true);
+
+  if (!canAccess('receptionDesk') && !canAccess('clientsManage')) {
+    return (
+      <AccessDeniedBoundary
+        moduleName="Novo Cliente & Triagem Inicial"
+        requiredPermissionLabel="Recepção e Triagem (receptionDesk)"
+      />
+    );
+  }
 
   const handleFastSuccess = (data: FastIntakeData) => {
     // Redirect back to dashboard queue with success feedback

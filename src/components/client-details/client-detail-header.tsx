@@ -24,6 +24,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { Client, ClientStatus } from '@/types/client';
 import type { CaseUpdate } from '@/types/case-update';
 
@@ -53,6 +54,7 @@ export function ClientDetailHeader({
   onSelectProcessTab,
 }: ClientDetailHeaderProps) {
   const { t } = useI18n();
+  const { canAccess } = useAuth();
   const router = useRouter();
   const [isStatusMenuOpen, setIsStatusMenuOpen] = React.useState(false);
 
@@ -403,22 +405,26 @@ export function ClientDetailHeader({
           </div>
 
           {/* Action: New Attendance / Return */}
-          <button
-            onClick={onOpenNewAttendance}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0B192E] hover:bg-[#142642] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
-          >
-            <PlusCircle className="w-4 h-4 text-[#C89543]" />
-            <span>{t.clientDetails.btnNewAttendance}</span>
-          </button>
+          {canAccess('receptionDesk') && (
+            <button
+              onClick={onOpenNewAttendance}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0B192E] hover:bg-[#142642] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+            >
+              <PlusCircle className="w-4 h-4 text-[#C89543]" />
+              <span>{t.clientDetails.btnNewAttendance}</span>
+            </button>
+          )}
 
           {/* Action: Generate Contract / Procuracao */}
-          <button
-            onClick={onOpenContracts}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C89543] hover:bg-[#b08137] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
-          >
-            <FileSignature className="w-4 h-4" />
-            <span>{t.clientDetails.btnGenerateContracts}</span>
-          </button>
+          {canAccess('contractsAndFinancial') && (
+            <button
+              onClick={onOpenContracts}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C89543] hover:bg-[#b08137] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+            >
+              <FileSignature className="w-4 h-4" />
+              <span>{t.clientDetails.btnGenerateContracts}</span>
+            </button>
+          )}
 
           {/* Action: Client Record & PDF Report */}
           {onOpenPdfReport && (

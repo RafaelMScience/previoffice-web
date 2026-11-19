@@ -27,9 +27,12 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import type { AttendanceType } from '@/types/attendance';
 import { NewGeneralAttendanceModal } from '@/components/attendances/new-general-attendance-modal';
+import { useAuth } from '@/lib/auth/auth-context';
+import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 
 export default function AttendancesPage() {
   const { t } = useI18n();
+  const { canAccess } = useAuth();
   const router = useRouter();
 
   const [attendances, setAttendances] = useState<AttendanceWithClient[]>(() =>
@@ -92,6 +95,15 @@ export default function AttendancesPage() {
       return true;
     });
   }, [attendances, searchTerm, filterType]);
+
+  if (!canAccess('receptionDesk')) {
+    return (
+      <AccessDeniedBoundary
+        moduleName="Recepção & Fila de Atendimentos"
+        requiredPermissionLabel="Recepção e Triagem (receptionDesk)"
+      />
+    );
+  }
 
   const getAttendanceTypeBadge = (type: AttendanceType) => {
     switch (type) {

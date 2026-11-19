@@ -23,6 +23,7 @@ import { CaseUpdatesPanel } from './case-updates-panel';
 import { NewCaseUpdateModal } from './new-case-update-modal';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { Client, ClientStatus } from '@/types/client';
 import type { Attendance } from '@/types/attendance';
 import type { CaseUpdate } from '@/types/case-update';
@@ -40,6 +41,7 @@ export function ClientDetailsView({
   initialCaseUpdates = [],
 }: ClientDetailsViewProps) {
   const { t } = useI18n();
+  const { canAccess } = useAuth();
 
   const [client, setClient] = useState<Client>(initialClient);
   const [attendances, setAttendances] = useState<Attendance[]>(initialAttendances);
@@ -310,9 +312,13 @@ export function ClientDetailsView({
       {activeTab === 'attendances' && (
         <AttendanceTimeline
           attendances={attendances}
-          onOpenNewAttendance={() => setIsAttendanceModalOpen(true)}
+          onOpenNewAttendance={
+            canAccess('receptionDesk') ? () => setIsAttendanceModalOpen(true) : undefined
+          }
           onToggleDocumentDelivered={handleToggleDocumentDelivered}
-          onFormalizeContract={handleFormalizeContract}
+          onFormalizeContract={
+            canAccess('contractsAndFinancial') ? handleFormalizeContract : undefined
+          }
         />
       )}
 
