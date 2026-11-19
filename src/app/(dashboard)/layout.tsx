@@ -91,9 +91,13 @@ export default function DashboardLayout({
           </div>
           <Link
             href="/vade-mecum"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 font-medium text-sm hover:bg-white/5 hover:text-white transition-all"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              isVadeMecum
+                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                : 'text-white/70 hover:bg-white/5 hover:text-white'
+            }`}
           >
-            <BookOpen className="w-4 h-4" />
+            <BookOpen className={`w-4 h-4 ${isVadeMecum ? 'text-[#C89543]' : 'text-white/60'}`} />
             <span>{t.navigation.vadeMecum}</span>
           </Link>
 

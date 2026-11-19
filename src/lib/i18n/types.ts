@@ -602,4 +602,26 @@ export interface Translations {
     accessDeniedDesc: string;
     btnBackHome: string;
   };
+  vadeMecum: {
+    title: string;
+    subtitle: string;
+    searchPlaceholder: string;
+    filterAll: string;
+    badgeVerified: string;
+    badgeUpcoming: string;
+    btnCopyCitation: string;
+    citationCopied: string;
+    btnOfficialSource: string;
+    statutesTab: string;
+    quickArticlesTab: string;
+    roadmapNoticeTitle: string;
+    roadmapNoticeDesc: string;
+    categoryBeneficios: string;
+    categoryCusteio: string;
+    categoryAssistencia: string;
+    categoryRegulamento: string;
+    categoryConstituicao: string;
+    categoryAdvocacia: string;
+    noResultsFound: string;
+  };
 }
