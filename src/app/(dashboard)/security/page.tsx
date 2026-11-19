@@ -141,11 +141,10 @@ export default function SecurityPage() {
           <button
             type="button"
             onClick={() => setActiveTab('LOGS')}
-            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${
-              activeTab === 'LOGS'
-                ? 'border-[#C89543] text-[#082A52]'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
+            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${activeTab === 'LOGS'
+              ? 'border-[#C89543] text-[#082A52]'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
           >
             <Activity className="w-4 h-4 text-[#C89543]" />
             <span>{t.security.tabLogs}</span>
@@ -157,11 +156,10 @@ export default function SecurityPage() {
           <button
             type="button"
             onClick={() => setActiveTab('SESSIONS')}
-            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${
-              activeTab === 'SESSIONS'
-                ? 'border-[#C89543] text-[#082A52]'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
+            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${activeTab === 'SESSIONS'
+              ? 'border-[#C89543] text-[#082A52]'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
           >
             <ShieldCheck className="w-4 h-4 text-[#C89543]" />
             <span>{t.security.tabSessions}</span>
@@ -173,11 +171,10 @@ export default function SecurityPage() {
           <button
             type="button"
             onClick={() => setActiveTab('LGPD')}
-            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${
-              activeTab === 'LGPD'
-                ? 'border-[#C89543] text-[#082A52]'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
+            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${activeTab === 'LGPD'
+              ? 'border-[#C89543] text-[#082A52]'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
           >
             <FileCheck2 className="w-4 h-4 text-[#C89543]" />
             <span>{t.security.tabLgpd}</span>

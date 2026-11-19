@@ -56,11 +56,10 @@ export default function DashboardLayout({
                 <>
                   <Link
                     href="/"
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-                      isClients
-                        ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                        : 'text-white/70 hover:bg-white/5 hover:text-white'
-                    }`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isClients
+                      ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      }`}
                   >
                     <Users className={`w-4 h-4 ${isClients ? 'text-[#C89543]' : 'text-white/60'}`} />
                     <span>{t.navigation.visitsAndClients}</span>
@@ -71,11 +70,10 @@ export default function DashboardLayout({
 
                   <Link
                     href="/attendances"
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-                      isAttendances
-                        ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                        : 'text-white/70 hover:bg-white/5 hover:text-white'
-                    }`}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isAttendances
+                      ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      }`}
                   >
                     <FileText className={`w-4 h-4 ${isAttendances ? 'text-[#C89543]' : 'text-white/60'}`} />
                     <span>{t.navigation.attendancesAndReturns}</span>
@@ -89,11 +87,10 @@ export default function DashboardLayout({
               {canAccess('contractsAndFinancial') && (
                 <Link
                   href="/contracts"
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-                    isContracts
-                      ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                      : 'text-white/70 hover:bg-white/5 hover:text-white'
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isContracts
+                    ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                    : 'text-white/70 hover:bg-white/5 hover:text-white'
+                    }`}
                 >
                   <Scale className={`w-4 h-4 ${isContracts ? 'text-[#C89543]' : 'text-white/60'}`} />
                   <span>{t.navigation.contractsAndPoa}</span>
@@ -108,11 +105,10 @@ export default function DashboardLayout({
           </div>
           <Link
             href="/vade-mecum"
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-              isVadeMecum
-                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                : 'text-white/70 hover:bg-white/5 hover:text-white'
-            }`}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isVadeMecum
+              ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+              : 'text-white/70 hover:bg-white/5 hover:text-white'
+              }`}
           >
             <BookOpen className={`w-4 h-4 ${isVadeMecum ? 'text-[#C89543]' : 'text-white/60'}`} />
             <span>{t.navigation.vadeMecum}</span>
@@ -121,11 +117,10 @@ export default function DashboardLayout({
           {canAccess('securityAudit') && (
             <Link
               href="/security"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-                isSecurity
-                  ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                  : 'text-white/70 hover:bg-white/5 hover:text-white'
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isSecurity
+                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                : 'text-white/70 hover:bg-white/5 hover:text-white'
+                }`}
             >
               <ShieldCheck className={`w-4 h-4 ${isSecurity ? 'text-[#C89543]' : 'text-white/60'}`} />
               <span>{t.navigation.securityAudit}</span>
@@ -135,11 +130,10 @@ export default function DashboardLayout({
           {canAccess('adminSettings') && (
             <Link
               href="/settings"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
-                isSettings
-                  ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
-                  : 'text-white/70 hover:bg-white/5 hover:text-white'
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isSettings
+                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                : 'text-white/70 hover:bg-white/5 hover:text-white'
+                }`}
             >
               <Settings className={`w-4 h-4 ${isSettings ? 'text-[#C89543]' : 'text-white/60'}`} />
               <span>{t.navigation.settings}</span>
@@ -171,8 +165,8 @@ export default function DashboardLayout({
                   {currentUser.memberType === 'LAWYER'
                     ? (currentUser.isAdminLawyer ? 'Sócio Admin' : currentUser.oabNumber || 'Advogado')
                     : currentUser.memberType === 'ASSISTANT'
-                    ? 'Recepção'
-                    : 'Estagiário'}
+                      ? 'Recepção'
+                      : 'Estagiário'}
                 </span>
                 <span>•</span>
                 <span className="text-emerald-400 font-medium">Online</span>
