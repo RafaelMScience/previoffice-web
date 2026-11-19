@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { settingsStore } from '@/lib/data/mock-settings';
+import { securityStore } from '@/lib/data/mock-security';
 import type { TeamMember, TeamPermissions } from '@/types/settings';
 
 interface AuthContextType {
@@ -40,10 +41,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    const userLoggingOut = teamMembers.find((m) => m.id === currentUserId) || teamMembers[0];
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
-      sessionStorage.removeItem('previoffice_first_access_email');
+      sessionStorage.clear();
     }
+    securityStore.logEvent({
+      actorId: userLoggingOut.id,
+      actorName: userLoggingOut.fullName,
+      actorRole: userLoggingOut.memberType,
+      action: 'LOGOUT',
+      actionDescription: `Encerrou a sessão do operador ${userLoggingOut.fullName}`,
+      targetResource: `Sessão PreviOffice Web`,
+      ipAddress: '127.0.0.1 (Local)',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser',
+      severity: 'INFO',
+    });
     setCurrentUserId('usr-001');
   };
 

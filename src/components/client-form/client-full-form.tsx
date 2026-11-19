@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import {
   User,
@@ -21,6 +21,8 @@ import {
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { calculateAge, checkRuralRetirementAge } from '@/lib/domain/benefit-rules';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
+import { securityStore } from '@/lib/data/mock-security';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
 import type { MaritalStatus, SpecialCategory } from '@/types/client';
 
@@ -32,6 +34,7 @@ interface ClientFullFormProps {
 
 export function ClientFullForm({ initialData, clientId, onSave }: ClientFullFormProps) {
   const { t } = useI18n();
+  const { currentUser } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -66,11 +69,62 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   const [showInssPassword, setShowInssPassword] = useState(false);
   const [isCopiedInss, setIsCopiedInss] = useState(false);
 
+  // Controlled auto-hide with React lifecycle cleanup
+  useEffect(() => {
+    if (!showInssPassword) return;
+    const timer = setTimeout(() => {
+      setShowInssPassword(false);
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [showInssPassword]);
+
+  const toggleShowInssPassword = () => {
+    if (!showInssPassword) {
+      setShowInssPassword(true);
+      if (inssPassword) {
+        securityStore.logEvent({
+          actorId: currentUser?.id || 'usr-001',
+          actorName: currentUser?.fullName || 'Operador',
+          actorRole: currentUser?.memberType || 'LAWYER',
+          action: 'VIEW_INSS_PASSWORD',
+          actionDescription: `Visualizou a senha do Meu INSS do cliente ${fullName || initialData?.fullName || 'Cadastro'}`,
+          targetResource: `Cliente ${clientId || initialData?.cpf || 'Novo'} - Credenciais Meu INSS`,
+          clientId: clientId,
+          ipAddress: '127.0.0.1 (Local)',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser',
+          severity: 'WARNING',
+        });
+      }
+    } else {
+      setShowInssPassword(false);
+    }
+  };
+
   const handleCopyInssPassword = () => {
     if (!inssPassword) return;
-    navigator.clipboard.writeText(inssPassword);
-    setIsCopiedInss(true);
-    setTimeout(() => setIsCopiedInss(false), 2000);
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard
+        .writeText(inssPassword)
+        .then(() => {
+          setIsCopiedInss(true);
+          securityStore.logEvent({
+            actorId: currentUser?.id || 'usr-001',
+            actorName: currentUser?.fullName || 'Operador',
+            actorRole: currentUser?.memberType || 'LAWYER',
+            action: 'VIEW_INSS_PASSWORD',
+            actionDescription: `Copiou a senha do Meu INSS do cliente ${fullName || initialData?.fullName || 'Cadastro'} para a área de transferência`,
+            targetResource: `Cliente ${clientId || initialData?.cpf || 'Novo'} - Credenciais Meu INSS (Clipboard)`,
+            clientId: clientId,
+            ipAddress: '127.0.0.1 (Local)',
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser',
+            severity: 'WARNING',
+          });
+          setTimeout(() => setIsCopiedInss(false), 2000);
+        })
+        .catch(() => {
+          // Graceful fallback if clipboard access is denied
+        });
+    }
   };
 
   // Benefit specifics
@@ -548,12 +602,14 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                     value={inssPassword}
                     onChange={(e) => setInssPassword(e.target.value)}
                     placeholder="••••••••"
+                    autoComplete="new-password"
+                    spellCheck={false}
                     className="w-full pl-3.5 pr-20 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono tracking-wider"
                   />
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => setShowInssPassword(!showInssPassword)}
+                      onClick={toggleShowInssPassword}
                       className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-200/60 transition-colors"
                       title={
                         showInssPassword
