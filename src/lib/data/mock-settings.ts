@@ -3,6 +3,7 @@ import type {
   TeamMember,
   UserProfile,
 } from '@/types/settings';
+import { securityStore } from './mock-security';
 
 export const INITIAL_USER_PROFILE: UserProfile = {
   id: 'usr-001',
@@ -134,6 +135,8 @@ export const INITIAL_TEAM_MEMBERS: TeamMember[] = [
     memberType: 'INTERN',
     active: true,
     lastLoginAt: '2026-11-17T14:10:00Z',
+    temporaryPassword: 'Estagio@2026!',
+    mustChangePassword: true,
     permissions: {
       receptionDesk: true,
       clientsManage: true,
@@ -256,6 +259,27 @@ class SettingsStore {
       }
       return m;
     });
+
+    // Record audit trail - zero password cleartext logged
+    const roleLabel =
+      member.memberType === 'LAWYER'
+        ? 'Advogado'
+        : member.memberType === 'ASSISTANT'
+        ? 'Assistente'
+        : 'Estagiário';
+
+    securityStore.logEvent({
+      actorId: member.id,
+      actorName: member.fullName,
+      actorRole: roleLabel,
+      action: 'FIRST_ACCESS_PASSWORD_SET',
+      actionDescription: 'Definiu senha pessoal definitiva de 1º acesso com requisitos de alta segurança (LGPD/OAB compliant)',
+      targetResource: `Credencial do Operador (${member.email})`,
+      ipAddress: '189.124.45.102',
+      userAgent: 'Chrome 122.0.0 (Windows 11) - Conexão Segura TLS 1.3',
+      severity: 'INFO',
+    });
+
     return true;
   }
 

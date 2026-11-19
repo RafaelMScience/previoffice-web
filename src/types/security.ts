@@ -15,7 +15,8 @@ export type AuditAction =
   | 'LOGIN_FAILED'
   | 'LOGOUT'
   | 'UPDATE_PERMISSIONS'
-  | 'RESET_PASSWORD';
+  | 'RESET_PASSWORD'
+  | 'FIRST_ACCESS_PASSWORD_SET';
 
 export type AuditSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
 
