@@ -13,14 +13,12 @@ import {
   XCircle,
   Clock,
   Search,
-  Filter,
   MessageCircle,
-  KeyRound,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { settingsStore } from '@/lib/data/mock-settings';
 import type { MemberType, TeamMember } from '@/types/settings';
-import { AddTeamMemberModal } from './add-team-member-modal';
+import { AddTeamMemberModal, generateRandomPassword } from './add-team-member-modal';
 import { ShareCredentialsModal } from './share-credentials-modal';
 
 export function TeamManagementTab() {
@@ -61,14 +59,7 @@ export function TeamManagementTab() {
   };
 
   const handleResetAndShare = (member: TeamMember) => {
-    const chars = '23456789';
-    const symbols = ['#', '@', '$', '!'];
-    const sym = symbols[Math.floor(Math.random() * symbols.length)];
-    let numStr = '';
-    for (let i = 0; i < 4; i++) {
-      numStr += chars[Math.floor(Math.random() * chars.length)];
-    }
-    const newTemp = `Prev${sym}${numStr}`;
+    const newTemp = generateRandomPassword();
 
     const updated = settingsStore.resetMemberPassword(member.id, newTemp);
     if (updated) {
@@ -257,11 +248,19 @@ export function TeamManagementTab() {
                   {/* Classification Type */}
                   <td className="py-3.5 px-4">
                     {member.memberType === 'LAWYER' ? (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#082A52]/10 text-[#082A52] border border-[#082A52]/20">
-                        <Scale className="w-3.5 h-3.5 text-[#C89543]" />
-                        <span>{t.settings.lawyer}</span>
-                        {member.oabNumber && (
-                          <span className="text-[10px] font-mono text-slate-600">({member.oabNumber})</span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#082A52]/10 text-[#082A52] border border-[#082A52]/20">
+                          <Scale className="w-3.5 h-3.5 text-[#C89543]" />
+                          <span>{t.settings.lawyer}</span>
+                          {member.oabNumber && (
+                            <span className="text-[10px] font-mono text-slate-600">({member.oabNumber})</span>
+                          )}
+                        </div>
+                        {member.isAdminLawyer && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <Shield className="w-3 h-3 text-amber-700" />
+                            <span>Sócio Admin</span>
+                          </span>
                         )}
                       </div>
                     ) : member.memberType === 'ASSISTANT' ? (
@@ -283,6 +282,11 @@ export function TeamManagementTab() {
                       {member.permissions.adminSettings && (
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                           Admin
+                        </span>
+                      )}
+                      {member.permissions.securityAudit && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#C89543]/15 text-[#8C6218] border border-[#C89543]/30">
+                          Auditoria (LGPD)
                         </span>
                       )}
                       {member.permissions.receptionDesk && (

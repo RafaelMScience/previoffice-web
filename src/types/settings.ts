@@ -12,6 +12,7 @@ export interface TeamPermissions {
   contractsAndFinancial: boolean;  // Fee ledger, quota litis, installments settlement
   templatesManage: boolean;        // Create and edit OAB standard templates
   adminSettings: boolean;          // Manage office data, team members and permissions
+  securityAudit: boolean;          // View security audit logs, sessions, and LGPD compliance
 }
 
 export interface TeamMember {
@@ -22,6 +23,7 @@ export interface TeamMember {
   phone?: string;
   memberType: MemberType;
   oabNumber?: string;              // Required when memberType === 'LAWYER'
+  isAdminLawyer?: boolean;         // Partner / Admin Lawyer flag
   active: boolean;
   avatarUrl?: string;
   lastLoginAt?: string;

@@ -99,9 +99,13 @@ export default function DashboardLayout({
 
           <Link
             href="/security"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 font-medium text-sm hover:bg-white/5 hover:text-white transition-all"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              isSecurity
+                ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
+                : 'text-white/70 hover:bg-white/5 hover:text-white'
+            }`}
           >
-            <ShieldCheck className="w-4 h-4" />
+            <ShieldCheck className={`w-4 h-4 ${isSecurity ? 'text-[#C89543]' : 'text-white/60'}`} />
             <span>{t.navigation.securityAudit}</span>
           </Link>
 
