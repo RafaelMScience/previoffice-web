@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { settingsStore } from '@/lib/data/mock-settings';
+import { securityStore } from '@/lib/data/mock-security';
 import type { UserProfile } from '@/types/settings';
 
 export function ProfileSecurityTab() {
@@ -48,14 +49,43 @@ export function ProfileSecurityTab() {
       setPasswordError(locale === 'pt-BR' ? 'Informe a senha atual' : 'Enter your current password');
       return;
     }
-    if (newPassword.length < 6) {
-      setPasswordError(locale === 'pt-BR' ? 'A nova senha deve ter pelo menos 6 caracteres' : 'New password must have at least 6 characters');
+
+    const hasMinLength = newPassword.length >= 8;
+    const hasUpperAndLower = /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword);
+    const hasNumber = /[0-9]/.test(newPassword);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+
+    if (!hasMinLength || !hasUpperAndLower || !hasNumber || !hasSpecial) {
+      setPasswordError(
+        locale === 'pt-BR'
+          ? 'A senha deve ter no mínimo 8 caracteres, incluindo maiúsculas, minúsculas, números e caracteres especiais (!@#$%...)'
+          : 'Password must have at least 8 characters, including uppercase, lowercase, numbers and special symbols (!@#$%...)'
+      );
       return;
     }
+
     if (newPassword !== confirmPassword) {
       setPasswordError(locale === 'pt-BR' ? 'A confirmação de senha não confere' : 'Password confirmation does not match');
       return;
     }
+
+    // Record audit event
+    securityStore.logEvent({
+      actorId: profile.id,
+      actorName: profile.fullName,
+      actorRole:
+        profile.memberType === 'LAWYER'
+          ? 'Advogado'
+          : profile.memberType === 'ASSISTANT'
+          ? 'Assistente'
+          : 'Estagiário',
+      action: 'RESET_PASSWORD',
+      actionDescription: 'Atualizou sua senha pessoal definitiva no painel de configurações (padrão de segurança forte)',
+      targetResource: `Credencial de ${profile.fullName}`,
+      ipAddress: '189.124.45.102',
+      userAgent: 'Chrome 122.0.0 (Windows 11) - Painel do Operador',
+      severity: 'INFO',
+    });
 
     setPasswordSuccess(true);
     setCurrentPassword('');

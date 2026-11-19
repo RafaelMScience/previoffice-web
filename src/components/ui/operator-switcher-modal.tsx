@@ -114,6 +114,12 @@ export function OperatorSwitcherModal({
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {member.mustChangePassword && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      <Lock className="w-2.5 h-2.5 text-amber-600" />
+                      <span>1º Acesso</span>
+                    </span>
+                  )}
                   {isCurrent && (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
                       <CheckCircle2 className="w-3 h-3 text-emerald-600" />

@@ -235,6 +235,21 @@ class SettingsStore {
       }
       return m;
     });
+
+    if (updatedMember) {
+      securityStore.logEvent({
+        actorId: 'usr-001',
+        actorName: 'Dr. Alexandre Pontes',
+        actorRole: 'Advogado Sócio Titular',
+        action: 'UPDATE_PERMISSIONS',
+        actionDescription: `Alterou status de ativação do colaborador ${(updatedMember as TeamMember).fullName} para ${(updatedMember as TeamMember).active ? 'Ativo' : 'Inativo'}`,
+        targetResource: `Cadastro de ${(updatedMember as TeamMember).fullName}`,
+        ipAddress: '189.124.45.102',
+        userAgent: 'Chrome 122.0.0 (Windows 11) - Gestão de Equipe',
+        severity: 'INFO',
+      });
+    }
+
     return updatedMember;
   }
 
@@ -299,6 +314,21 @@ class SettingsStore {
       }
       return m;
     });
+
+    if (updatedMember) {
+      securityStore.logEvent({
+        actorId: 'usr-001',
+        actorName: 'Dr. Alexandre Pontes',
+        actorRole: 'Advogado Sócio Titular',
+        action: 'RESET_PASSWORD',
+        actionDescription: `Redefiniu senha provisória e forçou 1º acesso para o colaborador ${(updatedMember as TeamMember).fullName} (${(updatedMember as TeamMember).email})`,
+        targetResource: `Credencial de ${(updatedMember as TeamMember).fullName}`,
+        ipAddress: '189.124.45.102',
+        userAgent: 'Chrome 122.0.0 (Windows 11) - Gestão de Equipe',
+        severity: 'WARNING',
+      });
+    }
+
     return updatedMember;
   }
 }
