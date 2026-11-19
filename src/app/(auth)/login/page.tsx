@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { settingsStore } from '@/lib/data/mock-settings';
 
@@ -21,6 +22,7 @@ const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { switchUser } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,7 +61,14 @@ export default function LoginPage() {
       }
 
       // Simulate authentication check / Supabase auth session
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      // Successfully authenticated: switch active user in session context!
+      if (member) {
+        switchUser(member.id);
+      } else {
+        switchUser('usr-001');
+      }
 
       // Successfully authenticated
       router.push('/');
@@ -71,10 +80,10 @@ export default function LoginPage() {
 
   const handleFillDemo = (role: 'LAWYER' | 'RECEPTION' | 'FIRST_ACCESS') => {
     if (role === 'LAWYER') {
-      setEmail('dr.alexandre@pontesadvocacia.com.br');
+      setEmail('alexandre.pontes@previoffice.adv.br');
       setPassword('Pontes@2026!');
     } else if (role === 'RECEPTION') {
-      setEmail('recepcao@pontesadvocacia.com.br');
+      setEmail('juliana.recepcao@previoffice.adv.br');
       setPassword('Recepcao@2026!');
     } else {
       // Lucas Bezerra - Estagiário with mustChangePassword = true
