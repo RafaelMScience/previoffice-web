@@ -11,27 +11,26 @@ import {
   Scale,
   ArrowRight,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
-import { settingsStore } from '@/lib/data/mock-settings';
-
-const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { currentUser, isAuthenticated, switchUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
+  const [supabase] = useState(() => createClient());
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // If already authenticated and not pending password change, redirect to dashboard
+  // If already authenticated, redirect to dashboard
   useEffect(() => {
     if (isAuthenticated && currentUser && !currentUser.mustChangePassword) {
       router.push('/');
@@ -44,222 +43,154 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Basic client validation
       if (!email || !password) {
         setErrorMessage(t.login.errorInvalidCredentials);
         setLoading(false);
         return;
       }
 
-      // Check if user has mustChangePassword active in settings store
-      const member = settingsStore.findMemberByEmail(email);
-      if (member && member.mustChangePassword) {
-        // Enforce credential check: temporary invite password must match before proceeding
-        if (member.temporaryPassword && password !== member.temporaryPassword) {
-          setErrorMessage(t.login.errorInvalidCredentials);
-          setLoading(false);
-          return;
-        }
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem(FIRST_ACCESS_EMAIL_KEY, member.email);
-        }
-        router.push('/definir-senha');
+      // 1. Authenticate with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        setErrorMessage(
+          error.message === 'Invalid login credentials'
+            ? 'E-mail ou senha incorretos. Verifique suas credenciais.'
+            : error.message
+        );
+        setLoading(false);
         return;
       }
 
-      // Simulate authentication check / Supabase auth session
-      await new Promise((resolve) => setTimeout(resolve, 400));
-
-      // Successfully authenticated: switch active user in session context!
-      if (member) {
-        switchUser(member.id);
-      } else {
-        switchUser('usr-001');
+      if (data.session) {
+        router.push('/');
+        router.refresh();
       }
-
-      // Successfully authenticated
-      router.push('/');
-    } catch {
-      setErrorMessage(t.login.errorInvalidCredentials);
+    } catch (err: any) {
+      setErrorMessage(err?.message || t.login.errorInvalidCredentials);
       setLoading(false);
     }
   };
 
-  const handleFillDemo = (role: 'LAWYER' | 'RECEPTION' | 'FIRST_ACCESS') => {
-    if (role === 'LAWYER') {
-      setEmail('alexandre.pontes@previoffice.adv.br');
-      setPassword('Pontes@2026!');
-    } else if (role === 'RECEPTION') {
-      setEmail('juliana.recepcao@previoffice.adv.br');
-      setPassword('Recepcao@2026!');
-    } else {
-      // Lucas Bezerra - Estagiário with mustChangePassword = true
-      setEmail('lucas.estagio@previoffice.adv.br');
-      setPassword('Estagio@2026!');
-    }
-    setErrorMessage(null);
-  };
-
   return (
-    <div className="min-h-screen bg-radial-[ellipse_at_top,_var(--tw-gradient-stops)] from-[#142642] via-[#0B192E] to-[#07111F] text-slate-100 flex flex-col justify-between p-4 sm:p-8">
-      {/* Top Header with Brand & Language Switcher */}
-      <header className="flex items-center justify-between max-w-5xl mx-auto w-full pt-2">
+    <div className="min-h-screen bg-[#0B192E] flex flex-col justify-between p-4 sm:p-6 lg:p-8">
+      {/* Top Bar with Language Switcher */}
+      <header className="flex justify-between items-center max-w-7xl w-full mx-auto">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#C89543] to-[#dfad5e] flex items-center justify-center text-[#0B192E] font-extrabold text-lg shadow-md">
-            §
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C89543] to-[#8C6425] flex items-center justify-center shadow-lg shadow-[#C89543]/20">
+            <Scale className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="text-base font-extrabold tracking-tight text-white block leading-none">
-              PreviOffice
-            </span>
-            <span className="text-[10px] font-semibold text-[#C89543] uppercase tracking-wider">
-              {t.navigation.brandSubtitle}
+            <span className="font-bold text-lg text-white tracking-tight">PreviOffice</span>
+            <span className="text-[10px] block text-[#C89543] uppercase tracking-widest font-semibold">
+              Jurisprudência & Triagem
             </span>
           </div>
         </div>
 
-        <LanguageSwitcher variant="pill" />
+        <LanguageSwitcher />
       </header>
 
-      {/* Main Login Card Container */}
-      <main className="flex-1 flex items-center justify-center py-10">
-        <div className="bg-white text-slate-900 rounded-2xl shadow-2xl border border-white/10 w-full max-w-md p-8 sm:p-10 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          {/* Subtle Top Accent Line */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#0B192E] via-[#C89543] to-[#0B192E]" />
-
-          {/* Card Header */}
+      {/* Center Auth Card */}
+      <main className="w-full max-w-md mx-auto my-auto py-8">
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/20 p-8 sm:p-10">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#FDF8ED] border border-[#C89543]/30 text-[#C89543] mb-3 shadow-xs">
-              <Scale className="w-6 h-6" />
+            <div className="w-12 h-12 bg-[#0B192E]/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200">
+              <Lock className="w-6 h-6 text-[#C89543]" />
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              {t.login.title}
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              Acesso ao Sistema
             </h1>
-            <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-              {t.login.subtitle}
+            <p className="text-xs text-slate-500 mt-2">
+              Autenticação Segura com Supabase Auth & Criptografia
             </p>
           </div>
 
-          {/* Error Alert */}
           {errorMessage && (
-            <div className="mb-5 p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2 animate-in fade-in duration-150">
-              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+            <div
+              role="alert"
+              className="mb-6 p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-3 text-rose-800 text-xs animate-shake"
+            >
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Email Field */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                {t.login.emailLabel}
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                E-mail Profissional
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t.login.emailPlaceholder}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 transition-all placeholder:text-slate-400"
+                  placeholder="advogado@previoffice.adv.br"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pl-10 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#C89543]/40 focus:border-[#C89543] transition-all"
                 />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold text-slate-700">
-                  {t.login.passwordLabel}
-                </label>
-                <span className="text-[11px] text-[#C89543] hover:underline cursor-pointer">
-                  {t.login.forgotPassword}
-                </span>
-              </div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                Senha de Acesso
+              </label>
               <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t.login.passwordPlaceholder}
-                  className="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 transition-all placeholder:text-slate-400"
+                  placeholder="••••••••••••"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 pl-10 pr-10 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#C89543]/40 focus:border-[#C89543] transition-all"
                 />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Remember Me Checkbox */}
-            <div className="flex items-center justify-between text-xs pt-1">
-              <label className="flex items-center gap-2 text-slate-600 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#C89543] focus:ring-[#C89543] border-slate-300"
-                />
-                <span>{t.login.rememberMe}</span>
-              </label>
-            </div>
-
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 rounded-xl bg-[#0B192E] text-white font-bold text-sm hover:bg-[#142642] flex items-center justify-center gap-2 shadow-sm transition-all duration-150 disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-[#0B192E] to-[#1E293B] hover:from-[#152744] hover:to-[#2A3B52] text-white font-medium py-3 rounded-xl transition-all shadow-lg shadow-black/10 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
-              <span>{loading ? t.login.btnSubmitting : t.login.btnSubmit}</span>
-              <ArrowRight className="w-4 h-4 text-[#C89543]" />
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#C89543]" />
+                  <span>Validando Credenciais...</span>
+                </>
+              ) : (
+                <>
+                  <span>Entrar no Escritório</span>
+                  <ArrowRight className="w-4 h-4 text-[#C89543] group-hover:translate-x-0.5 transition-transform" />
+                </>
+              )}
             </button>
           </form>
 
-          {/* Demo Sandbox Quick-Fill Bar */}
-          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-            <p className="text-[11px] font-medium text-slate-400 mb-2.5">
-              {t.login.demoNote}
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleFillDemo('LAWYER')}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all"
-              >
-                ⚖️ Advogado Titular
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFillDemo('RECEPTION')}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all"
-              >
-                📋 Recepção / Triagem
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFillDemo('FIRST_ACCESS')}
-                className="px-2.5 py-1.5 rounded-lg bg-[#FDF8ED] hover:bg-[#F8EED4] text-[#A06E28] border border-[#C89543]/30 text-xs font-bold transition-all flex items-center gap-1 shadow-2xs"
-              >
-                <span>🔒 1º Acesso (Lucas)</span>
-              </button>
-            </div>
+          {/* Security Badge */}
+          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] text-slate-400">
+            <ShieldCheck className="w-4 h-4 text-[#C89543]" />
+            <span>Sessão protegida por TLS 1.3 & JWT seguro</span>
           </div>
         </div>
       </main>
 
-      {/* Security Footer Badge */}
-      <footer className="text-center py-2">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/70 text-xs font-medium backdrop-blur-xs">
-          <ShieldCheck className="w-4 h-4 text-[#C89543]" />
-          <span>{t.login.securityBadge}</span>
-        </div>
+      {/* Footer */}
+      <footer className="text-center text-xs text-slate-500 py-4 max-w-7xl mx-auto w-full">
+        <p>© 2026 PreviOffice — Gestão Especializada para Advocacia Previdenciária</p>
       </footer>
     </div>
   );

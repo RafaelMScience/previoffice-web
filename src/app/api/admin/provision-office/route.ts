@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { checkRateLimit, verifyMasterKey } from '@/lib/security/admin-guard';
-import { createClientServer } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   const ip =
@@ -43,56 +43,93 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Validation
-    if (!officeName || !oabNumber || !oabUf || !officeEmail || !lawyerName || !lawyerEmail || !lawyerPassword) {
+    if (
+      !officeName ||
+      !oabNumber ||
+      !oabUf ||
+      !officeEmail ||
+      !lawyerName ||
+      !lawyerEmail ||
+      !lawyerPassword
+    ) {
       return NextResponse.json(
         { error: 'Missing required office or lawyer administrator fields.' },
         { status: 400 }
       );
     }
 
-    const tenantId = `tenant-${Date.now()}`;
-    const lawyerUserId = `usr-${Date.now()}`;
+    const adminClient = createAdminClient();
 
-    // Attempt Supabase insert if configured
-    try {
-      const supabase = await createClientServer();
-      
-      // Insert tenant
-      const { data: tenantData, error: tenantError } = await (supabase
-        .from('tenants') as any)
-        .insert({
-          office_name: officeName,
-          lead_lawyer_name: lawyerName,
-          oab_number: `${oabNumber}/${oabUf}`,
-          tax_id: taxId || null,
-          phone,
-          whatsapp: phone,
-          email: officeEmail,
-          address: address || null,
-          plan_type: planType,
-        })
-        .select()
-        .single();
+    // 4. Insert Tenant in Supabase
+    const { data: tenantData, error: tenantError } = await adminClient
+      .from('tenants')
+      .insert({
+        office_name: officeName,
+        lead_lawyer_name: lawyerName,
+        oab_number: `${oabNumber}/${oabUf}`,
+        tax_id: taxId || null,
+        phone,
+        whatsapp: phone,
+        email: officeEmail,
+        address: address || null,
+        plan_type: planType,
+      })
+      .select()
+      .single();
 
-      if (!tenantError && tenantData) {
-        // Register lawyer user
-        await (supabase.from('profiles') as any).insert({
+    if (tenantError || !tenantData) {
+      return NextResponse.json(
+        { error: `Erro ao criar escritório: ${tenantError?.message}` },
+        { status: 500 }
+      );
+    }
+
+    // 5. Create Managing Lawyer in Supabase Auth
+    const { data: authData, error: authError } =
+      await adminClient.auth.admin.createUser({
+        email: lawyerEmail,
+        password: lawyerPassword,
+        email_confirm: true,
+        app_metadata: {
           tenant_id: tenantData.id,
-          full_name: lawyerName,
-          email: lawyerEmail,
           role: 'MANAGING_LAWYER',
-          is_active: true,
-        });
-      }
-    } catch {
-      // Running in standalone or mock environment without active Supabase credentials
+        },
+        user_metadata: {
+          full_name: lawyerName,
+        },
+      });
+
+    if (authError || !authData.user) {
+      // Rollback tenant creation on auth failure
+      await adminClient.from('tenants').delete().eq('id', tenantData.id);
+      return NextResponse.json(
+        { error: `Erro ao criar usuário administrador: ${authError?.message}` },
+        { status: 500 }
+      );
+    }
+
+    // 6. Create Profile in public.profiles
+    const { error: profileError } = await adminClient.from('profiles').insert({
+      id: authData.user.id,
+      tenant_id: tenantData.id,
+      full_name: lawyerName,
+      email: lawyerEmail,
+      role: 'MANAGING_LAWYER',
+      is_active: true,
+    });
+
+    if (profileError) {
+      return NextResponse.json(
+        { error: `Erro ao vincular perfil: ${profileError.message}` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Office tenant and managing lawyer provisioned successfully.',
+      message: 'Escritório e Administrador Gestor criados com sucesso no Supabase.',
       data: {
-        tenantId,
+        tenantId: tenantData.id,
         officeName,
         oab: `${oabNumber}/${oabUf}`,
         lawyerName,
@@ -103,7 +140,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err: any) {
     return NextResponse.json(
-      { error: 'Internal error processing tenant provisioning.' },
+      { error: err?.message || 'Internal error processing tenant provisioning.' },
       { status: 500 }
     );
   }
