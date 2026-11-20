@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useState, useTransition, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   User,
@@ -19,12 +19,19 @@ import {
   ShieldCheck,
   Camera,
   AlertCircle,
+  Search,
+  Sparkles,
+  Move,
 } from 'lucide-react';
+import { AvatarCropModal } from './avatar-crop-modal';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { maskCpf, maskPhone, maskCep, maskBenefitNumber } from '@/lib/utils/masks';
+import { compressAvatarPhoto } from '@/lib/utils/image-compressor';
 import { calculateAge, checkRuralRetirementAge } from '@/lib/domain/benefit-rules';
+import { decryptData } from '@/lib/security/encryption';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
+import { createClient } from '@/lib/supabase/client';
 import { securityStore } from '@/lib/data/mock-security';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
 import type { MaritalStatus, SpecialCategory } from '@/types/client';
@@ -32,7 +39,7 @@ import type { MaritalStatus, SpecialCategory } from '@/types/client';
 interface ClientFullFormProps {
   initialData?: Partial<ClientFullRegistrationInput>;
   clientId?: string;
-  onSave?: (data: ClientFullRegistrationInput, photoFile?: File) => Promise<void>;
+  onSave?: (data: ClientFullRegistrationInput, photoFile?: File, linkedClientId?: string) => Promise<void>;
 }
 
 export function ClientFullForm({ initialData, clientId, onSave }: ClientFullFormProps) {
@@ -41,10 +48,39 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   const [isPending, startTransition] = useTransition();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [linkedClientId, setLinkedClientId] = useState<string | undefined>(clientId);
+  const [fastIntakeNotice, setFastIntakeNotice] = useState<string | null>(null);
 
-  // Photo upload state
+  // Autocomplete / Search suggestions by name
+  const [nameSuggestions, setNameSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Photo upload and cropping state
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initialData?.photoReference || null);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [rawImageForCrop, setRawImageForCrop] = useState<string | null>(null);
+  const [rawFileName, setRawFileName] = useState<string>('avatar.webp');
+
+  // Cleanup object URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (rawImageForCrop?.startsWith('blob:')) {
+        URL.revokeObjectURL(rawImageForCrop);
+      }
+      if (photoPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(photoPreview);
+      }
+    };
+  }, [rawImageForCrop, photoPreview]);
+
+  const handleCropComplete = (croppedFile: File, previewUrl: string) => {
+    if (photoPreview?.startsWith('blob:') && photoPreview !== previewUrl) {
+      URL.revokeObjectURL(photoPreview);
+    }
+    setPhotoFile(croppedFile);
+    setPhotoPreview(previewUrl);
+  };
 
   // Form state
   const [fullName, setFullName] = useState(initialData?.fullName || '');
@@ -73,9 +109,25 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
 
   // Social Security Credentials
   const [benefitNumber, setBenefitNumber] = useState(initialData?.benefitNumber ? maskBenefitNumber(initialData.benefitNumber) : '');
-  const [inssPassword, setInssPassword] = useState(initialData?.inssPassword || '');
+  const [inssPassword, setInssPassword] = useState(
+    initialData?.inssPassword ? decryptData(initialData.inssPassword) : ''
+  );
   const [showInssPassword, setShowInssPassword] = useState(false);
   const [isCopiedInss, setIsCopiedInss] = useState(false);
+
+  // Sync initial INSS password whenever initialData updates
+  useEffect(() => {
+    if (initialData?.inssPassword) {
+      setInssPassword(decryptData(initialData.inssPassword));
+    }
+  }, [initialData?.inssPassword]);
+
+  // Sync initial photoPreview whenever initialData updates
+  useEffect(() => {
+    if (initialData?.photoReference) {
+      setPhotoPreview(initialData.photoReference);
+    }
+  }, [initialData?.photoReference]);
 
   // Controlled auto-hide with React lifecycle cleanup
   useEffect(() => {
@@ -152,6 +204,90 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   const ruralRetirementCheck =
     age !== null && genderEnum ? checkRuralRetirementAge(genderEnum, age) : null;
 
+  // Populate form from existing prospect data
+  const applyClientData = useCallback((foundClient: any) => {
+    setLinkedClientId(foundClient.id);
+    setFullName(foundClient.full_name || foundClient.fullName || '');
+    if (foundClient.cpf || foundClient.normalized_cpf) {
+      setCpf(maskCpf(foundClient.cpf || foundClient.normalized_cpf));
+    }
+    if (foundClient.mobile_phone || foundClient.mobilePhone) {
+      setMobilePhone(maskPhone(foundClient.mobile_phone || foundClient.mobilePhone));
+    }
+    if (foundClient.benefit_type || foundClient.benefitType) {
+      setBenefitType(foundClient.benefit_type || foundClient.benefitType);
+    }
+    if (foundClient.notes) {
+      setNotes(foundClient.notes);
+    }
+    if (foundClient.rg) setRg(foundClient.rg);
+    if (foundClient.birth_date) setBirthDate(foundClient.birth_date);
+    if (foundClient.postal_code) setPostalCode(maskCep(foundClient.postal_code));
+    if (foundClient.street) setStreet(foundClient.street);
+    if (foundClient.street_number) setStreetNumber(foundClient.street_number);
+    if (foundClient.complement) setComplement(foundClient.complement);
+    if (foundClient.neighborhood) setNeighborhood(foundClient.neighborhood);
+    if (foundClient.city) setCity(foundClient.city);
+    if (foundClient.state) setState(foundClient.state);
+    if (foundClient.email) setEmail(foundClient.email);
+    if (foundClient.encrypted_inss_password || foundClient.encryptedInssPassword) {
+      const rawPass = foundClient.encrypted_inss_password || foundClient.encryptedInssPassword;
+      setInssPassword(decryptData(rawPass));
+    }
+
+    setFastIntakeNotice(
+      `Dados vinculados com sucesso da entrada rápida de "${foundClient.full_name || foundClient.fullName}". Complete os campos restantes.`
+    );
+    setShowSuggestions(false);
+  }, []);
+
+  // Lookup by CPF on complete 11 digits
+  useEffect(() => {
+    const digits = cpf.replace(/\D/g, '');
+    if (digits.length === 11 && isValidCpf(digits) && currentUser?.tenantId && !clientId) {
+      const supabase = createClient();
+      (supabase.from('clients') as any)
+        .select('*')
+        .eq('tenant_id', currentUser.tenantId)
+        .eq('normalized_cpf', digits)
+        .is('deleted_at', null)
+        .maybeSingle()
+        .then(({ data }: any) => {
+          if (data && data.id !== linkedClientId) {
+            applyClientData(data);
+          }
+        });
+    }
+  }, [cpf, currentUser?.tenantId, clientId, linkedClientId, applyClientData]);
+
+  // Search by name suggestions when typing
+  useEffect(() => {
+    const trimmed = fullName.trim();
+    if (trimmed.length >= 3 && currentUser?.tenantId && !clientId && !linkedClientId) {
+      const supabase = createClient();
+      const timer = setTimeout(() => {
+        (supabase.from('clients') as any)
+          .select('id, full_name, cpf, mobile_phone, benefit_type, notes')
+          .eq('tenant_id', currentUser.tenantId)
+          .ilike('full_name', `%${trimmed}%`)
+          .is('deleted_at', null)
+          .limit(5)
+          .then(({ data }: any) => {
+            if (data && data.length > 0) {
+              setNameSuggestions(data);
+              setShowSuggestions(true);
+            } else {
+              setNameSuggestions([]);
+              setShowSuggestions(false);
+            }
+          });
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [fullName, currentUser?.tenantId, clientId, linkedClientId]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -183,12 +319,13 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           specialCategories: [specialCategory],
           dependentCount: 0,
           inssPassword: inssPassword || undefined,
+          photoReference: photoPreview === null ? null : (photoPreview || undefined),
           notes: notes || undefined,
           physicalFileLocation: physicalFileLocation || undefined,
         };
 
         if (onSave) {
-          await onSave(payload, photoFile || undefined);
+          await onSave(payload, photoFile || undefined, linkedClientId);
         }
         setSuccessMessage(t.clientForm.saveSuccess);
         setTimeout(() => setSuccessMessage(null), 4000);
@@ -318,6 +455,23 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
             </div>
           </div>
 
+          {/* Fast Intake Auto-link Notice Banner */}
+          {fastIntakeNotice && (
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between gap-3 animate-in fade-in shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <Sparkles className="w-5 h-5 text-[#C89543] shrink-0" />
+                <span className="font-semibold">{fastIntakeNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFastIntakeNotice(null)}
+                className="text-amber-700 hover:text-amber-950 text-xs font-bold underline shrink-0"
+              >
+                Dispensar
+              </button>
+            </div>
+          )}
+
           {/* Validation / Error Banner */}
           {errorMessage && (
             <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-3 animate-in fade-in shadow-xs">
@@ -346,38 +500,125 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                 <span className="text-xs font-semibold text-slate-700 block mb-1">
                   Foto ou Imagem do Cliente
                 </span>
-                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 shadow-2xs transition-all">
-                  <Camera className="w-3.5 h-3.5 text-[#C89543]" />
-                  <span>{photoFile ? photoFile.name : 'Selecionar imagem (PNG/JPG)'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        const file = e.target.files[0];
-                        setPhotoFile(file);
-                        setPhotoPreview(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 shadow-2xs transition-all">
+                    <Camera className="w-3.5 h-3.5 text-[#C89543]" />
+                    <span>{photoFile ? photoFile.name : 'Selecionar imagem (PNG/JPG/WebP)'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          setRawFileName(file.name);
+                          if (rawImageForCrop?.startsWith('blob:')) {
+                            URL.revokeObjectURL(rawImageForCrop);
+                          }
+                          const objectUrl = URL.createObjectURL(file);
+                          setRawImageForCrop(objectUrl);
+                          setCropModalOpen(true);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </label>
+                  {photoPreview && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRawImageForCrop((prev) => prev || photoPreview);
+                          setCropModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-medium shadow-2xs transition-all"
+                        title="Ajustar posição e zoom da foto"
+                      >
+                        <Move className="w-3.5 h-3.5 text-[#C89543]" />
+                        <span>Ajustar posição</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm('Deseja remover a foto selecionada deste cadastro?')) {
+                            if (photoPreview?.startsWith('blob:')) {
+                              URL.revokeObjectURL(photoPreview);
+                            }
+                            if (rawImageForCrop?.startsWith('blob:')) {
+                              URL.revokeObjectURL(rawImageForCrop);
+                            }
+                            setPhotoFile(null);
+                            setPhotoPreview(null);
+                            setRawImageForCrop(null);
+                          }
+                        }}
+                        className="px-2.5 py-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-medium transition-all"
+                      >
+                        Remover foto
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 relative">
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   {t.clientForm.fullNameLabel}
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder={t.clientForm.fullNamePlaceholder}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder={t.clientForm.fullNamePlaceholder}
+                    className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
+                  />
+                  {linkedClientId && (
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
+                      Vinculado
+                    </span>
+                  )}
+                </div>
+
+                {/* Suggestions drop-down for matching prospects from fast intake */}
+                {showSuggestions && nameSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 overflow-hidden divide-y divide-slate-100">
+                    <div className="p-2 bg-slate-50 text-[11px] font-semibold text-slate-600 flex items-center justify-between">
+                      <span>Cadastros encontrados na recepção rápida:</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowSuggestions(false)}
+                        className="text-slate-400 hover:text-slate-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {nameSuggestions.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => applyClientData(item)}
+                        className="w-full p-2.5 text-left hover:bg-amber-50 flex items-center justify-between transition-colors group"
+                      >
+                        <div>
+                          <div className="text-xs font-bold text-slate-900 group-hover:text-[#C89543]">
+                            {item.full_name}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            {item.cpf ? `CPF: ${maskCpf(item.cpf)}` : 'Sem CPF informado'} • {maskPhone(item.mobile_phone)}
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-[#082A52] bg-slate-100 group-hover:bg-[#C89543]/20 px-2 py-1 rounded">
+                          Puxar Dados &rarr;
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -779,6 +1020,15 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           </div>
         </form>
       </div>
+
+      {/* Interactive Avatar Crop Modal */}
+      <AvatarCropModal
+        isOpen={cropModalOpen}
+        imageSrc={rawImageForCrop}
+        fileName={rawFileName}
+        onClose={() => setCropModalOpen(false)}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }

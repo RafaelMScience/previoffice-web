@@ -55,10 +55,16 @@ export default function ReceptionDashboardPage() {
           id: c.id,
           fullName: c.fullName,
           cpf: c.cpf || c.normalizedCpf || '---',
+          photoUrl: c.photoReference || null,
           attendanceType: (c.visitCount > 1 ? 'RETURN' : 'FIRST_VISIT') as any,
           lastVisitAt: visitTime,
           totalVisits: c.visitCount || 1,
-          pendingDocuments: c.hasActiveBenefit ? ['Análise Administrativa'] : ['Documentos Pessoais e CNIS'],
+          pendingDocuments:
+            c.pendingDocuments !== undefined
+              ? c.pendingDocuments
+              : c.hasActiveBenefit
+              ? ['Análise Administrativa']
+              : ['Documentos Pessoais e CNIS'],
           registrationProgress: c.cpf && c.street ? 80 : 35,
           assignedAttendant: c.lastAttendantName || currentUser.fullName,
           benefitTypeNotes: c.benefitType || 'Benefício Previdenciário',
@@ -95,7 +101,7 @@ export default function ReceptionDashboardPage() {
 
     await createFastIntakeInDb(data, currentUser.tenantId, {
       id: currentUser.id,
-      name: currentUser.fullName,
+      name: data.assignedLawyerName || currentUser.fullName,
     });
 
     setFastIntakeSuccessMsg(

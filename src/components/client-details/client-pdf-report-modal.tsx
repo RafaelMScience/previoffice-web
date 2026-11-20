@@ -476,12 +476,20 @@ export function ClientPdfReportModal({
             {/* Profile Overview Card (Navy & Royal Accent) */}
             <div className="bg-[#082A52] text-white rounded-lg p-3.5 flex items-center gap-3.5 shadow-xs w-full">
               {/* Photo or Clean Monogram Placeholder */}
-              <div className="w-14 h-14 rounded-lg bg-white/10 border border-[#C89543]/40 flex flex-col items-center justify-center shrink-0">
-                <User className="w-6 h-6 text-[#C89543]" />
-                <span className="text-[7px] font-bold tracking-wider text-slate-300 uppercase mt-0.5">
-                  Sem Foto
-                </span>
-              </div>
+              {client.photoReference ? (
+                <img
+                  src={client.photoReference}
+                  alt={client.fullName}
+                  className="w-14 h-14 rounded-lg object-cover border border-[#C89543]/40 shrink-0"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-lg bg-white/10 border border-[#C89543]/40 flex flex-col items-center justify-center shrink-0">
+                  <User className="w-6 h-6 text-[#C89543]" />
+                  <span className="text-[7px] font-bold tracking-wider text-slate-300 uppercase mt-0.5">
+                    Sem Foto
+                  </span>
+                </div>
+              )}
 
               <div className="flex-1 min-w-0 space-y-0.5">
                 <div className="flex items-center justify-between gap-2">

@@ -43,24 +43,39 @@ export function TeamManagementTab() {
             tenantId: p.tenant_id,
             fullName: p.full_name,
             email: p.email,
+            phone: p.phone || undefined,
+            oabNumber: p.oab_number || undefined,
             memberType:
               p.role === 'INTERN'
                 ? 'INTERN'
-                : p.role === 'ASSISTANT' || p.role === 'RECEPTIONIST'
+                : p.role === 'ASSISTANT' || p.role === 'RECEPTIONIST' || (p.role === 'MANAGING_LAWYER' && !p.oab_number)
                 ? 'ASSISTANT'
                 : 'LAWYER',
             isAdminLawyer: p.role === 'MANAGING_LAWYER',
             active: p.is_active ?? true,
             lastLoginAt: p.last_login_at || undefined,
-            permissions: currentUser?.permissions || {
-              receptionDesk: true,
-              clientsManage: true,
-              casesManage: true,
-              contractsAndFinancial: true,
-              templatesManage: true,
-              adminSettings: p.role === 'MANAGING_LAWYER',
-              securityAudit: p.role === 'MANAGING_LAWYER',
-            },
+            permissions:
+              p.role === 'MANAGING_LAWYER'
+                ? {
+                    receptionDesk: true,
+                    clientsManage: true,
+                    casesManage: true,
+                    contractsAndFinancial: true,
+                    templatesManage: true,
+                    adminSettings: true,
+                    securityAudit: true,
+                  }
+                : p.id === currentUser?.id && currentUser?.permissions
+                ? currentUser.permissions
+                : {
+                    receptionDesk: true,
+                    clientsManage: true,
+                    casesManage: p.role !== 'ASSISTANT',
+                    contractsAndFinancial: p.role === 'ASSOCIATE_LAWYER',
+                    templatesManage: p.role !== 'ASSISTANT',
+                    adminSettings: false,
+                    securityAudit: false,
+                  },
             createdAt: p.created_at,
             updatedAt: p.updated_at,
           }));
@@ -149,13 +164,35 @@ export function TeamManagementTab() {
     }
 
     const newActive = !target.active;
-    const supabase = createClient();
-    await (supabase.from('profiles') as any)
-      .update({ is_active: newActive, updated_at: new Date().toISOString() })
-      .eq('id', id);
+    try {
+      const res = await fetch('/api/team/update-member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          fullName: target.fullName,
+          phone: target.phone,
+          oabNumber: target.oabNumber,
+          memberType: target.memberType,
+          isAdminLawyer: target.isAdminLawyer,
+          active: newActive,
+          permissions: target.permissions,
+        }),
+      });
 
-    settingsStore.toggleMemberActive(id);
-    setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, active: newActive } : m)));
+      if (!res.ok) {
+        const data = await res.json();
+        setWarningMessage(data.error || 'Erro ao alterar status do colaborador.');
+        setTimeout(() => setWarningMessage(null), 4000);
+        return;
+      }
+
+      settingsStore.toggleMemberActive(id);
+      setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, active: newActive } : m)));
+    } catch (err: any) {
+      setWarningMessage(err?.message || 'Erro de conexão ao alterar status.');
+      setTimeout(() => setWarningMessage(null), 4000);
+    }
   };
 
   const handleSaveMember = async (
@@ -190,27 +227,57 @@ export function TeamManagementTab() {
 
     if (editingMember) {
       const isPrimaryAdmin = editingMember.id === 'usr-001';
+      const isNowAdmin = isPrimaryAdmin || memberData.isAdminLawyer;
+      const targetRole = isNowAdmin
+        ? 'MANAGING_LAWYER'
+        : memberData.memberType === 'INTERN'
+        ? 'INTERN'
+        : memberData.memberType === 'ASSISTANT'
+        ? 'ASSISTANT'
+        : 'ASSOCIATE_LAWYER';
+
       const updatedMember: TeamMember = {
         ...editingMember,
         ...memberData,
         email: emailLower,
+        isAdminLawyer: isNowAdmin,
         active: isPrimaryAdmin ? true : memberData.active,
-        permissions: isPrimaryAdmin
-          ? { ...memberData.permissions, adminSettings: true }
+        permissions: isNowAdmin
+          ? {
+              receptionDesk: true,
+              clientsManage: true,
+              casesManage: true,
+              contractsAndFinancial: true,
+              templatesManage: true,
+              adminSettings: true,
+              securityAudit: true,
+            }
           : memberData.permissions,
         updatedAt: new Date().toISOString(),
       };
 
-      const supabase = createClient();
-      await (supabase.from('profiles') as any)
-        .update({
-          full_name: updatedMember.fullName,
-          phone: updatedMember.phone || null,
-          oab_number: updatedMember.oabNumber || null,
-          is_active: updatedMember.active,
-          updated_at: updatedMember.updatedAt,
-        })
-        .eq('id', editingMember.id);
+      // Call secure server API with Admin privileges to persist in profiles + auth.users
+      const res = await fetch('/api/team/update-member', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: editingMember.id,
+          fullName: updatedMember.fullName,
+          phone: updatedMember.phone,
+          oabNumber: updatedMember.oabNumber,
+          memberType: updatedMember.memberType,
+          isAdminLawyer: updatedMember.isAdminLawyer,
+          active: updatedMember.active,
+          permissions: updatedMember.permissions,
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Falha ao atualizar colaborador no servidor.');
+      }
 
       settingsStore.updateTeamMember(updatedMember);
       setMembers((prev) => prev.map((m) => (m.id === updatedMember.id ? updatedMember : m)));

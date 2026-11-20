@@ -327,8 +327,16 @@ export function ClientDetailHeader({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         {/* Left: Avatar & Personal Info */}
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-[#0B192E] text-[#C89543] font-bold text-xl flex items-center justify-center shadow-inner shrink-0 border border-slate-700">
-            {getInitials(client.fullName)}
+          <div className="w-16 h-16 rounded-2xl bg-[#0B192E] text-[#C89543] font-bold text-xl flex items-center justify-center shadow-inner shrink-0 border border-slate-700 overflow-hidden">
+            {client.photoReference ? (
+              <img
+                src={client.photoReference}
+                alt={client.fullName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              getInitials(client.fullName)
+            )}
           </div>
 
           <div className="space-y-1">

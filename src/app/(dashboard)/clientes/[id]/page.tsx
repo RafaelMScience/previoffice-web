@@ -2,6 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { ClientDetailsView } from '@/components/client-details/client-details-view';
 import { createClientServer } from '@/lib/supabase/server';
+import { decryptData } from '@/lib/security/encryption';
 import type { Client, ClientStatus, MaritalStatus, SpecialCategory } from '@/types/client';
 import type { Attendance, AttendanceType } from '@/types/attendance';
 
@@ -65,7 +66,12 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
       benefitNumber: clientRow.benefit_number || undefined,
       recentContributionsSummary: clientRow.recent_contributions_summary || undefined,
       specialCategories: (clientRow.special_categories as SpecialCategory[]) || [],
-      encryptedInssPassword: clientRow.encrypted_inss_password || undefined,
+      encryptedInssPassword: clientRow.encrypted_inss_password
+        ? decryptData(clientRow.encrypted_inss_password)
+        : undefined,
+      inssPassword: clientRow.encrypted_inss_password
+        ? decryptData(clientRow.encrypted_inss_password)
+        : undefined,
       photoReference: clientRow.photo_reference || undefined,
       notes: clientRow.notes || undefined,
       visitCount: clientRow.visit_count ?? 1,

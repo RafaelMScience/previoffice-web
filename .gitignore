@@ -48,5 +48,8 @@ Thumbs.db
 *.swo
 .idea/
 .vscode/
+
+# Brainstorming Companion
+.superpowers/
 *.sublime-project
 *.sublime-workspace

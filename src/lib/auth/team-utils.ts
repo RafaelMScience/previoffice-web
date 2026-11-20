@@ -9,8 +9,11 @@ export function mapMemberTypeToDbRole(
   memberType: MemberType,
   isAdminLawyer: boolean = false
 ): DbRole {
+  if (isAdminLawyer) {
+    return 'MANAGING_LAWYER';
+  }
   if (memberType === 'LAWYER') {
-    return isAdminLawyer ? 'MANAGING_LAWYER' : 'ASSOCIATE_LAWYER';
+    return 'ASSOCIATE_LAWYER';
   }
   if (memberType === 'ASSISTANT') {
     return 'ASSISTANT';

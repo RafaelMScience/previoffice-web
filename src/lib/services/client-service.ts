@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { encryptData, decryptData, isEncrypted } from '@/lib/security/encryption';
 import type { Client, ClientStatus, MaritalStatus, SpecialCategory } from '@/types/client';
 import type { Attendance, AttendanceType, AttendanceWithClient, PendingPhysicalDocument } from '@/types/attendance';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
@@ -13,7 +14,7 @@ export async function fetchClientsFromDb(tenantId: string): Promise<Client[]> {
   const supabase = createClient();
 
   const { data, error } = await (supabase.from('clients') as any)
-    .select('*')
+    .select('*, attendances(id, pending_documents, attended_at)')
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
@@ -106,6 +107,12 @@ export async function createFastIntakeInDb(
     }
   }
 
+  const assignedName = data.assignedLawyerName || attendant.name;
+  const intakeNotes =
+    data.registeredBy && data.registeredBy !== assignedName
+      ? `${data.notes || 'Entrada rápida de recepção.'} (Cadastrado por: ${data.registeredBy})`
+      : data.notes || 'Entrada rápida de recepção.';
+
   // 2. Insert Client
   const { data: clientRow, error: clientErr } = await (supabase.from('clients') as any)
     .insert({
@@ -116,12 +123,12 @@ export async function createFastIntakeInDb(
       normalized_cpf: cleanCpf,
       mobile_phone: data.phone.trim(),
       benefit_type: data.benefit,
-      notes: data.notes || 'Entrada rápida de recepção.',
+      notes: intakeNotes,
       status: 'PROSPECT',
       active: true,
       visit_count: 1,
       last_visit_at: new Date().toISOString(),
-      last_attendant_name: attendant.name,
+      last_attendant_name: assignedName,
     })
     .select()
     .single();
@@ -138,19 +145,34 @@ export async function createFastIntakeInDb(
   }
 
   // 2. Insert Initial Attendance
+  const pendingDocs =
+    data.pendingDocuments && data.pendingDocuments.length > 0
+      ? data.pendingDocuments
+      : [];
+
+  const nowIso = new Date().toISOString();
+
   await (supabase.from('attendances') as any).insert({
     tenant_id: tenantId,
     client_id: clientRow.id,
     attendance_type: 'FIRST_VISIT',
     objective: data.benefit || 'Triagem Inicial',
-    notes: data.notes || 'Entrada rápida registrada na recepção.',
-    attendant_name: attendant.name,
+    notes: intakeNotes,
+    attendant_name: assignedName,
     attendant_user_id: attendant.id,
-    attended_at: new Date().toISOString(),
-    pending_documents: [{ id: 'doc-1', description: 'Documentos Pessoais e CNIS', isDelivered: false }],
+    attended_at: nowIso,
+    pending_documents: pendingDocs,
   });
 
-  return mapDbRowToClient(clientRow);
+  return mapDbRowToClient({
+    ...clientRow,
+    attendances: [
+      {
+        attended_at: nowIso,
+        pending_documents: pendingDocs,
+      },
+    ],
+  });
 }
 
 export async function uploadClientPhotoToStorage(
@@ -165,6 +187,7 @@ export async function uploadClientPhotoToStorage(
     .from('client-photos')
     .upload(fileName, file, {
       cacheControl: '3600',
+      contentType: file.type || 'image/webp',
       upsert: true,
     });
 
@@ -183,20 +206,26 @@ export async function createFullClientInDb(
   input: ClientFullRegistrationInput,
   tenantId: string,
   attendant: { id: string; name: string },
-  photoUrl?: string
+  photoUrl?: string | null,
+  existingClientId?: string
 ): Promise<Client> {
   const supabase = createClient();
   const cleanCpf = input.cpf?.replace(/\D/g, '') || null;
   const normalizedName = input.fullName.toLowerCase().trim();
 
-  // 1. Pre-flight Check: CPF Uniqueness within Tenant
+  // 1. Pre-flight Check: CPF Uniqueness within Tenant (ignoring current client if updating)
   if (cleanCpf) {
-    const { data: existingClient } = await (supabase.from('clients') as any)
+    let query = (supabase.from('clients') as any)
       .select('id, full_name')
       .eq('tenant_id', tenantId)
       .eq('normalized_cpf', cleanCpf)
-      .is('deleted_at', null)
-      .maybeSingle();
+      .is('deleted_at', null);
+
+    if (existingClientId) {
+      query = query.neq('id', existingClientId);
+    }
+
+    const { data: existingClient } = await query.maybeSingle();
 
     if (existingClient) {
       throw new Error(
@@ -205,72 +234,123 @@ export async function createFullClientInDb(
     }
   }
 
-  // 2. Insert Client with 32 fields
-  const { data: clientRow, error: clientErr } = await (supabase.from('clients') as any)
-    .insert({
-      tenant_id: tenantId,
-      full_name: input.fullName.trim(),
-      normalized_name: normalizedName,
-      cpf: input.cpf || null,
-      normalized_cpf: cleanCpf,
-      rg: input.rg || null,
-      birth_date: input.birthDate || null,
-      marital_status: input.maritalStatus,
-      profession: input.profession || null,
-      nationality: input.nationality || 'Brasileira',
-      mother_name: input.motherName || null,
-      father_name: input.fatherName || null,
-      postal_code: input.postalCode || null,
-      street: input.street || null,
-      street_number: input.streetNumber || null,
-      complement: input.complement || null,
-      neighborhood: input.neighborhood || null,
-      city: input.city || null,
-      state: input.state || null,
-      mobile_phone: input.mobilePhone,
-      phone: input.phone || null,
-      email: input.email || null,
-      benefit_type: input.benefitType,
-      has_active_benefit: input.hasActiveBenefit ?? false,
-      benefit_number: input.benefitNumber || null,
-      special_categories: input.specialCategories,
-      encrypted_inss_password: input.inssPassword || null,
-      photo_reference: photoUrl || null,
-      notes: input.notes || null,
-      status: 'PROSPECT',
-      active: true,
-      visit_count: 1,
-      last_visit_at: new Date().toISOString(),
-      last_attendant_name: attendant.name,
-    })
-    .select()
-    .single();
+  const clientPayload: Record<string, any> = {
+    tenant_id: tenantId,
+    full_name: input.fullName.trim(),
+    normalized_name: normalizedName,
+    cpf: input.cpf || null,
+    normalized_cpf: cleanCpf,
+    rg: input.rg || null,
+    birth_date: input.birthDate || null,
+    marital_status: input.maritalStatus,
+    profession: input.profession || null,
+    nationality: input.nationality || 'Brasileira',
+    mother_name: input.motherName || null,
+    father_name: input.fatherName || null,
+    postal_code: input.postalCode || null,
+    street: input.street || null,
+    street_number: input.streetNumber || null,
+    complement: input.complement || null,
+    neighborhood: input.neighborhood || null,
+    city: input.city || null,
+    state: input.state || null,
+    mobile_phone: input.mobilePhone,
+    phone: input.phone || null,
+    email: input.email || null,
+    benefit_type: input.benefitType,
+    has_active_benefit: input.hasActiveBenefit ?? false,
+    benefit_number: input.benefitNumber || null,
+    special_categories: input.specialCategories,
+    encrypted_inss_password: input.inssPassword
+      ? isEncrypted(input.inssPassword.trim())
+        ? input.inssPassword.trim()
+        : encryptData(input.inssPassword.trim())
+      : null,
+    photo_reference: photoUrl !== undefined ? photoUrl : (input.photoReference ?? null),
+    notes: input.notes || null,
+    last_visit_at: new Date().toISOString(),
+    last_attendant_name: attendant.name,
+    updated_at: new Date().toISOString(),
+  };
 
-  if (clientErr || !clientRow) {
-    if (
-      clientErr?.code === '23505' ||
-      clientErr?.message?.includes('idx_clients_unique_cpf_per_tenant') ||
-      clientErr?.message?.includes('duplicate key')
-    ) {
-      throw new Error('Já existe um cliente cadastrado com este CPF neste escritório.');
-    }
-    throw new Error('Falha ao cadastrar ficha completa do cliente no banco de dados.');
+  if (!existingClientId) {
+    clientPayload.status = 'PROSPECT';
+    clientPayload.active = true;
+    clientPayload.visit_count = 1;
   }
 
-  // 2. Insert Initial Attendance
-  await (supabase.from('attendances') as any).insert({
-    tenant_id: tenantId,
-    client_id: clientRow.id,
-    attendance_type: 'FIRST_CONSULTATION',
-    objective: input.benefitType,
-    notes: input.notes || 'Atendimento inicial com ficha cadastral completa.',
-    attendant_name: attendant.name,
-    attendant_user_id: attendant.id,
-    attended_at: new Date().toISOString(),
-    physical_file_location: input.physicalFileLocation || null,
-  });
+  let clientRow: any = null;
+
+  if (existingClientId) {
+    // Update existing fast-intake prospect into complete profile
+    const { data, error: updateErr } = await (supabase.from('clients') as any)
+      .update(clientPayload)
+      .eq('id', existingClientId)
+      .eq('tenant_id', tenantId)
+      .select()
+      .single();
+
+    if (updateErr || !data) {
+      throw new Error('Falha ao atualizar cadastro do cliente no banco de dados.');
+    }
+    clientRow = data;
+  } else {
+    // Insert new client
+    const { data, error: clientErr } = await (supabase.from('clients') as any)
+      .insert({
+        ...clientPayload,
+        visit_count: 1,
+      })
+      .select()
+      .single();
+
+    if (clientErr || !data) {
+      if (
+        clientErr?.code === '23505' ||
+        clientErr?.message?.includes('idx_clients_unique_cpf_per_tenant') ||
+        clientErr?.message?.includes('duplicate key')
+      ) {
+        throw new Error('Já existe um cliente cadastrado com este CPF neste escritório.');
+      }
+      throw new Error('Falha ao cadastrar ficha completa do cliente no banco de dados.');
+    }
+    clientRow = data;
+  }
+
+  // 2. Insert Initial Attendance (only on new client creation)
+  if (!existingClientId) {
+    await (supabase.from('attendances') as any).insert({
+      tenant_id: tenantId,
+      client_id: clientRow.id,
+      attendance_type: 'FIRST_CONSULTATION',
+      objective: input.benefitType,
+      notes: input.notes || 'Atendimento com qualificação cadastral completa.',
+      attendant_name: attendant.name,
+      attendant_user_id: attendant.id,
+      attended_at: new Date().toISOString(),
+      physical_file_location: input.physicalFileLocation || null,
+    });
+  }
 
   return mapDbRowToClient(clientRow);
+}
+
+export async function updateAttendancePendingDocumentsInDb(
+  attendanceId: string,
+  pendingDocuments: PendingPhysicalDocument[]
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await (supabase.from('attendances') as any)
+    .update({
+      pending_documents: pendingDocuments,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', attendanceId);
+
+  if (error) {
+    console.error('Error updating pending documents in attendance:', error);
+    throw new Error('Falha ao atualizar status dos documentos pendentes no banco de dados.');
+  }
 }
 
 export async function inactivateClientInDb(
@@ -409,6 +489,20 @@ export async function createAttendanceInDb(
 }
 
 function mapDbRowToClient(row: any): Client {
+  let pendingDocuments: string[] | undefined = undefined;
+  if (Array.isArray(row.attendances) && row.attendances.length > 0) {
+    const sorted = [...row.attendances].sort(
+      (a: any, b: any) =>
+        new Date(b.attended_at || 0).getTime() - new Date(a.attended_at || 0).getTime()
+    );
+    const latest = sorted[0];
+    if (Array.isArray(latest?.pending_documents)) {
+      pendingDocuments = latest.pending_documents
+        .filter((d: any) => !d.isDelivered)
+        .map((d: any) => d.description);
+    }
+  }
+
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -442,9 +536,15 @@ function mapDbRowToClient(row: any): Client {
     benefitNumber: row.benefit_number || undefined,
     recentContributionsSummary: row.recent_contributions_summary || undefined,
     specialCategories: (row.special_categories as SpecialCategory[]) || [],
-    encryptedInssPassword: row.encrypted_inss_password || undefined,
+    encryptedInssPassword: row.encrypted_inss_password
+      ? decryptData(row.encrypted_inss_password)
+      : undefined,
+    inssPassword: row.encrypted_inss_password
+      ? decryptData(row.encrypted_inss_password)
+      : undefined,
     photoReference: row.photo_reference || undefined,
     notes: row.notes || undefined,
+    pendingDocuments,
     visitCount: row.visit_count ?? 1,
     lastVisitAt: row.last_visit_at || undefined,
     lastAttendantName: row.last_attendant_name || undefined,

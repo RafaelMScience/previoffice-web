@@ -31,4 +31,6 @@ export interface LegalDocument {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+  deletedByName?: string;
+  deletedByUserId?: string;
 }

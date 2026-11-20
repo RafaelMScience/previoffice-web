@@ -64,7 +64,7 @@ export const ClientFullRegistrationSchema = z.object({
 
   // Sensitive & Security
   inssPassword: z.string().optional(),
-  photoReference: z.string().optional(),
+  photoReference: z.string().nullable().optional(),
   notes: z.string().optional(),
   physicalFileLocation: z.string().optional(),
 });

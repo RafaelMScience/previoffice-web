@@ -70,10 +70,12 @@ export interface Client {
   specialCategories?: SpecialCategory[];
 
   // Sensitive & Security
-  encryptedInssPassword?: string; // AES-256-GCM encrypted column
+  encryptedInssPassword?: string; // Stored cipher text or legacy
+  inssPassword?: string; // Decrypted plain text for authorized viewing/copying
   physicalFileLocation?: string; // e.g. "Armário A - Gaveta 02 - Pasta 2026-081"
   photoReference?: string; // Path or cloud storage reference (.apimg)
   notes?: string;
+  pendingDocuments?: string[]; // Descriptions of currently pending physical documents
 
   // Visit & Maturation Counters
   visitCount: number;
