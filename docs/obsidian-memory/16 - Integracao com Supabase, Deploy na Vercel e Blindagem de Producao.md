@@ -378,6 +378,16 @@ Para solucionar o bug de credenciais inválidas ao cadastrar novos advogados, as
   - Inclui botão de cópia de um clique e link direto para abertura no WhatsApp Web.
   - Custo operacional R$ 0,00 (dentro do free tier do Supabase de até 50.000 usuários ativos mensais).
 
+### 13.5. Sincronização em Tempo Real e Exibição Precisa do "Último Acesso" (`20261120000005_sync_and_trigger_last_login.sql`)
+1. **Trigger de Banco Automático no PostgreSQL (`on_auth_user_sign_in`)**:
+   - Criada função `public.handle_user_sign_in()` disparada após qualquer atualização de `last_sign_in_at` na tabela interna `auth.users`.
+   - Propaga imediatamente o timestamp para `public.profiles.last_login_at` com `SECURITY DEFINER`, garantindo precisão mesmo em logins externos, renovação de sessão ou troca de senha.
+   - Sincronizados todos os registros de acesso históricos pré-existentes.
+2. **Mapeamento no Contexto de Auth e Gestão de Equipe**:
+   - `src/lib/auth/auth-context.tsx`: `mapProfileToTeamMember` e `buildFallbackMember` passam a expor `lastLoginAt`.
+   - `src/components/settings/team-management-tab.tsx`: Mapeamento de `p.last_login_at` ao listar colaboradores da banca.
+   - `formatLastLogin`: Formatação humanizada com horário local ("Hoje às 10:09", "Ontem às 18:30", "20/11/2026 às 13:09" e "Nunca acessou" caso sem registro).
+
 ---
 
 ## Notas Relacionadas

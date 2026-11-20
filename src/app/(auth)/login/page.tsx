@@ -73,6 +73,18 @@ export default function LoginPage() {
       }
 
       if (data.session && data.user) {
+        // Record last login in public.profiles
+        try {
+          await (supabase.from('profiles') as any)
+            .update({
+              last_login_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', data.user.id);
+        } catch {
+          // Handled gracefully in background
+        }
+
         // 2. Check if user must change temporary password on first access
         const mustChange = data.user.user_metadata?.must_change_password === true;
         if (mustChange) {

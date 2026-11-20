@@ -51,6 +51,7 @@ export function TeamManagementTab() {
                 : 'LAWYER',
             isAdminLawyer: p.role === 'MANAGING_LAWYER',
             active: p.is_active ?? true,
+            lastLoginAt: p.last_login_at || undefined,
             permissions: currentUser?.permissions || {
               receptionDesk: true,
               clientsManage: true,
@@ -253,15 +254,42 @@ export function TeamManagementTab() {
   };
 
   const formatLastLogin = (isoString?: string) => {
-    if (!isoString) return locale === 'pt-BR' ? 'Nunca logou' : 'Never logged in';
+    if (!isoString) return locale === 'pt-BR' ? 'Nunca acessou' : 'Never logged in';
     const date = new Date(isoString);
-    return date.toLocaleDateString(locale === 'pt-BR' ? 'pt-BR' : 'en-US', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+    if (isNaN(date.getTime())) return locale === 'pt-BR' ? 'Nunca acessou' : 'Never logged in';
+
+    const now = new Date();
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday =
+      date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+
+    const timeStr = date.toLocaleTimeString(locale === 'pt-BR' ? 'pt-BR' : 'en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });
+
+    if (isToday) {
+      return locale === 'pt-BR' ? `Hoje às ${timeStr}` : `Today at ${timeStr}`;
+    }
+    if (isYesterday) {
+      return locale === 'pt-BR' ? `Ontem às ${timeStr}` : `Yesterday at ${timeStr}`;
+    }
+
+    const dateStr = date.toLocaleDateString(locale === 'pt-BR' ? 'pt-BR' : 'en-US', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+
+    return locale === 'pt-BR' ? `${dateStr} às ${timeStr}` : `${dateStr} at ${timeStr}`;
   };
 
   return (
