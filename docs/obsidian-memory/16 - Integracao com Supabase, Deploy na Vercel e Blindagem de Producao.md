@@ -209,6 +209,40 @@ Para garantir usabilidade de alto nível no escritório de advocacia e eliminar 
 
 ---
 
+## 9. Ambiente Emulado Local do Supabase (Docker)
+
+Para permitir testes exploratórios, exclusões, edições de esquema e novos fluxos sem qualquer risco de poluir o banco de dados de produção na nuvem, foi ativado o cluster local do Supabase via Docker:
+
+```mermaid
+flowchart LR
+    Dev["Desenvolvedor (localhost:3000)"]
+    DockerCluster["Docker Local Cluster (127.0.0.1)"]
+    Studio["Supabase Studio (127.0.0.1:54323)"]
+    Mailpit["Inbucket/Mailpit (127.0.0.1:54324)"]
+    PostgresLocal[("PostgreSQL 17 Local (:54322)")]
+
+    Dev --> DockerCluster
+    Studio --> PostgresLocal
+    DockerCluster --> PostgresLocal
+    DockerCluster --> Mailpit
+```
+
+### 9.1. URLs e Painéis do Ambiente Local
+| Serviço | URL Local | Descrição |
+| :--- | :--- | :--- |
+| **Supabase Studio** | `http://127.0.0.1:54323` | Dashboard visual completo (igual ao da nuvem) para inspecionar e editar tabelas e Storage. |
+| **Mailpit / Inbucket** | `http://127.0.0.1:54324` | Caixa postal de e-mails capturados para testar confirmação de conta e resets de senha. |
+| **API REST / PostgREST** | `http://127.0.0.1:54321` | Gateway da API de dados local com isolamento RLS. |
+| **PostgreSQL 17 Direto** | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` | Conexão direta de banco para DBeaver ou psql. |
+
+### 9.2. Comandos Operacionais Criados no `package.json`
+- `npm run supabase:start`: Inicia os containers locais.
+- `npm run supabase:stop`: Pausa os containers economizando memória.
+- `npm run supabase:status`: Exibe URLs e chaves ativas do cluster local.
+- `npm run supabase:reset`: Apaga o banco local e reaplica todas as tabelas e migrations do zero em segundos.
+
+---
+
 ## Notas Relacionadas
 - [[00 - Planejamento Geral e Arquitetura da Versão Web]] — Visão geral da plataforma
 - [[11 - Arquitetura de Seguranca Cibernetica, Defesa Anti-Hacker e Protecao Anti-DDoS]] — Defesa cibernética e blindagem
