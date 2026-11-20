@@ -30,10 +30,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // If already authenticated, redirect to dashboard
+  // If already authenticated, redirect to dashboard or definir-senha
   useEffect(() => {
-    if (isAuthenticated && currentUser && !currentUser.mustChangePassword) {
-      router.push('/');
+    if (isAuthenticated && currentUser) {
+      if (currentUser.mustChangePassword) {
+        router.push('/definir-senha');
+      } else {
+        router.push('/');
+      }
     }
   }, [isAuthenticated, currentUser, router]);
 
@@ -65,7 +69,17 @@ export default function LoginPage() {
         return;
       }
 
-      if (data.session) {
+      if (data.session && data.user) {
+        // 2. Check if user must change temporary password on first access
+        const mustChange = data.user.user_metadata?.must_change_password === true;
+        if (mustChange) {
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('previoffice_first_access_email', data.user.email || email.trim());
+          }
+          window.location.href = '/definir-senha';
+          return;
+        }
+
         window.location.href = '/';
       }
     } catch (err: any) {

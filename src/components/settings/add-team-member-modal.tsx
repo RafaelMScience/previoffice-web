@@ -20,24 +20,16 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
+import { generateRandomPassword } from '@/lib/auth/password-generator';
 
-export function generateRandomPassword(): string {
-  const chars = '23456789';
-  const symbols = ['#', '@', '$', '!'];
-  const sym = symbols[Math.floor(Math.random() * symbols.length)];
-  let numStr = '';
-  for (let i = 0; i < 4; i++) {
-    numStr += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return `Prev${sym}${numStr}`;
-}
+export { generateRandomPassword };
 
 interface AddTeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   memberToEdit?: TeamMember | null;
   existingEmails?: string[];
-  onSave: (memberData: Omit<TeamMember, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>) => void;
+  onSave: (memberData: Omit<TeamMember, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>) => Promise<void> | void;
 }
 
 const DEFAULT_PERMISSIONS: Record<MemberType, TeamPermissions> = {
@@ -89,9 +81,11 @@ export function AddTeamMemberModal({
   const [active, setActive] = useState(true);
   const [permissions, setPermissions] = useState<TeamPermissions>(DEFAULT_PERMISSIONS.LAWYER);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setErrorMsg(null);
+    setIsSaving(false);
     if (memberToEdit) {
       setFullName(memberToEdit.fullName);
       setEmail(memberToEdit.email);
@@ -131,7 +125,7 @@ export function AddTeamMemberModal({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     if (!fullName.trim() || !email.trim()) return;
@@ -142,20 +136,26 @@ export function AddTeamMemberModal({
       return;
     }
 
-    onSave({
-      fullName: fullName.trim(),
-      email: cleanEmail,
-      phone: phone.trim() || undefined,
-      memberType,
-      oabNumber: memberType === 'LAWYER' ? oabNumber.trim() : undefined,
-      isAdminLawyer: memberType === 'LAWYER' ? isAdminLawyer : false,
-      active,
-      permissions,
-      temporaryPassword: !memberToEdit ? tempPassword : memberToEdit.temporaryPassword,
-      mustChangePassword: !memberToEdit ? true : memberToEdit.mustChangePassword,
-    });
-
-    onClose();
+    setIsSaving(true);
+    try {
+      await onSave({
+        fullName: fullName.trim(),
+        email: cleanEmail,
+        phone: phone.trim() || undefined,
+        memberType,
+        oabNumber: memberType === 'LAWYER' ? oabNumber.trim() : undefined,
+        isAdminLawyer: memberType === 'LAWYER' ? isAdminLawyer : false,
+        active,
+        permissions,
+        temporaryPassword: !memberToEdit ? tempPassword : memberToEdit.temporaryPassword,
+        mustChangePassword: !memberToEdit ? true : memberToEdit.mustChangePassword,
+      });
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Erro ao salvar colaborador.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -537,15 +537,18 @@ export function AddTeamMemberModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all"
+              disabled={isSaving}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#082A52] text-white hover:bg-[#0B3A70] active:scale-98 transition-all shadow-xs"
+              disabled={isSaving}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#082A52] text-white hover:bg-[#0B3A70] active:scale-98 transition-all shadow-xs flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {t.settings.btnSaveMember}
+              {isSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              <span>{isSaving ? 'Salvando...' : t.settings.btnSaveMember}</span>
             </button>
           </div>
         </form>

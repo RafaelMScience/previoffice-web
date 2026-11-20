@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { securityStore } from '@/lib/data/mock-security';
 import type { Database } from '@/types/database';
-import type { TeamMember, TeamPermissions } from '@/types/settings';
+import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
 import type { User } from '@supabase/supabase-js';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -58,13 +58,25 @@ const RECEPTIONIST_PERMISSIONS: TeamPermissions = {
 function mapProfileToTeamMember(profile: ProfileRow, user?: User | null): TeamMember {
   const role = profile.role || 'MANAGING_LAWYER';
   const isAdmin = role === 'MANAGING_LAWYER';
-  const memberType = role === 'RECEPTIONIST' ? 'ASSISTANT' : 'LAWYER';
+  const memberType: MemberType =
+    (user?.user_metadata?.member_type as MemberType) ||
+    (role === 'RECEPTIONIST' || role === 'ASSISTANT'
+      ? 'ASSISTANT'
+      : role === 'INTERN'
+      ? 'INTERN'
+      : 'LAWYER');
+
+  const userPerms = user?.user_metadata?.permissions as TeamPermissions | undefined;
   const permissions =
-    role === 'MANAGING_LAWYER'
+    userPerms ||
+    (role === 'MANAGING_LAWYER'
       ? ADMIN_PERMISSIONS
       : role === 'ASSOCIATE_LAWYER'
       ? LAWYER_PERMISSIONS
-      : RECEPTIONIST_PERMISSIONS;
+      : RECEPTIONIST_PERMISSIONS);
+
+  const mustChangePassword =
+    user?.user_metadata?.must_change_password === true;
 
   return {
     id: profile.id,
@@ -77,6 +89,7 @@ function mapProfileToTeamMember(profile: ProfileRow, user?: User | null): TeamMe
     memberType,
     isAdminLawyer: isAdmin,
     active: profile.is_active ?? true,
+    mustChangePassword,
     permissions,
     createdAt: profile.created_at || new Date().toISOString(),
     updatedAt: profile.updated_at || new Date().toISOString(),
@@ -84,6 +97,23 @@ function mapProfileToTeamMember(profile: ProfileRow, user?: User | null): TeamMe
 }
 
 function buildFallbackMember(user: User): TeamMember {
+  const role = (user.app_metadata?.role as string) || 'MANAGING_LAWYER';
+  const memberType: MemberType =
+    (user.user_metadata?.member_type as MemberType) ||
+    (role === 'RECEPTIONIST' || role === 'ASSISTANT'
+      ? 'ASSISTANT'
+      : role === 'INTERN'
+      ? 'INTERN'
+      : 'LAWYER');
+
+  const permissions =
+    (user.user_metadata?.permissions as TeamPermissions) ||
+    (role === 'MANAGING_LAWYER'
+      ? ADMIN_PERMISSIONS
+      : role === 'ASSOCIATE_LAWYER'
+      ? LAWYER_PERMISSIONS
+      : RECEPTIONIST_PERMISSIONS);
+
   return {
     id: user.id,
     tenantId:
@@ -97,10 +127,11 @@ function buildFallbackMember(user: User): TeamMember {
     phone: (user.user_metadata?.phone as string) || '',
     oabNumber: (user.user_metadata?.oab_number as string) || '',
     avatarUrl: (user.user_metadata?.avatar_url as string) || '',
-    memberType: 'LAWYER',
-    isAdminLawyer: true,
+    memberType,
+    isAdminLawyer: role === 'MANAGING_LAWYER',
     active: true,
-    permissions: ADMIN_PERMISSIONS,
+    mustChangePassword: user.user_metadata?.must_change_password === true,
+    permissions,
     createdAt: user.created_at,
     updatedAt: user.created_at,
   };

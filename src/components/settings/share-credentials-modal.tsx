@@ -20,6 +20,7 @@ interface ShareCredentialsModalProps {
   onClose: () => void;
   member: TeamMember | null;
   temporaryPassword: string;
+  officeName?: string;
 }
 
 export function ShareCredentialsModal({
@@ -27,6 +28,7 @@ export function ShareCredentialsModal({
   onClose,
   member,
   temporaryPassword,
+  officeName,
 }: ShareCredentialsModalProps) {
   const { t } = useI18n();
   const [copied, setCopied] = useState(false);
@@ -43,7 +45,8 @@ export function ShareCredentialsModal({
       ? 'Assistente de Atendimento'
       : 'Estagiário(a) de Direito';
 
-  const shareText = `🏛️ *PreviOffice - Alexandre Pontes Advocacia*
+  const firmName = officeName || 'Alexandre Pontes Advocacia';
+  const shareText = `🏛️ *PreviOffice - ${firmName}*
 Olá, ${member.fullName}! Seu acesso ao sistema do escritório foi criado com sucesso:
 
 🔗 *Link de Acesso:* ${loginUrl}

@@ -63,9 +63,9 @@ export default function DashboardLayout({
         router.push('/login');
       } else if (currentUser.mustChangePassword) {
         if (typeof window !== 'undefined') {
-          sessionStorage.removeItem(FIRST_ACCESS_EMAIL_KEY);
+          sessionStorage.setItem(FIRST_ACCESS_EMAIL_KEY, currentUser.email);
         }
-        router.push('/login');
+        router.push('/definir-senha');
       }
     }
   }, [isLoading, isAuthenticated, currentUser, router]);

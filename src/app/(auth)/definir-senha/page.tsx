@@ -20,15 +20,16 @@ import {
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { createClient } from '@/lib/supabase/client';
 import { settingsStore } from '@/lib/data/mock-settings';
-import type { TeamMember } from '@/types/settings';
+import type { MemberType, TeamMember } from '@/types/settings';
 
 const STORAGE_EMAIL_KEY = 'previoffice_first_access_email';
 
 export default function DefinirSenhaPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { switchUser } = useAuth();
+  const { switchUser, refreshUser } = useAuth();
 
   // State
   const [operatorEmail, setOperatorEmail] = useState<string>('');
@@ -43,31 +44,86 @@ export default function DefinirSenhaPage() {
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Initialize operator email safely from verified sessionStorage
+  // Initialize operator email safely from Supabase Auth & verified sessionStorage
   useEffect(() => {
-    let email = '';
-    if (typeof window !== 'undefined') {
-      email = sessionStorage.getItem(STORAGE_EMAIL_KEY) || '';
-    }
+    let isMounted = true;
+    const supabase = createClient();
 
-    // Security Gate: If no verified email was set during login, reject to /login
-    if (!email) {
-      router.push('/login');
-      return;
-    }
-
-    const member = settingsStore.findMemberByEmail(email);
-    // If operator not found or already completed definitive password, kick to /login
-    if (!member || !member.mustChangePassword) {
+    async function checkSession() {
+      let email = '';
       if (typeof window !== 'undefined') {
-        sessionStorage.removeItem(STORAGE_EMAIL_KEY);
+        email = sessionStorage.getItem(STORAGE_EMAIL_KEY) || '';
       }
-      router.push('/login');
-      return;
+
+      // 1. Check active Supabase Auth user
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user && !email) {
+        router.push('/login');
+        return;
+      }
+
+      const activeEmail = user?.email || email;
+      const mustChange = user?.user_metadata?.must_change_password ?? true;
+
+      if (!mustChange && !email) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem(STORAGE_EMAIL_KEY);
+        }
+        router.push('/');
+        return;
+      }
+
+      if (isMounted) {
+        setOperatorEmail(activeEmail);
+      }
+
+      // 2. Fetch profile from Supabase
+      if (user) {
+        const { data: profile } = await (supabase.from('profiles') as any)
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profile && isMounted) {
+          const role = profile.role;
+          const memberType: MemberType =
+            role === 'RECEPTIONIST' || role === 'ASSISTANT'
+              ? 'ASSISTANT'
+              : role === 'INTERN'
+              ? 'INTERN'
+              : 'LAWYER';
+
+          setOperatorMember({
+            id: profile.id,
+            tenantId: profile.tenant_id,
+            fullName: profile.full_name,
+            email: profile.email,
+            phone: profile.phone,
+            memberType,
+            oabNumber: profile.oab_number,
+            isAdminLawyer: role === 'MANAGING_LAWYER',
+            active: profile.is_active,
+            permissions: user.user_metadata?.permissions || {
+              receptionDesk: true,
+              clientsManage: true,
+              casesManage: true,
+              contractsAndFinancial: true,
+              templatesManage: true,
+              adminSettings: role === 'MANAGING_LAWYER',
+              securityAudit: role === 'MANAGING_LAWYER',
+            },
+            createdAt: profile.created_at,
+            updatedAt: profile.updated_at,
+          });
+        }
+      }
     }
 
-    setOperatorEmail(email);
-    setOperatorMember(member);
+    checkSession();
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   // Password Security Criteria Validation
@@ -143,45 +199,51 @@ export default function DefinirSenhaPage() {
       return;
     }
 
-    const targetEmail = operatorEmail.trim();
-    if (!targetEmail) {
-      router.push('/login');
-      return;
-    }
     setLoading(true);
+    const supabase = createClient();
 
     try {
-      // Complete in settings store with audit log
-      const updated = settingsStore.completeFirstAccessPassword(targetEmail);
-      if (!updated) {
-        setSubmitError(t.firstAccess.errorNotFound);
+      // 1. Update password in Supabase Auth and reset must_change_password flag
+      const { error: authUpdateError } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: {
+          must_change_password: false,
+        },
+      });
+
+      if (authUpdateError) {
+        setSubmitError(authUpdateError.message || t.firstAccess.errorGeneral);
         setLoading(false);
         return;
       }
 
-      // If operator member exists, switch active session to them
-      if (operatorMember) {
-        switchUser(operatorMember.id);
-      } else {
-        const found = settingsStore.findMemberByEmail(targetEmail);
-        if (found) {
-          switchUser(found.id);
-        }
+      // 2. Update last_login_at in public.profiles
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await (supabase.from('profiles') as any)
+          .update({
+            last_login_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
       }
 
-      // Clear pending session storage
+      // 3. Clear pending session storage
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem(STORAGE_EMAIL_KEY);
       }
+
+      // 4. Update memory cache and context
+      await refreshUser();
 
       setSuccess(true);
 
       // Smooth transition to dashboard
       setTimeout(() => {
-        router.push('/');
+        window.location.href = '/';
       }, 1200);
-    } catch {
-      setSubmitError(t.firstAccess.errorGeneral);
+    } catch (err: any) {
+      setSubmitError(err?.message || t.firstAccess.errorGeneral);
       setLoading(false);
     }
   };

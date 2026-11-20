@@ -43,7 +43,12 @@ export function TeamManagementTab() {
             tenantId: p.tenant_id,
             fullName: p.full_name,
             email: p.email,
-            memberType: p.role === 'RECEPTIONIST' ? 'ASSISTANT' : 'LAWYER',
+            memberType:
+              p.role === 'INTERN'
+                ? 'INTERN'
+                : p.role === 'ASSISTANT' || p.role === 'RECEPTIONIST'
+                ? 'ASSISTANT'
+                : 'LAWYER',
             isAdminLawyer: p.role === 'MANAGING_LAWYER',
             active: p.is_active ?? true,
             permissions: currentUser?.permissions || {
@@ -127,7 +132,7 @@ export function TeamManagementTab() {
     }
   };
 
-  const handleSaveMember = (
+  const handleSaveMember = async (
     memberData: Omit<TeamMember, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>
   ) => {
     const emailLower = memberData.email.trim().toLowerCase();
@@ -138,33 +143,28 @@ export function TeamManagementTab() {
         (m) => m.id !== editingMember.id && m.email.trim().toLowerCase() === emailLower
       );
       if (isDuplicate) {
-        setWarningMessage(
+        throw new Error(
           locale === 'pt-BR'
             ? `Já existe outro membro da equipe cadastrado com o e-mail "${emailLower}".`
             : `Another team member is already registered with email "${emailLower}".`
         );
-        setTimeout(() => setWarningMessage(null), 4000);
-        return;
       }
     } else {
       const isDuplicate = members.some(
         (m) => m.email.trim().toLowerCase() === emailLower
       );
       if (isDuplicate) {
-        setWarningMessage(
+        throw new Error(
           locale === 'pt-BR'
             ? `Já existe um membro da equipe cadastrado com o e-mail "${emailLower}".`
             : `A team member is already registered with email "${emailLower}".`
         );
-        setTimeout(() => setWarningMessage(null), 4000);
-        return;
       }
     }
 
-    let saved: TeamMember | null = null;
     if (editingMember) {
       const isPrimaryAdmin = editingMember.id === 'usr-001';
-      saved = settingsStore.updateTeamMember({
+      const updatedMember: TeamMember = {
         ...editingMember,
         ...memberData,
         email: emailLower,
@@ -172,21 +172,55 @@ export function TeamManagementTab() {
         permissions: isPrimaryAdmin
           ? { ...memberData.permissions, adminSettings: true }
           : memberData.permissions,
-      });
-      if (saved) {
-        setMembers((prev) => prev.map((m) => (m.id === saved!.id ? saved! : m)));
-      }
+        updatedAt: new Date().toISOString(),
+      };
+
+      const supabase = createClient();
+      await (supabase.from('profiles') as any)
+        .update({
+          full_name: updatedMember.fullName,
+          phone: updatedMember.phone || null,
+          oab_number: updatedMember.oabNumber || null,
+          is_active: updatedMember.active,
+          updated_at: updatedMember.updatedAt,
+        })
+        .eq('id', editingMember.id);
+
+      settingsStore.updateTeamMember(updatedMember);
+      setMembers((prev) => prev.map((m) => (m.id === updatedMember.id ? updatedMember : m)));
     } else {
-      saved = settingsStore.addTeamMember({
-        ...memberData,
-        email: emailLower,
+      // Real API call to provision user in Supabase Auth & public.profiles
+      const res = await fetch('/api/team/create-member', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: memberData.fullName,
+          email: emailLower,
+          phone: memberData.phone,
+          memberType: memberData.memberType,
+          oabNumber: memberData.oabNumber,
+          isAdminLawyer: memberData.isAdminLawyer,
+          active: memberData.active,
+          permissions: memberData.permissions,
+          temporaryPassword: memberData.temporaryPassword,
+          tenantId: currentUser?.tenantId || '00000000-0000-0000-0000-000000000001',
+        }),
       });
-      if (saved) {
-        setMembers((prev) => [...prev, saved!]);
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Falha ao cadastrar membro da equipe.');
       }
-      if (memberData.temporaryPassword && saved) {
+
+      const createdMember: TeamMember = json.data;
+      settingsStore.addTeamMember(createdMember);
+      setMembers((prev) => [...prev, createdMember]);
+
+      if (memberData.temporaryPassword) {
         setShareData({
-          member: saved,
+          member: createdMember,
           tempPassword: memberData.temporaryPassword,
         });
       }
@@ -476,6 +510,7 @@ export function TeamManagementTab() {
         onClose={() => setShareData(null)}
         member={shareData?.member || null}
         temporaryPassword={shareData?.tempPassword || ''}
+        officeName={settingsStore.getOfficeSettings()?.officeName || 'Alexandre Pontes Advocacia'}
       />
     </div>
   );

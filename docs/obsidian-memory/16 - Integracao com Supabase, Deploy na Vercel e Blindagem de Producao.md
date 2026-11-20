@@ -335,6 +335,51 @@ Para impedir corrupção cadastral, conflitos de login e contas duplicadas com s
 
 ---
 
+## 13. Cadastro Real de Equipe e Fluxo de Senha Provisória com Primeiro Acesso
+
+Para solucionar o bug de credenciais inválidas ao cadastrar novos advogados, assistentes ou estagiários na aba **"Configurações > Equipe"** (`/settings?tab=team`), foi implementada a infraestrutura completa de provisionamento real de colaboradores em Supabase Auth e PostgreSQL, eliminando mocks e garantindo a experiência de primeiro acesso com redefinição obrigatória de senha:
+
+### 13.1. Expansão de Cargos e Regras do Banco (`20261120000003_expand_profile_roles_and_team_support.sql`)
+1. **Constraint `profiles_role_check`**:
+   - Anteriormente restrita a apenas `MANAGING_LAWYER`, `ASSOCIATE_LAWYER` e `RECEPTIONIST`.
+   - Expandida e recriada para suportar a equipe jurídica completa:
+     ```sql
+     ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check
+     CHECK (role IN ('MANAGING_LAWYER', 'ASSOCIATE_LAWYER', 'RECEPTIONIST', 'ASSISTANT', 'INTERN'));
+     ```
+   - Aplicada localmente (`npx supabase migration up`) e sincronizada na nuvem Supabase (`npx supabase db push --remote`).
+
+### 13.2. Endpoint Seguro de Provisionamento de Colaborador (`/api/team/create-member`)
+1. **Proteção Anti-Abuso**: Rate limit restrito a 20 cadastros a cada 15 minutos por IP (`checkRateLimit`).
+2. **Unicidade e Pre-flight Check**: Verifica previamente na tabela `public.profiles` se o e-mail já existe. Se encontrado, recusa com HTTP 409 e mensagem indicando o colaborador já existente.
+3. **Resolução Dinâmica de Tenant**: Vincula automaticamente o colaborador ao `tenant_id` do escritório do administrador solicitante ou ao tenant primário da base.
+4. **Criação em Supabase Auth (`admin.createUser`)**:
+   - E-mail confirmado (`email_confirm: true`).
+   - Senha provisória gerada criptograficamente no formato seguro `Prev{símbolo}{4 dígitos}` (ex: `Prev#8392`).
+   - `user_metadata.must_change_password: true`.
+   - Mapeamento estrito de permissões granulares por cargo (`LAWYER`, `ASSISTANT`, `INTERN`).
+5. **Rollback Atômico**: Caso a inserção na tabela `public.profiles` encontre erro de constraint, o usuário recém-criado em Auth é automaticamente deletado (`admin.deleteUser`), impedindo usuários órfãos.
+
+### 13.3. Experiência de Primeiro Acesso e Troca Obrigatória de Senha
+1. **Detecção no Login (`/login`)**:
+   - Ao realizar login com a senha provisória, o sistema detecta `user.user_metadata?.must_change_password === true`.
+   - Armazena temporariamente o e-mail em `sessionStorage` e redireciona imediatamente para `/definir-senha` (Primeiro Acesso).
+2. **Proteção de Rota no Dashboard (`(dashboard)/layout.tsx`)**:
+   - Caso um usuário com `mustChangePassword === true` tente acessar diretamente qualquer rota do painel (`/`, `/clients`, `/cases`), o layout do dashboard intercepta a sessão e redireciona forçadamente para `/definir-senha`.
+3. **Tela de Primeiro Acesso Conectada ao Supabase (`/definir-senha`)**:
+   - Valida os requisitos de senha forte (mínimo 8 caracteres, maiúsculas, minúsculas, números e símbolos).
+   - Executa `supabase.auth.updateUser({ password: newPassword, data: { must_change_password: false } })`.
+   - Atualiza `last_login_at` na tabela `public.profiles`.
+   - Conclui o acesso e redireciona com sucesso para a tela inicial do sistema (`/`).
+
+### 13.4. Compartilhamento de Credenciais a Custo Zero (`ShareCredentialsModal`)
+- **Texto Pré-Formatado para WhatsApp**:
+  - Incorpora dinamicamente a razão social do escritório (`officeName`) e a URL real da aplicação (`window.location.origin/login`, cobrindo tanto `localhost:3000` em testes quanto o domínio oficial na Vercel).
+  - Inclui botão de cópia de um clique e link direto para abertura no WhatsApp Web.
+  - Custo operacional R$ 0,00 (dentro do free tier do Supabase de até 50.000 usuários ativos mensais).
+
+---
+
 ## Notas Relacionadas
 - [[00 - Planejamento Geral e Arquitetura da Versão Web]] — Visão geral da plataforma
 - [[11 - Arquitetura de Seguranca Cibernetica, Defesa Anti-Hacker e Protecao Anti-DDoS]] — Defesa cibernética e blindagem
