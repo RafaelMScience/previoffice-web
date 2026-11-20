@@ -66,8 +66,7 @@ export default function LoginPage() {
       }
 
       if (data.session) {
-        router.push('/');
-        router.refresh();
+        window.location.href = '/';
       }
     } catch (err: any) {
       setErrorMessage(err?.message || t.login.errorInvalidCredentials);
@@ -119,7 +118,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} action="#" method="POST" className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                 E-mail Profissional
