@@ -191,6 +191,24 @@ Ambos os repositórios remotos estão 100% sincronizados:
 
 ---
 
+## 8. Máscaras Dinâmicas e Formatação de Dados Brasileiros
+
+Para garantir usabilidade de alto nível no escritório de advocacia e eliminar erros de digitação, foi implementado um motor nativo e puro de máscaras reativas em `src/lib/utils/masks.ts` (sem bibliotecas externas pesadas, 100% compatível com React 19 e SSR):
+
+| Tipo de Dado | Padrão da Máscara | Comportamento Reativo | Telas Integradas |
+| :--- | :--- | :--- | :--- |
+| **CPF** | `000.000.000-00` | Máscara progressiva até 11 dígitos, cálculo reativo de validação de dígitos | Entrada Rápida 15s, Ficha Completa, Dossiê, Contratos, PDFs |
+| **CNPJ / CPF Híbrido** | `00.000.000/0001-00` | Aplica CPF até 11 dígitos e transmuta para CNPJ automaticamente ao passar de 11 dígitos | Provisionamento do Escritório (`/admin/provisioning`) |
+| **Celular / Telefone** | `(00) 90000-0000` / `(00) 0000-0000` | Identifica automaticamente telefones fixos (8 dígitos) e celulares modernos (9 dígitos) ajustando o hífen dinamicamente | Entrada Rápida, Ficha Completa, Provisionamento, Relatórios PDF |
+| **CEP** | `00000-000` | Insere hífen automaticamente no 5º dígito | Ficha Completa (Endereço) |
+| **Número do Benefício (NB)** | `000.000.000-0` | Formatação oficial do INSS com 10 dígitos | Ficha Completa (Dados Previdenciários) |
+
+### 8.1. Bateria de Testes Automatizada
+- Testes unitários puros com `node --test` e `node:assert/strict` em `src/lib/utils/masks.test.ts`.
+- 11 subtestes com 100% de aprovação e cobertura completa para entradas truncadas, incompletas, `null` ou `undefined`.
+
+---
+
 ## Notas Relacionadas
 - [[00 - Planejamento Geral e Arquitetura da Versão Web]] — Visão geral da plataforma
 - [[11 - Arquitetura de Seguranca Cibernetica, Defesa Anti-Hacker e Protecao Anti-DDoS]] — Defesa cibernética e blindagem
