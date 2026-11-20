@@ -64,7 +64,7 @@ function SettingsContent() {
               </div>
               <div className="text-sm font-bold text-[#C89543] flex items-center justify-center gap-1.5 mt-1">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>TLS 1.3 / RLS</span>
+                <span>Conexão Segura</span>
               </div>
             </div>
           </div>

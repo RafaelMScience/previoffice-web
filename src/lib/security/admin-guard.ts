@@ -46,7 +46,7 @@ export function verifyMasterKey(providedKey: string): boolean {
   }
 
   const configuredMasterKey =
-    process.env.MASTER_ADMIN_KEY || 'previoffice-master-2026-secret';
+    process.env.MASTER_ADMIN_KEY || 'po_adm_aLOMsQVEpXvRnbQZQZgnlKxJWrQaG6xg';
 
   // Normalize lengths to avoid timing leakage via length mismatch
   const providedBuffer = Buffer.from(providedKey);

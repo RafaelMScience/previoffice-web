@@ -105,7 +105,7 @@ export default function LoginPage() {
               Acesso ao Sistema
             </h1>
             <p className="text-xs text-slate-500 mt-2">
-              Autenticação Segura com Supabase Auth & Criptografia
+              Ambiente Restrito e Seguro
             </p>
           </div>
 
@@ -183,7 +183,7 @@ export default function LoginPage() {
           {/* Security Badge */}
           <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-[11px] text-slate-400">
             <ShieldCheck className="w-4 h-4 text-[#C89543]" />
-            <span>Sessão protegida por TLS 1.3 & JWT seguro</span>
+            <span>Sessão protegida</span>
           </div>
         </div>
       </main>
