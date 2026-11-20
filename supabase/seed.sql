@@ -1,0 +1,3 @@
+-- PreviOffice Local Development Seed Data
+-- This file runs automatically after `npx supabase db reset` or `npx supabase start`
+-- Add any local test offices, users or clients below if desired.
