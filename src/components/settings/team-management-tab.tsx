@@ -103,33 +103,58 @@ export function TeamManagementTab() {
     setIsModalOpen(true);
   };
 
-  const handleResetAndShare = (member: TeamMember) => {
-    const newTemp = generateRandomPassword();
+  const handleResetAndShare = async (member: TeamMember) => {
+    try {
+      const res = await fetch('/api/team/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId: member.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWarningMessage(data.error || 'Erro ao gerar nova senha provisória.');
+        setTimeout(() => setWarningMessage(null), 4000);
+        return;
+      }
 
-    const updated = settingsStore.resetMemberPassword(member.id, newTemp);
-    if (updated) {
-      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      const updated = { ...member, temporaryPassword: data.temporaryPassword, mustChangePassword: true };
+      settingsStore.updateTeamMember(updated);
+      setMembers((prev) => prev.map((m) => (m.id === member.id ? updated : m)));
       setShareData({
         member: updated,
-        tempPassword: newTemp,
+        tempPassword: data.temporaryPassword,
       });
+    } catch (err: any) {
+      setWarningMessage(err?.message || 'Erro ao conectar ao servidor para redefinir credencial.');
+      setTimeout(() => setWarningMessage(null), 4000);
     }
   };
 
-  const handleToggleActive = (id: string) => {
-    if (id === 'usr-001') {
-      setWarningMessage(
-        locale === 'pt-BR'
-          ? 'Não é permitido desativar o advogado administrador titular da banca.'
-          : 'Cannot deactivate the primary law firm administrator.'
-      );
-      setTimeout(() => setWarningMessage(null), 4000);
-      return;
+  const handleToggleActive = async (id: string) => {
+    const target = members.find((m) => m.id === id);
+    if (!target) return;
+
+    if (target.isAdminLawyer && target.active) {
+      const activeAdmins = members.filter((m) => m.isAdminLawyer && m.active);
+      if (activeAdmins.length <= 1) {
+        setWarningMessage(
+          locale === 'pt-BR'
+            ? 'Não é permitido desativar o único advogado administrador ativo da banca.'
+            : 'Cannot deactivate the only active administrator of the firm.'
+        );
+        setTimeout(() => setWarningMessage(null), 4000);
+        return;
+      }
     }
-    const updated = settingsStore.toggleMemberActive(id);
-    if (updated) {
-      setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, active: !m.active } : m)));
-    }
+
+    const newActive = !target.active;
+    const supabase = createClient();
+    await (supabase.from('profiles') as any)
+      .update({ is_active: newActive, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    settingsStore.toggleMemberActive(id);
+    setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, active: newActive } : m)));
   };
 
   const handleSaveMember = async (

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { checkRateLimit } from '@/lib/security/admin-guard';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClientServer } from '@/lib/supabase/server';
+import { mapMemberTypeToDbRole, validateTeamMemberInput } from '@/lib/auth/team-utils';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
 
 export async function POST(request: NextRequest) {
@@ -19,6 +21,50 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const adminClient = createAdminClient();
+
+    // 2. Caller Authentication: check session via cookies or Bearer token
+    let callerUser: any = null;
+    try {
+      const serverClient = await createClientServer();
+      const { data } = await serverClient.auth.getUser();
+      callerUser = data?.user || null;
+    } catch {
+      // Ignored if called without cookie context
+    }
+
+    if (!callerUser) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data } = await adminClient.auth.getUser(token);
+        callerUser = data?.user || null;
+      }
+    }
+
+    if (!callerUser) {
+      return NextResponse.json(
+        { error: 'Não autenticado. Faça login para gerenciar a equipe.' },
+        { status: 401 }
+      );
+    }
+
+    // 3. Caller Authorization: verify MANAGING_LAWYER
+    const { data: callerProfile } = await adminClient
+      .from('profiles')
+      .select('tenant_id, role')
+      .eq('id', callerUser.id)
+      .maybeSingle();
+
+    if (!callerProfile || callerProfile.role !== 'MANAGING_LAWYER') {
+      return NextResponse.json(
+        { error: 'Acesso negado. Apenas o sócio administrador pode cadastrar colaboradores.' },
+        { status: 403 }
+      );
+    }
+
+    const effectiveTenantId = callerProfile.tenant_id;
+
     const body = await request.json();
     const {
       fullName,
@@ -30,7 +76,6 @@ export async function POST(request: NextRequest) {
       active = true,
       permissions,
       temporaryPassword,
-      tenantId,
     }: {
       fullName: string;
       email: string;
@@ -41,43 +86,17 @@ export async function POST(request: NextRequest) {
       active?: boolean;
       permissions: TeamPermissions;
       temporaryPassword: string;
-      tenantId?: string;
     } = body;
 
-    // 2. Input Validation
-    if (!fullName || !email || !temporaryPassword) {
-      return NextResponse.json(
-        { error: 'Campos obrigatórios ausentes (nome, e-mail ou senha provisória).' },
-        { status: 400 }
-      );
+    // 4. Input Validation
+    const validation = validateTeamMemberInput({ fullName, email, temporaryPassword });
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const adminClient = createAdminClient();
 
-    // Resolve Tenant ID: use provided or fallback to the registered tenant
-    let effectiveTenantId = tenantId;
-    if (!effectiveTenantId || effectiveTenantId === '00000000-0000-0000-0000-000000000001') {
-      const { data: firstTenant } = await adminClient
-        .from('tenants')
-        .select('id')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (firstTenant?.id) {
-        effectiveTenantId = firstTenant.id;
-      }
-    }
-
-    if (!effectiveTenantId) {
-      return NextResponse.json(
-        { error: 'Nenhum escritório (tenant) cadastrado no sistema para vincular o colaborador.' },
-        { status: 400 }
-      );
-    }
-
-    // 3. Pre-flight check: Unique email in profiles
+    // 5. Pre-flight check: Unique email in profiles
     const { data: existingProfile } = await adminClient
       .from('profiles')
       .select('id, email, full_name')
@@ -93,17 +112,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Map Role to DB Constraint
-    let mappedRole: 'MANAGING_LAWYER' | 'ASSOCIATE_LAWYER' | 'ASSISTANT' | 'INTERN' = 'ASSOCIATE_LAWYER';
-    if (memberType === 'LAWYER') {
-      mappedRole = isAdminLawyer ? 'MANAGING_LAWYER' : 'ASSOCIATE_LAWYER';
-    } else if (memberType === 'ASSISTANT') {
-      mappedRole = 'ASSISTANT';
-    } else if (memberType === 'INTERN') {
-      mappedRole = 'INTERN';
-    }
+    // 6. Map Role to DB Constraint
+    const mappedRole = mapMemberTypeToDbRole(memberType, isAdminLawyer);
 
-    // 5. Create User in Supabase Auth with Temporary Password
+    // 7. Create User in Supabase Auth with Temporary Password
     const { data: authData, error: authError } =
       await adminClient.auth.admin.createUser({
         email: cleanEmail,
@@ -139,7 +151,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Create Profile in public.profiles
+    // 8. Create Profile in public.profiles
     const { data: profileData, error: profileError } = await adminClient
       .from('profiles')
       .insert({

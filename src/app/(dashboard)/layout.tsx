@@ -59,13 +59,15 @@ export default function DashboardLayout({
   // Security gate: If not authenticated or operator must change password, expel directly to /login
   useEffect(() => {
     if (!isLoading) {
-      if (!isAuthenticated || !currentUser) {
+      if (!currentUser) {
         router.push('/login');
       } else if (currentUser.mustChangePassword) {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem(FIRST_ACCESS_EMAIL_KEY, currentUser.email);
         }
         router.push('/definir-senha');
+      } else if (!isAuthenticated) {
+        router.push('/login');
       }
     }
   }, [isLoading, isAuthenticated, currentUser, router]);

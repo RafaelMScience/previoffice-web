@@ -32,10 +32,13 @@ export default function LoginPage() {
 
   // If already authenticated, redirect to dashboard or definir-senha
   useEffect(() => {
-    if (isAuthenticated && currentUser) {
+    if (currentUser) {
       if (currentUser.mustChangePassword) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('previoffice_first_access_email', currentUser.email);
+        }
         router.push('/definir-senha');
-      } else {
+      } else if (isAuthenticated) {
         router.push('/');
       }
     }

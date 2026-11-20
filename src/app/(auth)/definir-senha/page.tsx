@@ -58,15 +58,15 @@ export default function DefinirSenhaPage() {
       // 1. Check active Supabase Auth user
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user && !email) {
+      if (!user) {
         router.push('/login');
         return;
       }
 
-      const activeEmail = user?.email || email;
-      const mustChange = user?.user_metadata?.must_change_password ?? true;
+      const activeEmail = user.email || email;
+      const mustChange = user.user_metadata?.must_change_password === true;
 
-      if (!mustChange && !email) {
+      if (!mustChange) {
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem(STORAGE_EMAIL_KEY);
         }

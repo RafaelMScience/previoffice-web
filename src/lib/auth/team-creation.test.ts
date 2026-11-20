@@ -1,67 +1,46 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { generateRandomPassword } from './password-generator.ts';
+import { mapMemberTypeToDbRole, validateTeamMemberInput } from './team-utils.ts';
 
 describe('Team Creation & First Access Credentials', () => {
-  it('generateRandomPassword should generate valid temporary password format', () => {
+  it('generateRandomPassword should generate high-entropy secure temporary password', () => {
     const password = generateRandomPassword();
-    assert.ok(password.startsWith('Prev'), `Expected password to start with Prev, got ${password}`);
-    assert.strictEqual(password.length, 9, `Expected length 9, got ${password.length}`);
-    const validSymbols = ['#', '@', '$', '!'];
-    const symbolChar = password.charAt(4);
-    assert.ok(validSymbols.includes(symbolChar), `Expected valid symbol at index 4, got ${symbolChar}`);
-    const numPart = password.slice(5);
-    assert.match(numPart, /^[2-9]{4}$/, 'Expected 4 digits from 2-9');
+    assert.ok(password.startsWith('Prev#'), `Expected password to start with Prev#, got ${password}`);
+    assert.ok(password.length >= 12, `Expected length >= 12, got ${password.length}`);
+
+    const randomPortion = password.substring(5);
+    // Must contain uppercase, lowercase, number, and special character
+    assert.match(randomPortion, /[A-Z]/, 'Must contain at least one uppercase letter');
+    assert.match(randomPortion, /[a-z]/, 'Must contain at least one lowercase letter');
+    assert.match(randomPortion, /[0-9]/, 'Must contain at least one digit');
+    assert.match(randomPortion, /[!@#$%&*]/, 'Must contain at least one special symbol');
   });
 
-  it('correctly maps MemberType and isAdminLawyer to DB role constraints', () => {
-    function mapRole(memberType: string, isAdminLawyer?: boolean): string {
-      if (memberType === 'LAWYER') {
-        return isAdminLawyer ? 'MANAGING_LAWYER' : 'ASSOCIATE_LAWYER';
-      } else if (memberType === 'ASSISTANT') {
-        return 'ASSISTANT';
-      } else if (memberType === 'INTERN') {
-        return 'INTERN';
-      }
-      return 'ASSOCIATE_LAWYER';
-    }
-
-    assert.strictEqual(mapRole('LAWYER', true), 'MANAGING_LAWYER');
-    assert.strictEqual(mapRole('LAWYER', false), 'ASSOCIATE_LAWYER');
-    assert.strictEqual(mapRole('ASSISTANT'), 'ASSISTANT');
-    assert.strictEqual(mapRole('INTERN'), 'INTERN');
+  it('correctly maps MemberType and isAdminLawyer to DB role constraints using team-utils', () => {
+    assert.strictEqual(mapMemberTypeToDbRole('LAWYER', true), 'MANAGING_LAWYER');
+    assert.strictEqual(mapMemberTypeToDbRole('LAWYER', false), 'ASSOCIATE_LAWYER');
+    assert.strictEqual(mapMemberTypeToDbRole('ASSISTANT', false), 'ASSISTANT');
+    assert.strictEqual(mapMemberTypeToDbRole('INTERN', false), 'INTERN');
   });
 
-  it('validates mandatory fields for creating team member', () => {
-    function validateMemberInput(input: {
-      fullName?: string;
-      email?: string;
-      temporaryPassword?: string;
-    }): { valid: boolean; error?: string } {
-      if (!input.fullName || !input.fullName.trim()) {
-        return { valid: false, error: 'Nome é obrigatório' };
-      }
-      if (!input.email || !input.email.trim() || !input.email.includes('@')) {
-        return { valid: false, error: 'E-mail válido é obrigatório' };
-      }
-      if (!input.temporaryPassword || input.temporaryPassword.length < 6) {
-        return { valid: false, error: 'Senha provisória de no mínimo 6 caracteres é obrigatória' };
-      }
-      return { valid: true };
-    }
-
-    assert.strictEqual(validateMemberInput({}).valid, false);
-    assert.strictEqual(validateMemberInput({ fullName: 'Dr. Teste' }).valid, false);
-    assert.strictEqual(validateMemberInput({ fullName: 'Dr. Teste', email: 'invalido' }).valid, false);
+  it('validates mandatory fields for creating team member using team-utils', () => {
+    assert.strictEqual(validateTeamMemberInput({}).valid, false);
+    assert.strictEqual(validateTeamMemberInput({ fullName: 'Dr. Teste' }).valid, false);
+    assert.strictEqual(validateTeamMemberInput({ fullName: 'Dr. Teste', email: 'invalido' }).valid, false);
     assert.strictEqual(
-      validateMemberInput({ fullName: 'Dr. Teste', email: 'teste@previoffice.adv.br', temporaryPassword: '123' }).valid,
+      validateTeamMemberInput({
+        fullName: 'Dr. Teste',
+        email: 'teste@previoffice.adv.br',
+        temporaryPassword: '123',
+      }).valid,
       false
     );
     assert.strictEqual(
-      validateMemberInput({
+      validateTeamMemberInput({
         fullName: 'Dr. Teste',
         email: 'teste@previoffice.adv.br',
-        temporaryPassword: 'Prev#1234',
+        temporaryPassword: 'Prev#Forte@2026',
       }).valid,
       true
     );

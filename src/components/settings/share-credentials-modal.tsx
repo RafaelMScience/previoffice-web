@@ -62,8 +62,9 @@ Olá, ${member.fullName}! Seu acesso ao sistema do escritório foi criado com su
   };
 
   const cleanPhone = (member.phone || '').replace(/\D/g, '');
+  const ddiPhone = cleanPhone.startsWith('55') && cleanPhone.length > 11 ? cleanPhone : `55${cleanPhone}`;
   const whatsappUrl = cleanPhone
-    ? `https://api.whatsapp.com/send?phone=55${cleanPhone}&text=${encodeURIComponent(shareText)}`
+    ? `https://api.whatsapp.com/send?phone=${ddiPhone}&text=${encodeURIComponent(shareText)}`
     : `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
   return (
