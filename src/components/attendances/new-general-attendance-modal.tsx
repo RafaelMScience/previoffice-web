@@ -17,6 +17,7 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { MOCK_CLIENTS_MAP, type AttendanceWithClient } from '@/lib/data/mock-clients';
 import type { AttendanceType, PendingPhysicalDocument } from '@/types/attendance';
+import { maskCpf, maskPhone } from '@/lib/utils/masks';
 
 interface NewGeneralAttendanceModalProps {
   isOpen: boolean;
@@ -96,8 +97,8 @@ export function NewGeneralAttendanceModal({
       tenantId: 'tenant-default',
       clientId: selectedClientId,
       clientName: client?.fullName || 'Cliente do Escritório',
-      clientCpf: client?.cpf || '000.000.000-00',
-      clientPhone: client?.mobilePhone || client?.phone,
+      clientCpf: client?.cpf ? maskCpf(client.cpf) : '000.000.000-00',
+      clientPhone: client?.mobilePhone || client?.phone ? maskPhone(client.mobilePhone || client.phone) : undefined,
       clientBenefitType: client?.benefitType,
       attendanceType,
       attendedAt: new Date().toISOString(),
@@ -155,7 +156,7 @@ export function NewGeneralAttendanceModal({
             >
               {clientOptions.map((opt) => (
                 <option key={opt.client.id} value={opt.client.id}>
-                  {opt.client.fullName} — CPF: {opt.client.cpf} ({opt.client.benefitType})
+                  {opt.client.fullName} — CPF: {opt.client.cpf ? maskCpf(opt.client.cpf) : 'Não informado'} ({opt.client.benefitType})
                 </option>
               ))}
             </select>

@@ -20,6 +20,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
+import { maskCpf, maskPhone, maskCep, maskBenefitNumber } from '@/lib/utils/masks';
 import { calculateAge, checkRuralRetirementAge } from '@/lib/domain/benefit-rules';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -45,7 +46,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
 
   // Form state
   const [fullName, setFullName] = useState(initialData?.fullName || '');
-  const [cpf, setCpf] = useState(initialData?.cpf || '');
+  const [cpf, setCpf] = useState(initialData?.cpf ? maskCpf(initialData.cpf) : '');
   const [rg, setRg] = useState(initialData?.rg || '');
   const [birthDate, setBirthDate] = useState(initialData?.birthDate || '');
   const [gender, setGender] = useState<'M' | 'F' | 'OTHER'>('F');
@@ -55,7 +56,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   const [profession, setProfession] = useState(initialData?.profession || '');
 
   // Address
-  const [postalCode, setPostalCode] = useState(initialData?.postalCode || '');
+  const [postalCode, setPostalCode] = useState(initialData?.postalCode ? maskCep(initialData.postalCode) : '');
   const [street, setStreet] = useState(initialData?.street || '');
   const [streetNumber, setStreetNumber] = useState(initialData?.streetNumber || '');
   const [complement, setComplement] = useState(initialData?.complement || '');
@@ -64,12 +65,12 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   const [state, setState] = useState(initialData?.state || 'PB');
 
   // Contact
-  const [mobilePhone, setMobilePhone] = useState(initialData?.mobilePhone || '');
-  const [phone, setPhone] = useState(initialData?.phone || '');
+  const [mobilePhone, setMobilePhone] = useState(initialData?.mobilePhone ? maskPhone(initialData.mobilePhone) : '');
+  const [phone, setPhone] = useState(initialData?.phone ? maskPhone(initialData.phone) : '');
   const [email, setEmail] = useState(initialData?.email || '');
 
   // Social Security Credentials
-  const [benefitNumber, setBenefitNumber] = useState(initialData?.benefitNumber || '');
+  const [benefitNumber, setBenefitNumber] = useState(initialData?.benefitNumber ? maskBenefitNumber(initialData.benefitNumber) : '');
   const [inssPassword, setInssPassword] = useState(initialData?.inssPassword || '');
   const [showInssPassword, setShowInssPassword] = useState(false);
   const [isCopiedInss, setIsCopiedInss] = useState(false);
@@ -141,7 +142,8 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   // Derived computations
   const ageCalc = birthDate ? calculateAge(birthDate) : null;
   const age = ageCalc ? ageCalc.years : null;
-  const cpfValid = cpf && cpf.length === 11 ? isValidCpf(cpf) : null;
+  const cleanCpf = cpf.replace(/\D/g, '');
+  const cpfValid = cleanCpf.length === 11 ? isValidCpf(cleanCpf) : null;
 
   const isLoasElderlyAge = age !== null && age >= 65;
   const genderEnum = gender === 'M' ? 'MALE' : gender === 'F' ? 'FEMALE' : null;
@@ -369,9 +371,9 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                   type="text"
                   maxLength={14}
                   value={cpf}
-                  onChange={(e) => setCpf(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setCpf(maskCpf(e.target.value))}
                   placeholder={t.clientForm.cpfPlaceholder}
-                  className={`w-full px-3.5 py-2 text-sm bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 text-slate-900 ${
+                  className={`w-full px-3.5 py-2 text-sm bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 text-slate-900 font-mono ${
                     cpfValid === false
                       ? 'border-red-400 focus:ring-red-500'
                       : 'border-slate-200 focus:ring-[#C89543] focus:bg-white'
@@ -479,10 +481,11 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                 <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.zipCodeLabel}</label>
                 <input
                   type="text"
+                  maxLength={9}
                   value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
+                  onChange={(e) => setPostalCode(maskCep(e.target.value))}
                   placeholder="58000-000"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono"
                 />
               </div>
 
@@ -569,10 +572,11 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                 <input
                   type="text"
                   required
+                  maxLength={15}
                   value={mobilePhone}
-                  onChange={(e) => setMobilePhone(e.target.value)}
+                  onChange={(e) => setMobilePhone(maskPhone(e.target.value))}
                   placeholder="(83) 98888-0000"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono"
                 />
               </div>
 
@@ -582,10 +586,11 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                 </label>
                 <input
                   type="text"
+                  maxLength={15}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(maskPhone(e.target.value))}
                   placeholder="(83) 99999-1111"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono"
                 />
               </div>
 
@@ -614,10 +619,11 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                 <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.benefitNumberLabel}</label>
                 <input
                   type="text"
+                  maxLength={13}
                   value={benefitNumber}
-                  onChange={(e) => setBenefitNumber(e.target.value)}
+                  onChange={(e) => setBenefitNumber(maskBenefitNumber(e.target.value))}
                   placeholder="123.456.789-0"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono"
                 />
               </div>
 

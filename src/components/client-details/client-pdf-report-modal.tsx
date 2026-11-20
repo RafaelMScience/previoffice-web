@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
+import { maskPhone } from '@/lib/utils/masks';
 import type { Client, MaritalStatus } from '@/types/client';
 import type { Attendance, AttendanceType } from '@/types/attendance';
 
@@ -687,14 +688,14 @@ export function ClientPdfReportModal({
                   <div className="space-y-0.5 text-xs">
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
                       <span className="text-slate-500 shrink-0">Celular / WhatsApp:</span>
-                      <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                        {client.mobilePhone || 'Não informado'}
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2 font-mono">
+                        {client.mobilePhone ? maskPhone(client.mobilePhone) : 'Não informado'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
                       <span className="text-slate-500 shrink-0">Telefone Fixo / Recado:</span>
-                      <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                        {client.phone || 'Não informado'}
+                      <span className="font-medium text-[#16324F] text-right truncate pl-2 font-mono">
+                        {client.phone ? maskPhone(client.phone) : 'Não informado'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5">

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+import { maskCpfCnpj, maskPhone } from '@/lib/utils/masks';
 
 export default function AdminProvisioningPage() {
   const { t } = useI18n();
@@ -316,10 +317,11 @@ export default function AdminProvisioningPage() {
                     </label>
                     <input
                       type="text"
+                      maxLength={18}
                       value={taxId}
-                      onChange={(e) => setTaxId(e.target.value)}
+                      onChange={(e) => setTaxId(maskCpfCnpj(e.target.value))}
                       placeholder="00.000.000/0001-00"
-                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
+                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
                     />
                   </div>
 
@@ -358,10 +360,11 @@ export default function AdminProvisioningPage() {
                     <input
                       type="text"
                       required
+                      maxLength={15}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => setPhone(maskPhone(e.target.value))}
                       placeholder="(83) 98888-0000"
-                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
+                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
                     />
                   </div>
 

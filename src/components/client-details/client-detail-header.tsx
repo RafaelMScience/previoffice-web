@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
+import { maskPhone, maskCpf } from '@/lib/utils/masks';
 import type { Client, ClientStatus } from '@/types/client';
 import type { CaseUpdate } from '@/types/case-update';
 
@@ -343,7 +344,7 @@ export function ClientDetailHeader({
             <div className="flex items-center gap-4 text-xs text-slate-600 flex-wrap">
               {client.cpf && (
                 <span>
-                  <strong>CPF:</strong> {client.cpf}
+                  <strong>CPF:</strong> {maskCpf(client.cpf)}
                 </span>
               )}
               {client.rg && (
@@ -359,7 +360,7 @@ export function ClientDetailHeader({
               {(client.mobilePhone || client.phone) && (
                 <span className="flex items-center gap-1 font-medium text-slate-700">
                   <Phone className="w-3.5 h-3.5 text-slate-400" />
-                  {client.mobilePhone || client.phone}
+                  {maskPhone(client.mobilePhone || client.phone)}
                 </span>
               )}
             </div>

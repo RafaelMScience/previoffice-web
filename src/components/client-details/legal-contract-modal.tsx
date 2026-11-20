@@ -21,6 +21,7 @@ import type { Client } from '@/types/client';
 import type { ContractTemplate } from '@/types/contract';
 import { contractsStore } from '@/lib/data/mock-contracts';
 import { mergeTemplatePlaceholders } from '@/lib/utils/template-engine';
+import { maskCpf, maskPhone } from '@/lib/utils/masks';
 
 interface LegalContractModalProps {
   client: Client;
@@ -114,7 +115,7 @@ export function LegalContractModal({
     if (selectedTemplate && !isEditingCustomBody) {
       const merged = mergeTemplatePlaceholders(selectedTemplate.contentBody, {
         clientName: client.fullName,
-        clientCpf: client.cpf || '___.___.___-__',
+        clientCpf: client.cpf ? maskCpf(client.cpf) : '___.___.___-__',
         clientRg: client.rg || 'Não informado',
         clientMaritalStatus:
           client.maritalStatus === 'MARRIED'
@@ -274,8 +275,8 @@ export function LegalContractModal({
       tenantId: 'tenant-001',
       clientId: client.id,
       clientName: client.fullName,
-      clientCpf: client.cpf || 'Não informado',
-      clientPhone: client.phone,
+      clientCpf: client.cpf ? maskCpf(client.cpf) : 'Não informado',
+      clientPhone: client.mobilePhone || client.phone ? maskPhone(client.mobilePhone || client.phone) : undefined,
       contractNumber,
       templateId: selectedTemplate?.id,
       templateTitle: selectedTemplate?.title,
@@ -328,7 +329,7 @@ export function LegalContractModal({
             {client.fullName}
           </h2>
           <p className="text-xs text-slate-300 mt-0.5">
-            CPF: {client.cpf} • {client.benefitType || 'Benefício Previdenciário'} • Pasta: {cabinetLocation}
+            CPF: {maskCpf(client.cpf)} • {client.benefitType || 'Benefício Previdenciário'} • Pasta: {cabinetLocation}
           </p>
 
           {/* Configuration Controls Strip */}
@@ -497,7 +498,7 @@ export function LegalContractModal({
                   <div className="grid grid-cols-2 gap-8 text-center pt-2">
                     <div className="border-t border-slate-800 pt-1.5">
                       <strong className="block text-slate-900">{client.fullName}</strong>
-                      <span className="text-[11px] text-slate-500 font-mono">CONTRATANTE • CPF: {client.cpf}</span>
+                      <span className="text-[11px] text-slate-500 font-mono">CONTRATANTE • CPF: {maskCpf(client.cpf)}</span>
                     </div>
 
                     <div className="border-t border-slate-800 pt-1.5">
@@ -540,7 +541,7 @@ export function LegalContractModal({
 
                 <div className="space-y-3 text-xs leading-relaxed text-slate-800">
                   <p>
-                    <strong>OUTORGANTE:</strong> <strong>{client.fullName}</strong>, brasileiro(a), inscrito(a) no Cadastro de Pessoas Físicas (CPF/MF) sob o nº <span className="font-mono font-bold">{client.cpf}</span>, RG nº {client.rg || 'Não informado'}, residente e domiciliado(a) em {fullAddress || 'Domicílio nesta comarca'}.
+                    <strong>OUTORGANTE:</strong> <strong>{client.fullName}</strong>, brasileiro(a), inscrito(a) no Cadastro de Pessoas Físicas (CPF/MF) sob o nº <span className="font-mono font-bold">{maskCpf(client.cpf)}</span>, RG nº {client.rg || 'Não informado'}, residente e domiciliado(a) em {fullAddress || 'Domicílio nesta comarca'}.
                   </p>
 
                   <p>
@@ -583,7 +584,7 @@ export function LegalContractModal({
 
                   <div className="max-w-xs mx-auto border-t border-slate-800 pt-2 text-center">
                     <strong className="block text-slate-900">{client.fullName}</strong>
-                    <span className="text-[11px] text-slate-500 font-mono">OUTORGANTE • CPF: {client.cpf}</span>
+                    <span className="text-[11px] text-slate-500 font-mono">OUTORGANTE • CPF: {maskCpf(client.cpf)}</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-8 text-left text-[11px] pt-4">
@@ -650,7 +651,7 @@ export function LegalContractModal({
                       </tr>
                       <tr className="border-b border-slate-200">
                         <td className="py-1.5 text-slate-500 font-medium">CPF do Segurado:</td>
-                        <td className="py-1.5 font-mono font-bold text-slate-900">{client.cpf}</td>
+                        <td className="py-1.5 font-mono font-bold text-slate-900">{maskCpf(client.cpf)}</td>
                       </tr>
                       <tr className="border-b border-slate-200">
                         <td className="py-1.5 text-slate-500 font-medium">Espécie / Objeto:</td>

@@ -16,6 +16,7 @@ import {
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
+import { maskCpf, maskPhone } from '@/lib/utils/masks';
 import { settingsStore } from '@/lib/data/mock-settings';
 
 export interface FastIntakeData {
@@ -195,10 +196,11 @@ export function FastIntakeModal({
               <input
                 type="text"
                 required
+                maxLength={15}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(maskPhone(e.target.value))}
                 placeholder={t.fastIntake.phonePlaceholder}
-                className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 transition-all"
+                className="w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 transition-all font-mono"
               />
             </div>
           </div>
@@ -219,7 +221,7 @@ export function FastIntakeModal({
                 type="text"
                 maxLength={14}
                 value={cpf}
-                onChange={(e) => setCpf(e.target.value)}
+                onChange={(e) => setCpf(maskCpf(e.target.value))}
                 placeholder={t.fastIntake.cpfPlaceholder}
                 className={`w-full pl-9 pr-3.5 py-2 text-sm bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 text-slate-900 transition-all font-mono ${
                   !cpfValid
