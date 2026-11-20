@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Lock,
@@ -22,7 +22,7 @@ const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { switchUser } = useAuth();
+  const { currentUser, isAuthenticated, switchUser } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +30,13 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // If already authenticated and not pending password change, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated && currentUser && !currentUser.mustChangePassword) {
+      router.push('/');
+    }
+  }, [isAuthenticated, currentUser, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

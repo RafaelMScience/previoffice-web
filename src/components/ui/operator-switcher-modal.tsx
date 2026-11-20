@@ -75,7 +75,7 @@ export function OperatorSwitcherModal({
 
         <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
           {availableUsers.map((member) => {
-            const isCurrent = member.id === currentUser.id;
+            const isCurrent = member.id === currentUser?.id;
             return (
               <button
                 key={member.id}

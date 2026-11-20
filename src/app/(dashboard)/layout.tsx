@@ -18,7 +18,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { t } = useI18n();
-  const { currentUser, canAccess, logout } = useAuth();
+  const { currentUser, isAuthenticated, isLoading, canAccess, logout } = useAuth();
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
 
@@ -27,19 +27,28 @@ export default function DashboardLayout({
     router.push('/login');
   };
 
-  // Security gate: If operator attempts to bypass without completing first-access, expel directly to /login
+  // Security gate: If not authenticated or operator must change password, expel directly to /login
   useEffect(() => {
-    if (currentUser?.mustChangePassword) {
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem(FIRST_ACCESS_EMAIL_KEY);
+    if (!isLoading) {
+      if (!isAuthenticated || !currentUser) {
+        router.push('/login');
+      } else if (currentUser.mustChangePassword) {
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem(FIRST_ACCESS_EMAIL_KEY);
+        }
+        router.push('/login');
       }
-      router.push('/login');
     }
-  }, [currentUser, router]);
+  }, [isLoading, isAuthenticated, currentUser, router]);
 
-  // Block rendering while redirecting if operator must change password
-  if (currentUser?.mustChangePassword) {
-    return null;
+  // Block rendering until authenticated
+  if (isLoading || !isAuthenticated || !currentUser || currentUser.mustChangePassword) {
+    return (
+      <div className="min-h-screen bg-[#0B192E] flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-[#C89543] border-t-transparent rounded-full animate-spin" />
+        <span className="text-xs text-slate-400 font-medium tracking-wide">Validando sessão segura...</span>
+      </div>
+    );
   }
 
   const isClients = pathname === '/' || pathname.startsWith('/clientes');

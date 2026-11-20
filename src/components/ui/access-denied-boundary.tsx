@@ -44,14 +44,14 @@ export function AccessDeniedBoundary({
         <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs space-y-2 max-w-md mx-auto">
           <div className="flex justify-between">
             <span className="text-slate-500">Colaborador Conectado:</span>
-            <span className="font-bold text-slate-900">{currentUser.fullName}</span>
+            <span className="font-bold text-slate-900">{currentUser?.fullName || 'Operador'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">Classificação / Cargo:</span>
             <span className="font-medium text-slate-700">
-              {currentUser.memberType === 'LAWYER'
+              {currentUser?.memberType === 'LAWYER'
                 ? 'Advogado'
-                : currentUser.memberType === 'ASSISTANT'
+                : currentUser?.memberType === 'ASSISTANT'
                 ? 'Assistente de Atendimento'
                 : 'Estagiário de Direito'}
             </span>

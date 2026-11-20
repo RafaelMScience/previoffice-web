@@ -6,8 +6,10 @@ import { securityStore } from '@/lib/data/mock-security';
 import type { TeamMember, TeamPermissions } from '@/types/settings';
 
 interface AuthContextType {
-  currentUser: TeamMember;
-  permissions: TeamPermissions;
+  currentUser: TeamMember | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  permissions: TeamPermissions | null;
   isAdmin: boolean;
   switchUser: (id: string) => void;
   logout: () => void;
@@ -21,14 +23,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(() => settingsStore.getTeamMembers());
-  const [currentUserId, setCurrentUserId] = useState<string>('usr-001');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Read saved user or default to Dr. Alexandre Pontes
+    // Read saved user from localStorage
     const saved = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     if (saved && teamMembers.some((m) => m.id === saved)) {
       setCurrentUserId(saved);
+    } else {
+      setCurrentUserId(null);
     }
+    setIsLoading(false);
   }, [teamMembers]);
 
   const switchUser = (id: string) => {
@@ -41,7 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    const userLoggingOut = teamMembers.find((m) => m.id === currentUserId) || teamMembers[0];
+    const userLoggingOut = currentUserId
+      ? teamMembers.find((m) => m.id === currentUserId) || teamMembers[0]
+      : teamMembers[0];
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
       sessionStorage.clear();
@@ -57,14 +65,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser',
       severity: 'INFO',
     });
-    setCurrentUserId('usr-001');
+    setCurrentUserId(null);
   };
 
-  const currentUser = teamMembers.find((m) => m.id === currentUserId) || teamMembers[0];
-  const permissions = currentUser.permissions;
-  const isAdmin = Boolean(currentUser.isAdminLawyer || currentUser.permissions.adminSettings);
+  const currentUser = currentUserId ? teamMembers.find((m) => m.id === currentUserId) || null : null;
+  const isAuthenticated = Boolean(currentUser && !currentUser.mustChangePassword);
+  const permissions = currentUser?.permissions || null;
+  const isAdmin = Boolean(currentUser?.isAdminLawyer || permissions?.adminSettings);
 
   const canAccess = (permission: keyof TeamPermissions): boolean => {
+    if (!currentUser || !permissions) return false;
     if (isAdmin) return true;
     return Boolean(permissions[permission]);
   };
@@ -73,6 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         currentUser,
+        isAuthenticated,
+        isLoading,
         permissions,
         isAdmin,
         switchUser,
