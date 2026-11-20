@@ -17,6 +17,7 @@ import {
   Copy,
   Check,
   ShieldCheck,
+  Camera,
 } from 'lucide-react';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { calculateAge, checkRuralRetirementAge } from '@/lib/domain/benefit-rules';
@@ -29,7 +30,7 @@ import type { MaritalStatus, SpecialCategory } from '@/types/client';
 interface ClientFullFormProps {
   initialData?: Partial<ClientFullRegistrationInput>;
   clientId?: string;
-  onSave?: (data: ClientFullRegistrationInput) => Promise<void>;
+  onSave?: (data: ClientFullRegistrationInput, photoFile?: File) => Promise<void>;
 }
 
 export function ClientFullForm({ initialData, clientId, onSave }: ClientFullFormProps) {
@@ -37,6 +38,10 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   const { currentUser } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Photo upload state
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   // Form state
   const [fullName, setFullName] = useState(initialData?.fullName || '');
@@ -177,7 +182,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
       };
 
       if (onSave) {
-        await onSave(payload);
+        await onSave(payload, photoFile || undefined);
       }
       setSuccessMessage(t.clientForm.saveSuccess);
       setTimeout(() => setSuccessMessage(null), 4000);
@@ -307,6 +312,38 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <User className="w-5 h-5 text-[#C89543]" />
               <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec1}</h2>
+            </div>
+
+            {/* Photo / Avatar Upload */}
+            <div className="flex items-center gap-4 p-3.5 bg-slate-50/80 rounded-xl border border-dashed border-slate-200">
+              <div className="w-14 h-14 rounded-xl bg-slate-200 border border-slate-300 flex items-center justify-center overflow-hidden shrink-0">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="Foto do cliente" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-7 h-7 text-slate-400" />
+                )}
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-slate-700 block mb-1">
+                  Foto ou Imagem do Cliente
+                </span>
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 shadow-2xs transition-all">
+                  <Camera className="w-3.5 h-3.5 text-[#C89543]" />
+                  <span>{photoFile ? photoFile.name : 'Selecionar imagem (PNG/JPG)'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        setPhotoFile(file);
+                        setPhotoPreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

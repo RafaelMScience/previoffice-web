@@ -8,7 +8,6 @@ import {
   Clock,
   FileSpreadsheet,
   ArrowLeft,
-  CheckCircle2,
   Sparkles,
 } from 'lucide-react';
 import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
@@ -16,11 +15,17 @@ import { ClientFullForm } from '@/components/client-form/client-full-form';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
+import {
+  createFastIntakeInDb,
+  createFullClientInDb,
+  uploadClientPhotoToStorage,
+} from '@/lib/services/client-service';
+import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
 
 export default function NewClientIntakePage() {
   const router = useRouter();
   const { t } = useI18n();
-  const { canAccess } = useAuth();
+  const { canAccess, currentUser } = useAuth();
 
   const [mode, setMode] = useState<'FAST' | 'FULL'>('FAST');
   const [isFastModalOpen, setIsFastModalOpen] = useState(true);
@@ -34,9 +39,47 @@ export default function NewClientIntakePage() {
     );
   }
 
-  const handleFastSuccess = (data: FastIntakeData) => {
-    // Redirect back to dashboard queue with success feedback
-    router.push('/');
+  const handleFastSuccess = async (data: FastIntakeData) => {
+    if (!currentUser?.tenantId) return;
+
+    try {
+      await createFastIntakeInDb(data, currentUser.tenantId, {
+        id: currentUser.id,
+        name: currentUser.fullName,
+      });
+      router.push('/');
+    } catch (err: any) {
+      alert(`Erro ao cadastrar cliente: ${err?.message || 'Erro inesperado'}`);
+    }
+  };
+
+  const handleFullSave = async (
+    data: ClientFullRegistrationInput,
+    photoFile?: File
+  ) => {
+    if (!currentUser?.tenantId) return;
+
+    try {
+      let photoUrl: string | undefined = undefined;
+      if (photoFile) {
+        photoUrl = await uploadClientPhotoToStorage(photoFile, currentUser.tenantId);
+      }
+
+      const client = await createFullClientInDb(
+        data,
+        currentUser.tenantId,
+        {
+          id: currentUser.id,
+          name: currentUser.fullName,
+        },
+        photoUrl
+      );
+
+      router.push(`/clientes/${client.id}`);
+    } catch (err: any) {
+      alert(`Erro ao salvar ficha completa: ${err?.message || 'Erro de comunicação'}`);
+      throw err;
+    }
   };
 
   return (
@@ -95,7 +138,7 @@ export default function NewClientIntakePage() {
 
       {/* Render Mode */}
       {mode === 'FULL' ? (
-        <ClientFullForm />
+        <ClientFullForm onSave={handleFullSave} />
       ) : (
         <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center shadow-xs">
           <div className="w-16 h-16 rounded-2xl bg-amber-50 text-[#C89543] flex items-center justify-center mx-auto mb-4 border border-[#C89543]/20">

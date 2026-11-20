@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Users,
@@ -12,79 +12,71 @@ import {
   ShieldCheck,
   CheckCircle2,
   ArrowUpRight,
+  Loader2,
 } from 'lucide-react';
 import { ReceptionTable, type ReceptionTableRow } from '@/components/reception/reception-table';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
-import { registerFastIntakeClient, getClientProfile } from '@/lib/data/mock-clients';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
+import { fetchClientsFromDb, createFastIntakeInDb } from '@/lib/services/client-service';
 import type { Client } from '@/types/client';
 
 export default function ReceptionDashboardPage() {
   const { t } = useI18n();
-  const { canAccess } = useAuth();
+  const { canAccess, currentUser } = useAuth();
 
   // Reception table state
-  const [receptionRows, setReceptionRows] = useState<ReceptionTableRow[]>([
-    {
-      id: 'cli-001',
-      fullName: 'Maria Francisca da Silva',
-      cpf: '12345678909',
-      attendanceType: 'RETURN_DOCUMENTS',
-      lastVisitAt: '09:15',
-      totalVisits: 3,
-      pendingDocuments: ['Contrato de Terra Rural (ITR)', 'Declaração do Sindicato'],
-      registrationProgress: 35,
-      assignedAttendant: 'Camila Recepção',
-      benefitTypeNotes: 'Rural Special Retirement',
-    },
-    {
-      id: 'cli-002',
-      fullName: 'Severino Manoel dos Santos',
-      cpf: '98765432100',
-      attendanceType: 'FIRST_VISIT',
-      lastVisitAt: '10:30',
-      totalVisits: 1,
-      pendingDocuments: ['Laudo Médico Pericial (CID M54.5)', 'Histórico CNIS'],
-      registrationProgress: 20,
-      assignedAttendant: 'Camila Recepção',
-      benefitTypeNotes: 'BPC/LOAS Disability Benefit',
-    },
-    {
-      id: 'cli-003',
-      fullName: 'Antonia Ribeiro de Lima',
-      cpf: '45678912300',
-      attendanceType: 'CONTRACT_SIGNING',
-      lastVisitAt: '11:00',
-      totalVisits: 2,
-      pendingDocuments: [],
-      registrationProgress: 75,
-      assignedAttendant: 'Dr. Alexandre Pontes',
-      benefitTypeNotes: 'Age Retirement (Urban)',
-    },
-    {
-      id: 'cli-004',
-      fullName: 'Josefa Clementina Alves',
-      cpf: '65432198711',
-      attendanceType: 'GENERAL_QUERY',
-      lastVisitAt: '16:45',
-      totalVisits: 4,
-      pendingDocuments: ['Comprovante de Residência Atualizado'],
-      registrationProgress: 60,
-      assignedAttendant: 'Camila Recepção',
-      benefitTypeNotes: 'Social Security Administrative Review',
-    },
-  ]);
-
-  const [visitsTodayCount, setVisitsTodayCount] = useState(12);
+  const [receptionRows, setReceptionRows] = useState<ReceptionTableRow[]>([]);
+  const [loadingRows, setLoadingRows] = useState<boolean>(true);
+  const [visitsTodayCount, setVisitsTodayCount] = useState(0);
   const [fastIntakeSuccessMsg, setFastIntakeSuccessMsg] = useState<string | null>(null);
 
   // Modals state
   const [isFastIntakeOpen, setIsFastIntakeOpen] = useState(false);
   const [selectedClientForMemoryCard, setSelectedClientForMemoryCard] = useState<Client | null>(null);
   const [isMemoryCardOpen, setIsMemoryCardOpen] = useState(false);
+  const [clientsCache, setClientsCache] = useState<Client[]>([]);
+
+  const loadClients = useCallback(async () => {
+    if (!currentUser?.tenantId) return;
+    setLoadingRows(true);
+    try {
+      const clients = await fetchClientsFromDb(currentUser.tenantId);
+      setClientsCache(clients);
+
+      const rows: ReceptionTableRow[] = clients.map((c) => {
+        const visitTime = c.lastVisitAt
+          ? new Date(c.lastVisitAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+          : 'Hoje';
+
+        return {
+          id: c.id,
+          fullName: c.fullName,
+          cpf: c.cpf || c.normalizedCpf || '---',
+          attendanceType: (c.visitCount > 1 ? 'RETURN' : 'FIRST_VISIT') as any,
+          lastVisitAt: visitTime,
+          totalVisits: c.visitCount || 1,
+          pendingDocuments: c.hasActiveBenefit ? ['Análise Administrativa'] : ['Documentos Pessoais e CNIS'],
+          registrationProgress: c.cpf && c.street ? 80 : 35,
+          assignedAttendant: c.lastAttendantName || currentUser.fullName,
+          benefitTypeNotes: c.benefitType || 'Benefício Previdenciário',
+        };
+      });
+
+      setReceptionRows(rows);
+      setVisitsTodayCount(clients.length);
+    } catch (err) {
+      console.error('Error loading clients from DB:', err);
+    } finally {
+      setLoadingRows(false);
+    }
+  }, [currentUser?.tenantId, currentUser?.fullName]);
+
+  useEffect(() => {
+    loadClients();
+  }, [loadClients]);
 
   if (!canAccess('receptionDesk')) {
     return (
@@ -96,36 +88,33 @@ export default function ReceptionDashboardPage() {
   }
 
   // Handle Fast Intake Success
-  const handleFastIntakeSuccess = (data: FastIntakeData) => {
-    const newId = `cli-${Date.now()}`;
-    registerFastIntakeClient(newId, data);
+  const handleFastIntakeSuccess = async (data: FastIntakeData) => {
+    if (!currentUser?.tenantId) return;
 
-    const newRow: ReceptionTableRow = {
-      id: newId,
-      fullName: data.fullName,
-      cpf: data.cpf || '00000000000',
-      attendanceType: 'FIRST_VISIT',
-      lastVisitAt: 'Agora / Just now',
-      totalVisits: 1,
-      pendingDocuments: ['Verificação de Documentos Físicos'],
-      registrationProgress: 20,
-      assignedAttendant: 'Camila Recepção',
-      benefitTypeNotes: data.benefit,
-    };
+    try {
+      await createFastIntakeInDb(data, currentUser.tenantId, {
+        id: currentUser.id,
+        name: currentUser.fullName,
+      });
 
-    setReceptionRows((prev) => [newRow, ...prev]);
-    setVisitsTodayCount((prev) => prev + 1);
+      setFastIntakeSuccessMsg(
+        `${t.fastIntake.successMessage} (${data.fullName} — ${data.phone})`
+      );
+      setTimeout(() => setFastIntakeSuccessMsg(null), 5000);
 
-    setFastIntakeSuccessMsg(
-      `${t.fastIntake.successMessage} (${data.fullName} — ${data.phone})`
-    );
-    setTimeout(() => setFastIntakeSuccessMsg(null), 5000);
+      // Reload real clients from Supabase
+      await loadClients();
+    } catch (err: any) {
+      alert(`Erro ao registrar cliente: ${err?.message || 'Falha de comunicação'}`);
+    }
   };
 
   const handleOpenMemoryCard = (row: ReceptionTableRow) => {
-    const profile = getClientProfile(row.id);
-    setSelectedClientForMemoryCard(profile.client);
-    setIsMemoryCardOpen(true);
+    const found = clientsCache.find((c) => c.id === row.id);
+    if (found) {
+      setSelectedClientForMemoryCard(found);
+      setIsMemoryCardOpen(true);
+    }
   };
 
   return (
@@ -138,136 +127,183 @@ export default function ReceptionDashboardPage() {
             <span>{t.dashboard.bannerSubtitle}</span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight">{t.dashboard.bannerTitle}</h1>
-          <p className="text-sm text-slate-300 mt-1">
+          <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
             {t.dashboard.bannerDescription}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Action Button: Fast Intake */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setIsFastIntakeOpen(true)}
-            className="px-5 py-2.5 rounded-lg bg-[#C89543] text-[#0B192E] font-bold text-xs uppercase tracking-wider hover:bg-[#d5a557] flex items-center gap-2 shadow-sm transition-all"
+            className="bg-[#C89543] hover:bg-[#b08136] text-[#0B192E] font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-[#C89543]/20 flex items-center gap-2 text-sm"
           >
-            <PlusCircle className="w-4 h-4 stroke-[2.5]" />
+            <PlusCircle className="w-4 h-4" />
             <span>{t.dashboard.fastIntakeBtn}</span>
           </button>
+          <Link
+            href="/clientes/new"
+            className="bg-white/10 hover:bg-white/15 text-white font-medium px-4 py-2.5 rounded-xl transition-all border border-white/15 flex items-center gap-2 text-sm"
+          >
+            <FolderOpen className="w-4 h-4 text-[#C89543]" />
+            <span>Ficha Completa (32 Campos)</span>
+          </Link>
         </div>
       </div>
 
-      {/* Success Notification Bar */}
+      {/* Fast Intake Success Alert */}
       {fastIntakeSuccessMsg && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-150">
-          <div className="flex items-center gap-2.5">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-            <span>{fastIntakeSuccessMsg}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFastIntakeSuccessMsg(null)}
-            className="text-emerald-700 hover:text-emerald-900 p-1"
-          >
-            Fechar
-          </button>
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-medium rounded-xl flex items-center gap-3 shadow-xs animate-in fade-in duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>{fastIntakeSuccessMsg}</span>
         </div>
       )}
 
-      {/* Metrics Row */}
+      {/* KPI Counters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1 */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              {t.dashboard.metricVisitsToday}
-            </p>
-            <h3 className="text-2xl font-bold text-slate-900 mt-1">{visitsTodayCount}</h3>
-            <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 mt-1">
-              <TrendingUp className="w-3.5 h-3.5" />
-              {t.dashboard.metricVsYesterday}
-            </span>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="p-3 bg-amber-50 rounded-xl text-[#C89543]">
+            <Clock className="w-6 h-6" />
           </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              {t.dashboard.metricVisitsToday}
+            </span>
+            <span className="text-2xl font-black text-slate-900">{visitsTodayCount}</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
             <Users className="w-6 h-6" />
           </div>
+          <div>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              Total de Clientes
+            </span>
+            <span className="text-2xl font-black text-slate-900">{receptionRows.length}</span>
+          </div>
         </div>
 
-        {/* Metric 2: Retornos com Documentos */}
-        <Link
-          href="/attendances"
-          className="bg-white hover:bg-amber-50/40 p-5 rounded-xl border border-slate-200 hover:border-amber-300 shadow-xs hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
-          title="Ver todos os retornos na Central de Atendimentos"
-        >
-          <div>
-            <div className="flex items-center gap-1.5">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-amber-800 transition-colors">
-                {t.dashboard.metricDocReturns}
-              </p>
-              <ArrowUpRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
-            </div>
-            <h3 className="text-2xl font-bold text-amber-600 mt-1">5</h3>
-            <span className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-1 group-hover:underline">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{t.dashboard.metricMemoryCardLabel} ↗</span>
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-            <FolderOpen className="w-6 h-6" />
-          </div>
-        </Link>
-
-        {/* Metric 3 */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              {t.dashboard.metricContractsSigned}
-            </p>
-            <h3 className="text-2xl font-bold text-emerald-600 mt-1">3</h3>
-            <span className="text-xs text-slate-500 font-medium mt-1">
-              {t.dashboard.metricOabAgreement}
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
             <FileCheck2 className="w-6 h-6" />
           </div>
-        </div>
-
-        {/* Metric 4 */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              {t.dashboard.metricStorageCost}
-            </p>
-            <h3 className="text-2xl font-bold text-[#C89543] mt-1">$0.00</h3>
-            <span className="text-xs text-slate-500 font-medium mt-1">
-              {t.dashboard.metricPhysicalArchive}
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              {t.dashboard.metricDocReturns}
+            </span>
+            <span className="text-2xl font-black text-slate-900">
+              {receptionRows.filter((r) => r.attendanceType === 'RETURN_DOCUMENTS' || r.attendanceType === 'RETURN').length}
             </span>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50/50 text-[#C89543] flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6" />
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center gap-4">
+          <div className="p-3 bg-purple-50 rounded-xl text-purple-600">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              Taxa de Retorno
+            </span>
+            <span className="text-2xl font-black text-slate-900">
+              {receptionRows.length > 0
+                ? `${Math.round(
+                    (receptionRows.filter((r) => r.totalVisits >= 2).length / receptionRows.length) * 100
+                  )}%`
+                : '100%'}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Main Reception Queue & Client Table */}
-      <ReceptionTable
-        initialRows={receptionRows}
-        onOpenMemoryCard={handleOpenMemoryCard}
-      />
+      {/* Main Reception Intake Queue Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>Fila de Recepção & Triagem</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                {receptionRows.length} clientes ativos
+              </span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Fila em tempo real sincronizada com o PostgreSQL do Supabase.
+            </p>
+          </div>
 
-      {/* Fast Intake Modal (15-second arrival registration) */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={loadClients}
+              disabled={loadingRows}
+              className="text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 flex items-center gap-1.5 transition-all disabled:opacity-50"
+            >
+              <Loader2 className={`w-3.5 h-3.5 ${loadingRows ? 'animate-spin text-[#C89543]' : ''}`} />
+              <span>Atualizar</span>
+            </button>
+            <Link
+              href="/clientes/new"
+              className="text-xs font-semibold text-[#0B192E] hover:text-[#C89543] flex items-center gap-1 transition-colors"
+            >
+              <span>Cadastrar Novo</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+
+        {loadingRows ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-[#C89543]" />
+            <span className="text-xs text-slate-500 font-medium">Carregando atendimentos do banco...</span>
+          </div>
+        ) : receptionRows.length === 0 ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center gap-3 bg-slate-50/50">
+            <Users className="w-10 h-10 text-slate-300" />
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Nenhum cliente cadastrado ainda</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                Seu banco de dados do Supabase está pronto e conectado. Cadastre o primeiro cliente pelo botão de Entrada Rápida!
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFastIntakeOpen(true)}
+              className="mt-2 bg-[#C89543] hover:bg-[#b08136] text-[#0B192E] font-bold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-xs"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Registrar Primeiro Atendimento</span>
+            </button>
+          </div>
+        ) : (
+          <ReceptionTable
+            rows={receptionRows}
+            onOpenMemoryCard={handleOpenMemoryCard}
+          />
+        )}
+      </div>
+
+      {/* Fast Intake Modal */}
       <FastIntakeModal
         isOpen={isFastIntakeOpen}
         onClose={() => setIsFastIntakeOpen(false)}
         onSubmitSuccess={handleFastIntakeSuccess}
       />
 
-      {/* Memory Card Modal for Return Visits */}
-      <MemoryCardModal
-        isOpen={isMemoryCardOpen}
-        onClose={() => setIsMemoryCardOpen(false)}
-        client={selectedClientForMemoryCard}
-        onUpdateClient={(updated) => setSelectedClientForMemoryCard(updated)}
-      />
+      {/* Memory Card Modal */}
+      {selectedClientForMemoryCard && (
+        <MemoryCardModal
+          isOpen={isMemoryCardOpen}
+          onClose={() => {
+            setIsMemoryCardOpen(false);
+            setSelectedClientForMemoryCard(null);
+          }}
+          client={selectedClientForMemoryCard}
+          onUpdateClient={() => loadClients()}
+        />
+      )}
     </div>
   );
 }

@@ -24,6 +24,7 @@ export interface ReceptionTableRow {
 }
 
 interface ReceptionTableProps {
+  rows?: ReceptionTableRow[];
   initialRows?: ReceptionTableRow[];
   onOpenMemoryCard: (row: ReceptionTableRow) => void;
 }
@@ -82,7 +83,8 @@ const DEFAULT_ROWS: ReceptionTableRow[] = [
 type FilterCategory = 'ALL' | 'RETURNS_ONLY' | 'FIRST_VISITS' | 'PENDING_DOCS';
 
 export function ReceptionTable({
-  initialRows = DEFAULT_ROWS,
+  rows,
+  initialRows,
   onOpenMemoryCard,
 }: ReceptionTableProps) {
   const { t } = useI18n();
@@ -90,8 +92,10 @@ export function ReceptionTable({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL');
 
+  const effectiveRows = rows || initialRows || DEFAULT_ROWS;
+
   const filteredRows = useMemo(() => {
-    return initialRows.filter((row) => {
+    return effectiveRows.filter((row) => {
       // Search matching
       const matchesSearch =
         row.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -112,7 +116,7 @@ export function ReceptionTable({
           return true;
       }
     });
-  }, [initialRows, searchTerm, activeFilter]);
+  }, [effectiveRows, searchTerm, activeFilter]);
 
   const renderAttendanceTypeBadge = (type: AttendanceType) => {
     switch (type) {
@@ -159,7 +163,7 @@ export function ReceptionTable({
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            {t.receptionTable.filterAll} ({initialRows.length})
+            {t.receptionTable.filterAll} ({effectiveRows.length})
           </button>
           <button
             type="button"
@@ -339,7 +343,7 @@ export function ReceptionTable({
       {/* Table Footer */}
       <div className="p-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
         <span>
-          {t.receptionTable.footerShowing} {filteredRows.length} {t.receptionTable.footerOf} {initialRows.length} {t.receptionTable.footerRecords}
+          {t.receptionTable.footerShowing} {filteredRows.length} {t.receptionTable.footerOf} {effectiveRows.length} {t.receptionTable.footerRecords}
         </span>
         <div className="flex items-center gap-2">
           <span>{t.receptionTable.footerPhysicalNotice}</span>
