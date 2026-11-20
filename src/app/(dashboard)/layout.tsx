@@ -8,6 +8,7 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { OperatorSwitcherModal } from '@/components/ui/operator-switcher-modal';
+import { createClient } from '@/lib/supabase/client';
 
 const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
 
@@ -21,6 +22,34 @@ export default function DashboardLayout({
   const { currentUser, isAuthenticated, isLoading, canAccess, logout } = useAuth();
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+  const [navCounts, setNavCounts] = useState<{ clients: number; attendances: number }>({ clients: 0, attendances: 0 });
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!currentUser?.tenantId) return;
+    const supabase = createClient();
+    async function loadCounts() {
+      try {
+        const [{ count: clientsCount }, { count: attendancesCount }] = await Promise.all([
+          (supabase.from('clients') as any).select('*', { count: 'exact', head: true }).eq('tenant_id', currentUser!.tenantId).is('deleted_at', null),
+          (supabase.from('attendances') as any).select('*', { count: 'exact', head: true }).eq('tenant_id', currentUser!.tenantId),
+        ]);
+        if (isMounted) {
+          setNavCounts({
+            clients: clientsCount || 0,
+            attendances: attendancesCount || 0,
+          });
+        }
+      } catch (e) {
+        console.error('Error fetching nav counts:', e);
+      }
+    }
+    loadCounts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.tenantId, pathname]);
 
   const handleLogout = () => {
     logout();
@@ -95,9 +124,11 @@ export default function DashboardLayout({
                   >
                     <Users className={`w-4 h-4 ${isClients ? 'text-[#C89543]' : 'text-white/60'}`} />
                     <span>{t.navigation.visitsAndClients}</span>
-                    <span className="ml-auto bg-[#C89543] text-[#0B192E] text-[11px] font-bold px-2 py-0.5 rounded-full">
-                      4
-                    </span>
+                    {navCounts.clients > 0 && (
+                      <span className="ml-auto bg-[#C89543] text-[#0B192E] text-[11px] font-bold px-2 py-0.5 rounded-full">
+                        {navCounts.clients}
+                      </span>
+                    )}
                   </Link>
 
                   <Link
@@ -109,9 +140,11 @@ export default function DashboardLayout({
                   >
                     <FileText className={`w-4 h-4 ${isAttendances ? 'text-[#C89543]' : 'text-white/60'}`} />
                     <span>{t.navigation.attendancesAndReturns}</span>
-                    <span className="ml-auto bg-slate-800 text-slate-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
-                      7
-                    </span>
+                    {navCounts.attendances > 0 && (
+                      <span className="ml-auto bg-slate-800 text-slate-300 text-[10px] font-mono px-1.5 py-0.5 rounded">
+                        {navCounts.attendances}
+                      </span>
+                    )}
                   </Link>
                 </>
               )}

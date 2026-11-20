@@ -46,8 +46,54 @@ export function FastIntakeModal({
 
   const teamMembers = settingsStore.getTeamMembers();
   const activeLawyers = settingsStore.getActiveLawyers();
-  const [createdById, setCreatedById] = useState<string>(() => currentUser?.id || 'usr-004');
-  const [assignedLawyerId, setAssignedLawyerId] = useState<string>('usr-001'); // Dr. Alexandre Pontes
+  const lawyerOptions = React.useMemo(() => {
+    const list = [...activeLawyers];
+    if (list.length === 0) {
+      if (currentUser?.fullName) {
+        list.push({
+          id: currentUser.id,
+          tenantId: currentUser.tenantId,
+          fullName: currentUser.fullName,
+          email: currentUser.email,
+          phone: '',
+          memberType: 'LAWYER',
+          oabNumber: currentUser.oabNumber || 'OAB',
+          isAdminLawyer: currentUser.isAdminLawyer,
+          active: true,
+          permissions: currentUser.permissions,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        list.push({
+          id: 'adv-titular',
+          tenantId: 'tenant-default',
+          fullName: 'Advogado Titular',
+          email: 'advogado@previoffice.com',
+          phone: '',
+          memberType: 'LAWYER',
+          oabNumber: 'OAB',
+          isAdminLawyer: true,
+          active: true,
+          permissions: {
+            receptionDesk: true,
+            clientsManage: true,
+            casesManage: true,
+            contractsAndFinancial: true,
+            templatesManage: true,
+            adminSettings: true,
+            securityAudit: true,
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+    return list;
+  }, [activeLawyers, currentUser]);
+
+  const [createdById, setCreatedById] = useState<string>(() => currentUser?.id || 'usr-default');
+  const [assignedLawyerId, setAssignedLawyerId] = useState<string>(() => lawyerOptions[0]?.id || '');
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -298,7 +344,7 @@ export function FastIntakeModal({
                   onChange={(e) => setAssignedLawyerId(e.target.value)}
                   className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#082A52] rounded-lg font-bold text-[#082A52] focus:ring-1 focus:ring-[#C89543]"
                 >
-                  {activeLawyers.map((lawyer) => (
+                  {lawyerOptions.map((lawyer) => (
                     <option key={lawyer.id} value={lawyer.id}>
                       {lawyer.fullName} ({lawyer.oabNumber})
                     </option>

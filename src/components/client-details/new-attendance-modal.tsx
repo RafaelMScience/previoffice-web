@@ -15,6 +15,7 @@ import {
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { settingsStore } from '@/lib/data/mock-settings';
+import { createAttendanceInDb } from '@/lib/services/client-service';
 import type { Attendance, AttendanceType, PendingPhysicalDocument } from '@/types/attendance';
 
 interface NewAttendanceModalProps {
@@ -29,7 +30,7 @@ export function NewAttendanceModal({
   isOpen,
   onClose,
   clientId,
-  defaultObjective = 'Aposentadoria Rural - Segurado Especial',
+  defaultObjective = '',
   onSave,
 }: NewAttendanceModalProps) {
   const { t } = useI18n();
@@ -38,17 +39,62 @@ export function NewAttendanceModal({
   const [attendanceType, setAttendanceType] = useState<AttendanceType>('RETURN');
   const teamMembers = settingsStore.getTeamMembers();
   const activeLawyers = settingsStore.getActiveLawyers();
-  const [createdById, setCreatedById] = useState<string>(() => currentUser?.id || 'usr-001');
-  const [assignedLawyerId, setAssignedLawyerId] = useState<string>('usr-001'); // Dr. Alexandre Pontes
+
+  const lawyerOptions = React.useMemo(() => {
+    const list = [...activeLawyers];
+    if (list.length === 0) {
+      if (currentUser?.fullName) {
+        list.push({
+          id: currentUser.id,
+          tenantId: currentUser.tenantId,
+          fullName: currentUser.fullName,
+          email: currentUser.email,
+          phone: '',
+          memberType: 'LAWYER',
+          oabNumber: currentUser.oabNumber || 'OAB',
+          isAdminLawyer: currentUser.isAdminLawyer,
+          active: true,
+          permissions: currentUser.permissions,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        list.push({
+          id: 'adv-titular',
+          tenantId: 'tenant-default',
+          fullName: 'Advogado Titular',
+          email: 'advogado@previoffice.com',
+          phone: '',
+          memberType: 'LAWYER',
+          oabNumber: 'OAB',
+          isAdminLawyer: true,
+          active: true,
+          permissions: {
+            receptionDesk: true,
+            clientsManage: true,
+            casesManage: true,
+            contractsAndFinancial: true,
+            templatesManage: true,
+            adminSettings: true,
+            securityAudit: true,
+          },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+    return list;
+  }, [activeLawyers, currentUser]);
+
+  const [createdById, setCreatedById] = useState<string>(() => currentUser?.id || lawyerOptions[0]?.id || '');
+  const [assignedLawyerId, setAssignedLawyerId] = useState<string>(() => lawyerOptions[0]?.id || '');
   const [objective, setObjective] = useState(defaultObjective);
   const [narrativeHistory, setNarrativeHistory] = useState('');
   const [strategyNotes, setStrategyNotes] = useState('');
-  const [pendingDocs, setPendingDocs] = useState<PendingPhysicalDocument[]>([
-    { id: '1', description: 'Extrato de CNIS atualizado', isDelivered: false },
-    { id: '2', description: 'Comprovante de Residência recente', isDelivered: true },
-  ]);
+  const [pendingDocs, setPendingDocs] = useState<PendingPhysicalDocument[]>([]);
   const [newDocText, setNewDocText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -77,35 +123,55 @@ export function NewAttendanceModal({
     setPendingDocs((prev) => prev.filter((doc) => doc.id !== id));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setErrorMsg(null);
 
     const creator = teamMembers.find((m) => m.id === createdById);
-    const lawyer = activeLawyers.find((m) => m.id === assignedLawyerId);
+    const lawyer = lawyerOptions.find((m) => m.id === assignedLawyerId);
     const attendantDisplayName =
       creator?.id === lawyer?.id
-        ? lawyer?.fullName || 'Dr. Alexandre Pontes'
-        : `${creator?.fullName || 'Recepção'} (Atendido por ${lawyer?.fullName || 'Advogado'})`;
+        ? lawyer?.fullName || currentUser?.fullName || 'Advogado Titular'
+        : `${creator?.fullName || currentUser?.fullName || 'Recepção'} (Atendido por ${lawyer?.fullName || 'Advogado'})`;
 
-    const newAttendance: Attendance = {
-      id: Math.random().toString(36).slice(2, 11),
-      tenantId: 'tenant-default',
-      clientId,
-      attendanceType,
-      attendedAt: new Date().toISOString(),
-      objective,
-      narrativeHistory: narrativeHistory.trim() || undefined,
-      notes: strategyNotes.trim() || undefined,
-      attendantName: attendantDisplayName,
-      pendingDocuments: pendingDocs,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    onSave(newAttendance);
-    setIsSubmitting(false);
-    onClose();
+    try {
+      if (currentUser?.tenantId) {
+        const created = await createAttendanceInDb(currentUser.tenantId, {
+          clientId,
+          attendanceType,
+          objective: objective.trim() || 'Atendimento Previdenciário',
+          narrativeHistory: narrativeHistory.trim() || undefined,
+          notes: strategyNotes.trim() || undefined,
+          attendantName: attendantDisplayName,
+          attendantUserId: currentUser.id,
+          pendingDocuments: pendingDocs,
+        });
+        onSave(created);
+      } else {
+        const newAttendance: Attendance = {
+          id: `att-${Date.now()}`,
+          tenantId: 'tenant-default',
+          clientId,
+          attendanceType,
+          attendedAt: new Date().toISOString(),
+          objective: objective.trim() || 'Atendimento Previdenciário',
+          narrativeHistory: narrativeHistory.trim() || undefined,
+          notes: strategyNotes.trim() || undefined,
+          attendantName: attendantDisplayName,
+          pendingDocuments: pendingDocs,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        onSave(newAttendance);
+      }
+      onClose();
+    } catch (err: any) {
+      console.error('Error saving attendance in modal:', err);
+      setErrorMsg(err?.message || 'Falha ao salvar atendimento.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -132,6 +198,11 @@ export function NewAttendanceModal({
 
         {/* Form Body (Scrollable) */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-4 flex-1">
+          {errorMsg && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+              {errorMsg}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Type */}
             <div>
@@ -195,7 +266,7 @@ export function NewAttendanceModal({
               onChange={(e) => setAssignedLawyerId(e.target.value)}
               className="w-full px-3 py-2 text-xs bg-white border border-[#082A52] rounded-lg font-bold text-[#082A52] focus:ring-2 focus:ring-[#C89543]"
             >
-              {activeLawyers.map((lawyer) => (
+              {lawyerOptions.map((lawyer) => (
                 <option key={lawyer.id} value={lawyer.id}>
                   {lawyer.fullName} ({lawyer.oabNumber})
                 </option>

@@ -29,56 +29,7 @@ interface ReceptionTableProps {
   onOpenMemoryCard: (row: ReceptionTableRow) => void;
 }
 
-const DEFAULT_ROWS: ReceptionTableRow[] = [
-  {
-    id: 'cli-001',
-    fullName: 'Maria Francisca da Silva',
-    cpf: '12345678909',
-    attendanceType: 'RETURN_DOCUMENTS',
-    lastVisitAt: '09:15',
-    totalVisits: 3,
-    pendingDocuments: ['Contrato de Terra Rural (ITR)', 'Declaração do Sindicato'],
-    registrationProgress: 35,
-    assignedAttendant: 'Camila Recepção',
-    benefitTypeNotes: 'Rural Special Retirement',
-  },
-  {
-    id: 'cli-002',
-    fullName: 'Severino Manoel dos Santos',
-    cpf: '98765432100',
-    attendanceType: 'FIRST_VISIT',
-    lastVisitAt: '10:30',
-    totalVisits: 1,
-    pendingDocuments: ['Laudo Médico Pericial (CID M54.5)', 'Histórico CNIS'],
-    registrationProgress: 20,
-    assignedAttendant: 'Camila Recepção',
-    benefitTypeNotes: 'BPC/LOAS Disability Benefit',
-  },
-  {
-    id: 'cli-003',
-    fullName: 'Antonia Ribeiro de Lima',
-    cpf: '45678912300',
-    attendanceType: 'CONTRACT_SIGNING',
-    lastVisitAt: '11:00',
-    totalVisits: 2,
-    pendingDocuments: [],
-    registrationProgress: 75,
-    assignedAttendant: 'Dr. Alexandre Pontes',
-    benefitTypeNotes: 'Age Retirement (Urban)',
-  },
-  {
-    id: 'cli-004',
-    fullName: 'Josefa Clementina Alves',
-    cpf: '65432198711',
-    attendanceType: 'GENERAL_QUERY',
-    lastVisitAt: '16:45',
-    totalVisits: 4,
-    pendingDocuments: ['Comprovante de Residência Atualizado'],
-    registrationProgress: 60,
-    assignedAttendant: 'Camila Recepção',
-    benefitTypeNotes: 'Social Security Administrative Review',
-  },
-];
+const DEFAULT_ROWS: ReceptionTableRow[] = [];
 
 type FilterCategory = 'ALL' | 'RETURNS_ONLY' | 'FIRST_VISITS' | 'PENDING_DOCS';
 
@@ -92,7 +43,7 @@ export function ReceptionTable({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL');
 
-  const effectiveRows = rows || initialRows || DEFAULT_ROWS;
+  const effectiveRows = rows !== undefined ? rows : (initialRows || []);
 
   const filteredRows = useMemo(() => {
     return effectiveRows.filter((row) => {
@@ -219,7 +170,8 @@ export function ReceptionTable({
               <tr>
                 <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
                   <FileText className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                  <p className="font-medium">{t.receptionTable.noRecords}</p>
+                  <p className="font-semibold text-slate-700 text-sm">Nenhum cliente ou visita registrada hoje</p>
+                  <p className="text-xs text-slate-400 mt-1">Utilize o botão &quot;Entrada Rápida (15s)&quot; acima para iniciar o primeiro atendimento.</p>
                 </td>
               </tr>
             ) : (

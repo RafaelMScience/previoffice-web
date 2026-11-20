@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { Client, ClientStatus, MaritalStatus, SpecialCategory } from '@/types/client';
-import type { Attendance, AttendanceType } from '@/types/attendance';
+import type { Attendance, AttendanceType, AttendanceWithClient, PendingPhysicalDocument } from '@/types/attendance';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
 import type { FastIntakeData } from '@/components/reception/fast-intake-modal';
 
@@ -247,6 +247,119 @@ export async function inactivateClientInDb(
   if (error) {
     throw new Error(error.message);
   }
+}
+
+export async function fetchAttendancesFromDb(tenantId: string): Promise<AttendanceWithClient[]> {
+  const supabase = createClient();
+  const { data, error } = await (supabase.from('attendances') as any)
+    .select('*, client:clients(id, full_name, cpf, phone, mobile_phone, benefit_type)')
+    .eq('tenant_id', tenantId)
+    .order('attended_at', { ascending: false });
+
+  if (error || !data) {
+    console.error('Error fetching attendances from Supabase:', error);
+    return [];
+  }
+
+  return (data as any[]).map((row: any) => ({
+    id: row.id,
+    tenantId: row.tenant_id,
+    clientId: row.client_id,
+    clientName: row.client?.full_name || 'Cliente',
+    clientCpf: row.client?.cpf || '',
+    clientPhone: row.client?.mobile_phone || row.client?.phone || '',
+    clientBenefitType: row.client?.benefit_type,
+    attendanceType: (row.attendance_type as AttendanceType) || 'OTHER',
+    attendedAt: row.attended_at,
+    objective: row.objective || '',
+    narrativeHistory: row.narrative_history || undefined,
+    initialIntakeNotes: row.initial_intake_notes || undefined,
+    notes: row.notes || undefined,
+    attendantName: row.attendant_name || undefined,
+    attendantUserId: row.attendant_user_id || undefined,
+    pendingDocuments: row.pending_documents || [],
+    physicalFileLocation: row.physical_file_location || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
+}
+
+export async function createAttendanceInDb(
+  tenantId: string,
+  input: {
+    clientId: string;
+    attendanceType: AttendanceType;
+    objective: string;
+    narrativeHistory?: string;
+    notes?: string;
+    attendantName: string;
+    attendantUserId?: string;
+    pendingDocuments: PendingPhysicalDocument[];
+    physicalFileLocation?: string;
+  }
+): Promise<AttendanceWithClient> {
+  const supabase = createClient();
+  const now = new Date().toISOString();
+
+  const { data: row, error } = await (supabase.from('attendances') as any)
+    .insert({
+      tenant_id: tenantId,
+      client_id: input.clientId,
+      attendance_type: input.attendanceType,
+      objective: input.objective,
+      narrative_history: input.narrativeHistory || null,
+      notes: input.notes || null,
+      attendant_name: input.attendantName,
+      attendant_user_id: input.attendantUserId || null,
+      pending_documents: input.pendingDocuments,
+      physical_file_location: input.physicalFileLocation || null,
+      attended_at: now,
+    })
+    .select('*, client:clients(id, full_name, cpf, phone, mobile_phone, benefit_type)')
+    .single();
+
+  if (error || !row) {
+    throw new Error(error?.message || 'Falha ao registrar atendimento.');
+  }
+
+  // Count total attendances for this client to accurately update visit_count
+  const { count: attendanceCount } = await (supabase.from('attendances') as any)
+    .select('*', { count: 'exact', head: true })
+    .eq('client_id', input.clientId)
+    .eq('tenant_id', tenantId);
+
+  // Update client visit count and last visit
+  await (supabase.from('clients') as any)
+    .update({
+      visit_count: Math.max(1, attendanceCount || 1),
+      last_visit_at: now,
+      last_attendant_name: input.attendantName,
+      updated_at: now,
+    })
+    .eq('id', input.clientId)
+    .eq('tenant_id', tenantId);
+
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    clientId: row.client_id,
+    clientName: row.client?.full_name || 'Cliente',
+    clientCpf: row.client?.cpf || '',
+    clientPhone: row.client?.mobile_phone || row.client?.phone || '',
+    clientBenefitType: row.client?.benefit_type,
+    attendanceType: row.attendance_type,
+    attendedAt: row.attended_at,
+    objective: row.objective,
+    narrativeHistory: row.narrative_history || undefined,
+    initialIntakeNotes: row.initial_intake_notes || undefined,
+    notes: row.notes || undefined,
+    attendantName: row.attendant_name || undefined,
+    attendantUserId: row.attendant_user_id || undefined,
+    pendingDocuments: row.pending_documents || [],
+    physicalFileLocation: row.physical_file_location || undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 function mapDbRowToClient(row: any): Client {

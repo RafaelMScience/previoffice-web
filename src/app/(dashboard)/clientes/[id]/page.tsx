@@ -1,6 +1,6 @@
 import React from 'react';
+import { notFound } from 'next/navigation';
 import { ClientDetailsView } from '@/components/client-details/client-details-view';
-import { getClientProfile } from '@/lib/data/mock-clients';
 import { createClientServer } from '@/lib/supabase/server';
 import type { Client, ClientStatus, MaritalStatus, SpecialCategory } from '@/types/client';
 import type { Attendance, AttendanceType } from '@/types/attendance';
@@ -108,16 +108,6 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
     );
   }
 
-  // 2. Fallback to mock profile for demo/test clients
-  const { client, attendances, caseUpdates } = getClientProfile(id);
-
-  return (
-    <div className="py-2">
-      <ClientDetailsView
-        initialClient={client}
-        initialAttendances={attendances}
-        initialCaseUpdates={caseUpdates}
-      />
-    </div>
-  );
+  // 2. Client not found in database -> 404
+  notFound();
 }

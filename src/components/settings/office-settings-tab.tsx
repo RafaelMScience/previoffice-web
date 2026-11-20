@@ -15,17 +15,71 @@ import {
   Scale,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
+import { createClient } from '@/lib/supabase/client';
 import { settingsStore } from '@/lib/data/mock-settings';
 import type { OfficeSettings } from '@/types/settings';
 
 export function OfficeSettingsTab() {
   const { t } = useI18n();
+  const { currentUser } = useAuth();
   const [office, setOffice] = useState<OfficeSettings>(() => settingsStore.getOfficeSettings());
   const [isSaved, setIsSaved] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  React.useEffect(() => {
+    if (!currentUser?.tenantId) return;
+    const supabase = createClient();
+    (supabase.from('tenants') as any)
+      .select('*')
+      .eq('id', currentUser.tenantId)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data) {
+          setOffice((prev) => ({
+            ...prev,
+            tenantId: data.id,
+            officeName: data.office_name || prev.officeName,
+            tradeName: data.office_name || prev.tradeName,
+            cnpj: data.tax_id || prev.cnpj,
+            oabSocietyNumber: data.oab_number || prev.oabSocietyNumber,
+            email: data.email || prev.email,
+            phone: data.phone || prev.phone,
+            whatsapp: data.whatsapp || prev.whatsapp,
+            street: data.address || prev.street,
+          }));
+        }
+      });
+  }, [currentUser?.tenantId]);
+
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaveError(null);
     settingsStore.updateOfficeSettings(office);
+
+    if (currentUser?.tenantId) {
+      const supabase = createClient();
+      const { error } = await (supabase.from('tenants') as any)
+        .update({
+          office_name: office.officeName,
+          tax_id: office.cnpj,
+          oab_number: office.oabSocietyNumber,
+          email: office.email,
+          phone: office.phone,
+          whatsapp: office.whatsapp,
+          address: office.street,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentUser.tenantId);
+
+      if (error) {
+        console.error('Failed to update tenant in Supabase:', error);
+        setSaveError('Erro ao salvar no banco de dados: ' + error.message);
+        return;
+      }
+    }
+
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
@@ -38,6 +92,11 @@ export function OfficeSettingsTab() {
           <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <span>{t.settings.saveSuccess}</span>
+          </div>
+        )}
+        {saveError && (
+          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+            <span>{saveError}</span>
           </div>
         )}
 

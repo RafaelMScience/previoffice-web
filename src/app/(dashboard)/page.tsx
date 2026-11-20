@@ -213,7 +213,7 @@ export default function ReceptionDashboardPage() {
                 ? `${Math.round(
                     (receptionRows.filter((r) => r.totalVisits >= 2).length / receptionRows.length) * 100
                   )}%`
-                : '100%'}
+                : '0%'}
             </span>
           </div>
         </div>

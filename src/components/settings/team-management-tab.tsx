@@ -16,6 +16,8 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
+import { createClient } from '@/lib/supabase/client';
 import { settingsStore } from '@/lib/data/mock-settings';
 import type { MemberType, TeamMember } from '@/types/settings';
 import { AddTeamMemberModal, generateRandomPassword } from './add-team-member-modal';
@@ -23,7 +25,45 @@ import { ShareCredentialsModal } from './share-credentials-modal';
 
 export function TeamManagementTab() {
   const { t, locale } = useI18n();
-  const [members, setMembers] = useState<TeamMember[]>(() => settingsStore.getTeamMembers());
+  const { currentUser } = useAuth();
+  const [members, setMembers] = useState<TeamMember[]>(() =>
+    currentUser ? [currentUser] : settingsStore.getTeamMembers()
+  );
+
+  React.useEffect(() => {
+    if (!currentUser?.tenantId) return;
+    const supabase = createClient();
+    (supabase.from('profiles') as any)
+      .select('*')
+      .eq('tenant_id', currentUser.tenantId)
+      .then(({ data }: any) => {
+        if (data && data.length > 0) {
+          const loaded: TeamMember[] = data.map((p: any) => ({
+            id: p.id,
+            tenantId: p.tenant_id,
+            fullName: p.full_name,
+            email: p.email,
+            memberType: p.role === 'RECEPTIONIST' ? 'ASSISTANT' : 'LAWYER',
+            isAdminLawyer: p.role === 'MANAGING_LAWYER',
+            active: p.is_active ?? true,
+            permissions: currentUser?.permissions || {
+              receptionDesk: true,
+              clientsManage: true,
+              casesManage: true,
+              contractsAndFinancial: true,
+              templatesManage: true,
+              adminSettings: p.role === 'MANAGING_LAWYER',
+              securityAudit: p.role === 'MANAGING_LAWYER',
+            },
+            createdAt: p.created_at,
+            updatedAt: p.updated_at,
+          }));
+          setMembers(loaded);
+        } else if (currentUser) {
+          setMembers([currentUser]);
+        }
+      });
+  }, [currentUser]);
   const [filterType, setFilterType] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,7 +103,7 @@ export function TeamManagementTab() {
 
     const updated = settingsStore.resetMemberPassword(member.id, newTemp);
     if (updated) {
-      setMembers(settingsStore.getTeamMembers());
+      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
       setShareData({
         member: updated,
         tempPassword: newTemp,
@@ -83,7 +123,7 @@ export function TeamManagementTab() {
     }
     const updated = settingsStore.toggleMemberActive(id);
     if (updated) {
-      setMembers(settingsStore.getTeamMembers());
+      setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, active: !m.active } : m)));
     }
   };
 
@@ -101,16 +141,21 @@ export function TeamManagementTab() {
           ? { ...memberData.permissions, adminSettings: true }
           : memberData.permissions,
       });
+      if (saved) {
+        setMembers((prev) => prev.map((m) => (m.id === saved!.id ? saved! : m)));
+      }
     } else {
       saved = settingsStore.addTeamMember(memberData);
-      if (memberData.temporaryPassword) {
+      if (saved) {
+        setMembers((prev) => [...prev, saved!]);
+      }
+      if (memberData.temporaryPassword && saved) {
         setShareData({
           member: saved,
           tempPassword: memberData.temporaryPassword,
         });
       }
     }
-    setMembers(settingsStore.getTeamMembers());
   };
 
   const formatLastLogin = (isoString?: string) => {

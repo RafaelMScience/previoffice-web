@@ -58,3 +58,10 @@ export interface AttendanceItemSummary {
   notes: string;
   status: string;
 }
+
+export interface AttendanceWithClient extends Attendance {
+  clientName: string;
+  clientCpf: string;
+  clientPhone?: string;
+  clientBenefitType?: string;
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Plus,
@@ -12,11 +12,13 @@ import {
   CheckCircle2,
   Calendar,
   Building,
+  Loader2,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
-import { MOCK_CLIENTS_MAP, type AttendanceWithClient } from '@/lib/data/mock-clients';
-import type { AttendanceType, PendingPhysicalDocument } from '@/types/attendance';
+import type { AttendanceType, AttendanceWithClient, PendingPhysicalDocument } from '@/types/attendance';
+import type { Client } from '@/types/client';
+import { fetchClientsFromDb, createAttendanceInDb } from '@/lib/services/client-service';
 import { maskCpf, maskPhone } from '@/lib/utils/masks';
 
 interface NewGeneralAttendanceModalProps {
@@ -33,23 +35,35 @@ export function NewGeneralAttendanceModal({
   const { t } = useI18n();
   const { currentUser } = useAuth();
 
-  const clientOptions = Object.values(MOCK_CLIENTS_MAP).filter(
-    (b, idx, arr) => arr.findIndex((x) => x.client.id === b.client.id) === idx
-  );
-
-  const [selectedClientId, setSelectedClientId] = useState(clientOptions[0]?.client.id || 'cli-001');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [attendanceType, setAttendanceType] = useState<AttendanceType>('RETURN_DOCUMENTS');
-  const [attendantName, setAttendantName] = useState(() => currentUser?.fullName || 'Dr. Alexandre Pontes');
-  const [objective, setObjective] = useState('Aposentadoria Rural - Entrega de Documentos e ITR');
+  const [attendantName, setAttendantName] = useState(() => currentUser?.fullName || 'Advogado');
+  const [objective, setObjective] = useState('');
   const [narrativeHistory, setNarrativeHistory] = useState('');
   const [strategyNotes, setStrategyNotes] = useState('');
-  const [pendingDocs, setPendingDocs] = useState<PendingPhysicalDocument[]>([
-    { id: '1', description: 'Extrato Previdenciário do CNIS atualizado', isDelivered: false },
-    { id: '2', description: 'Comprovante de residência no meio rural recente', isDelivered: true },
-  ]);
+  const [pendingDocs, setPendingDocs] = useState<PendingPhysicalDocument[]>([]);
   const [newDocText, setNewDocText] = useState('');
-  const [physicalFileLocation, setPhysicalFileLocation] = useState('Armário B - Gaveta 03 - Pasta 2026-042');
+  const [physicalFileLocation, setPhysicalFileLocation] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && currentUser?.tenantId) {
+      setLoadingClients(true);
+      fetchClientsFromDb(currentUser.tenantId)
+        .then((data) => {
+          setClients(data);
+          if (data.length > 0) {
+            setSelectedClientId(data[0].id);
+            setObjective(data[0].benefitType || '');
+          }
+        })
+        .catch((err) => console.error('Error fetching clients for modal:', err))
+        .finally(() => setLoadingClients(false));
+    }
+  }, [isOpen, currentUser?.tenantId]);
 
   if (!isOpen) return null;
 
@@ -78,43 +92,44 @@ export function NewGeneralAttendanceModal({
 
   const handleClientChange = (clientId: string) => {
     setSelectedClientId(clientId);
-    const bundle = MOCK_CLIENTS_MAP[clientId];
-    if (bundle) {
-      setObjective(bundle.client.benefitType || 'Benefício Previdenciário');
-      setPhysicalFileLocation(bundle.client.physicalFileLocation || 'Arquivo Geral - Pasta Principal');
+    const client = clients.find((c) => c.id === clientId);
+    if (client) {
+      setObjective(client.benefitType || '');
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser?.tenantId) return;
+    if (!selectedClientId) {
+      setSubmitError('Selecione um cliente para vincular o atendimento.');
+      return;
+    }
+
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    const clientBundle = MOCK_CLIENTS_MAP[selectedClientId];
-    const client = clientBundle?.client;
+    try {
+      const created = await createAttendanceInDb(currentUser.tenantId, {
+        clientId: selectedClientId,
+        attendanceType,
+        objective: objective.trim() || 'Atendimento de Balcão',
+        narrativeHistory: narrativeHistory.trim() || undefined,
+        notes: strategyNotes.trim() || undefined,
+        attendantName: attendantName.trim() || currentUser.fullName,
+        attendantUserId: currentUser.id,
+        pendingDocuments: pendingDocs,
+        physicalFileLocation: physicalFileLocation.trim() || undefined,
+      });
 
-    const newAttendance: AttendanceWithClient = {
-      id: `att-${Date.now()}`,
-      tenantId: 'tenant-default',
-      clientId: selectedClientId,
-      clientName: client?.fullName || 'Cliente do Escritório',
-      clientCpf: client?.cpf ? maskCpf(client.cpf) : '000.000.000-00',
-      clientPhone: client?.mobilePhone || client?.phone ? maskPhone(client.mobilePhone || client.phone) : undefined,
-      clientBenefitType: client?.benefitType,
-      attendanceType,
-      attendedAt: new Date().toISOString(),
-      objective: objective.trim() || 'Atendimento de Balcão',
-      narrativeHistory: narrativeHistory.trim() || undefined,
-      notes: strategyNotes.trim() || undefined,
-      attendantName,
-      pendingDocuments: pendingDocs,
-      physicalFileLocation,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    onSave(newAttendance);
-    setIsSubmitting(false);
-    onClose();
+      onSave(created);
+      onClose();
+    } catch (err: any) {
+      console.error('Failed to create attendance in DB:', err);
+      setSubmitError(err?.message || 'Falha ao salvar atendimento no banco.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -144,22 +159,39 @@ export function NewGeneralAttendanceModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-4 flex-1">
+          {submitError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 font-medium">
+              {submitError}
+            </div>
+          )}
+
           {/* Row 1: Client Selector */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Cliente Atendido *
             </label>
-            <select
-              value={selectedClientId}
-              onChange={(e) => handleClientChange(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-bold"
-            >
-              {clientOptions.map((opt) => (
-                <option key={opt.client.id} value={opt.client.id}>
-                  {opt.client.fullName} — CPF: {opt.client.cpf ? maskCpf(opt.client.cpf) : 'Não informado'} ({opt.client.benefitType})
-                </option>
-              ))}
-            </select>
+            {loadingClients ? (
+              <div className="flex items-center gap-2 p-2 text-xs text-slate-500">
+                <Loader2 className="w-4 h-4 animate-spin text-[#C89543]" />
+                <span>Carregando clientes do escritório...</span>
+              </div>
+            ) : clients.length === 0 ? (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                Nenhum cliente cadastrado no escritório ainda. Cadastre um cliente primeiro pela Recepção ou Ficha Completa.
+              </div>
+            ) : (
+              <select
+                value={selectedClientId}
+                onChange={(e) => handleClientChange(e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-bold"
+              >
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.fullName} — CPF: {c.cpf ? maskCpf(c.cpf) : 'Não informado'} {c.benefitType ? `(${c.benefitType})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Row 2: Attendant & Type */}
@@ -168,15 +200,14 @@ export function NewGeneralAttendanceModal({
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Advogado / Responsável pelo Atendimento *
               </label>
-              <select
+              <input
+                type="text"
+                required
                 value={attendantName}
                 onChange={(e) => setAttendantName(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white"
-              >
-                <option value="Dr. Alexandre Pontes">Dr. Alexandre Pontes (Advogado Titular)</option>
-                <option value="Dra. Camila Vasconcelos">Dra. Camila Vasconcelos (Advogada Associada)</option>
-                <option value="Camila Recepção">Camila Recepção (Triagem e Balcão)</option>
-              </select>
+                placeholder="Nome do advogado ou atendente responsável"
+                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
+              />
             </div>
 
             <div>

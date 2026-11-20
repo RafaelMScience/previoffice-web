@@ -17,6 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { Client } from '@/types/client';
 import type { ContractTemplate } from '@/types/contract';
 import { contractsStore } from '@/lib/data/mock-contracts';
@@ -30,13 +31,6 @@ interface LegalContractModalProps {
   onContractIssued?: (contractNumber: string) => void;
 }
 
-const LAWYER_OPTIONS = [
-  { name: 'Dr. Alexandre Pontes', oab: 'OAB/PB 18.234' },
-  { name: 'Dra. Camila Santos', oab: 'OAB/PB 22.100' },
-  { name: 'Dr. Marcos Oliveira', oab: 'OAB/PB 19.450' },
-  { name: 'Alexandre Pontes Sociedade de Advogados', oab: 'OAB/PB' },
-];
-
 export function LegalContractModal({
   client,
   isOpen,
@@ -44,10 +38,20 @@ export function LegalContractModal({
   onContractIssued,
 }: LegalContractModalProps) {
   const { t } = useI18n();
+  const { currentUser } = useAuth();
+
+  const lawyerOptions = useMemo(() => {
+    const list = [];
+    if (currentUser?.fullName) {
+      list.push({ name: currentUser.fullName, oab: currentUser.oabNumber || 'OAB' });
+    }
+    list.push({ name: 'Advogado Titular', oab: 'OAB' });
+    return list;
+  }, [currentUser]);
 
   const [templates, setTemplates] = useState<ContractTemplate[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<'contrato' | 'procuracao' | 'capa'>('contrato');
-  const [selectedLawyer, setSelectedLawyer] = useState(LAWYER_OPTIONS[0]);
+  const [selectedLawyer, setSelectedLawyer] = useState(() => lawyerOptions[0]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [isEditingCustomBody, setIsEditingCustomBody] = useState(false);
   const [customBody, setCustomBody] = useState('');
@@ -144,7 +148,7 @@ export function LegalContractModal({
   if (!isOpen) return null;
 
   const handleLawyerChange = (name: string) => {
-    const l = LAWYER_OPTIONS.find((opt) => opt.name === name) || LAWYER_OPTIONS[0];
+    const l = lawyerOptions.find((opt) => opt.name === name) || lawyerOptions[0];
     setSelectedLawyer(l);
     setIsEditingCustomBody(false);
 
@@ -166,7 +170,7 @@ export function LegalContractModal({
         setQuotaLitisPercentage(tpl.defaultQuotaLitisPercentage);
       }
       if (tpl.lawyerName) {
-        const matchingLawyer = LAWYER_OPTIONS.find((l) => l.name === tpl.lawyerName);
+        const matchingLawyer = lawyerOptions.find((l) => l.name === tpl.lawyerName);
         if (matchingLawyer) setSelectedLawyer(matchingLawyer);
       }
     }
@@ -345,7 +349,7 @@ export function LegalContractModal({
                 onChange={(e) => handleLawyerChange(e.target.value)}
                 className="w-full bg-slate-800 text-white border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#C89543]"
               >
-                {LAWYER_OPTIONS.map((l) => (
+                {lawyerOptions.map((l) => (
                   <option key={l.name} value={l.name}>
                     {l.name} ({l.oab})
                   </option>

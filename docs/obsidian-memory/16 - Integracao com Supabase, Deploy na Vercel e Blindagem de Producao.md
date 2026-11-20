@@ -33,6 +33,9 @@ versao: 1.0.0
 - [[#5. Conexão das Telas ao Banco sem Mock]]
 - [[#6. Deploy na Vercel e Gerenciamento Seguro de Variáveis]]
 - [[#7. Blindagem Anti-Reconhecimento (Defesa Anti-Hacker)]]
+- [[#8. Máscaras Obrigatórias de Validação e Formatação]]
+- [[#9. Ambiente Emulado Local do Supabase (Docker)]]
+- [[#10. Expurgamento Total de Dados Mock e Conexão Integral de Produção]]
 - [[#Notas Relacionadas]]
 
 ---
@@ -244,6 +247,39 @@ flowchart LR
 ### 9.3. Replicação Nuvem vs Local e CSP
 1. **Migrations Paritárias**: O banco local Docker executa as mesmas 4 migrations de produção (`20261115000000_initial_schema.sql`, `20261119000001_harden_security_functions.sql`, `20261119000002_storage_policies.sql`, `20261119000003_create_storage_buckets.sql`).
 2. **CSP Híbrido**: O header `Content-Security-Policy` no `next.config.mjs` permite conexões tanto para `https://*.supabase.co` quanto para `http://127.0.0.1:*` e `http://localhost:*`, permitindo alternar livremente entre desenvolvimento local e produção sem bloqueios de rede no navegador.
+
+---
+
+## 10. Expurgamento Total de Dados Mock e Conexão Integral de Produção
+
+Para garantir que o sistema entre em produção limpo (zero clientes fictícios, zero atendimentos falsos, zero badges pré-populadas), foi realizado um expurgo completo de dados mocados e a conexão nativa de todos os componentes ao Supabase:
+
+### 10.1. Diagnóstico dos Mocks Encontrados e Corrigidos
+1. **Badges Fixas no Menu Lateral (`src/app/(dashboard)/layout.tsx`)**:
+   - *Anterior*: Exibia badges estáticas `4` em Clientes e `7` em Atendimentos codificadas diretamente no JSX.
+   - *Produção*: Substituído por consulta em tempo real no Supabase (`select('*', { count: 'exact', head: true })`) filtrado por `currentUser.tenantId`. Se a contagem for 0, o badge é ocultado automaticamente.
+2. **Fila de Recepção Pré-Populada (`src/components/reception/reception-table.tsx`)**:
+   - *Anterior*: O componente recorria a `DEFAULT_ROWS` com 4 clientes fictícios quando vazio.
+   - *Produção*: `DEFAULT_ROWS` foi eliminado. Quando não há atendimentos no dia, exibe um *Empty State* limpo orientando a realização da "Entrada Rápida (15s)".
+3. **Página Geral de Atendimentos (`src/app/(dashboard)/attendances/page.tsx`)**:
+   - *Anterior*: Inicializava estado com `getAllAttendancesWithClient()` de `mock-clients.ts` (7 atendimentos fictícios).
+   - *Produção*: Conectada ao Supabase via `fetchAttendancesFromDb(currentUser.tenantId)`, com spinner de carregamento e busca textual precisa por CPF e Nome.
+4. **Dossiê do Cliente (`src/app/(dashboard)/clientes/[id]/page.tsx`)**:
+   - *Anterior*: Fallback para `getClientProfile(id)` de `mock-clients.ts`.
+   - *Produção*: Fallback eliminado; caso o cliente não exista no banco do escritório autenticado, dispara `notFound()` do Next.js (404 seguro).
+5. **Criação de Atendimentos com Incremento de Visitas (`src/lib/services/client-service.ts`)**:
+   - Implementadas as funções `fetchAttendancesFromDb` e `createAttendanceInDb`. Ao cadastrar um novo atendimento, o sistema recupera a contagem de atendimentos do cliente e atualiza atomicamente o campo `visit_count` na tabela `clients`.
+6. **Modais de Atendimento e Contratos Desvinculados de Mock**:
+   - `new-general-attendance-modal.tsx`: Busca clientes reais do banco (`fetchClientsFromDb`) e persiste o atendimento no Supabase.
+   - `new-attendance-modal.tsx`: Integrado a `createAttendanceInDb` com fallback inteligente para opções de advogado a partir do usuário autenticado.
+   - `legal-contract-modal.tsx`: Seleção dinâmica de advogados derivada de `currentUser` e da equipe do escritório.
+7. **Bases de Mock Esvaziadas**:
+   - `src/lib/data/mock-clients.ts`: `MOCK_CLIENTS_MAP = {}`
+   - `src/lib/data/mock-contracts.ts`: `INITIAL_CONTRACTS = []`
+   - `src/lib/data/mock-settings.ts`: `INITIAL_TEAM_MEMBERS = []`, `INITIAL_OFFICE_SETTINGS` em branco.
+   - `src/lib/data/mock-security.ts`: `INITIAL_AUDIT_LOGS = []`, `INITIAL_ACTIVE_SESSIONS = []`, `INITIAL_LGPD_CONSENTS = []`.
+8. **Política RLS de Atualização de Escritório (`supabase/migrations/20261119000004_tenant_update_policy.sql`)**:
+   - Adicionada regra `FOR UPDATE` na tabela `public.tenants` permitindo que usuários autenticados atualizem as informações do seu próprio escritório (`auth.uid() = id`).
 
 ---
 

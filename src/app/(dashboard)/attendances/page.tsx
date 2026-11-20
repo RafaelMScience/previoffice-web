@@ -21,23 +21,23 @@ import {
   FileCheck2,
   X,
   FilterX,
+  Loader2,
 } from 'lucide-react';
-import { getAllAttendancesWithClient, type AttendanceWithClient } from '@/lib/data/mock-clients';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
-import type { AttendanceType } from '@/types/attendance';
+import type { AttendanceType, AttendanceWithClient } from '@/types/attendance';
 import { NewGeneralAttendanceModal } from '@/components/attendances/new-general-attendance-modal';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
+import { fetchAttendancesFromDb } from '@/lib/services/client-service';
 
 export default function AttendancesPage() {
   const { t } = useI18n();
-  const { canAccess } = useAuth();
+  const { canAccess, currentUser } = useAuth();
   const router = useRouter();
 
-  const [attendances, setAttendances] = useState<AttendanceWithClient[]>(() =>
-    getAllAttendancesWithClient()
-  );
+  const [attendances, setAttendances] = useState<AttendanceWithClient[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<
@@ -45,6 +45,23 @@ export default function AttendancesPage() {
   >('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const loadAttendances = React.useCallback(async () => {
+    if (!currentUser?.tenantId) return;
+    setLoading(true);
+    try {
+      const data = await fetchAttendancesFromDb(currentUser.tenantId);
+      setAttendances(data);
+    } catch (err) {
+      console.error('Error fetching attendances from DB:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.tenantId]);
+
+  React.useEffect(() => {
+    loadAttendances();
+  }, [loadAttendances]);
 
   const handleSaveAttendance = (newAtt: AttendanceWithClient) => {
     setAttendances((prev) => [newAtt, ...prev]);
@@ -74,10 +91,11 @@ export default function AttendancesPage() {
 
   // Filtered attendances
   const filteredAttendances = useMemo(() => {
+    const cleanTerm = searchTerm.replace(/\D/g, '');
     return attendances.filter((att) => {
       const matchesSearch =
         att.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        att.clientCpf.includes(searchTerm.replace(/\D/g, '')) ||
+        (cleanTerm.length > 0 && att.clientCpf.includes(cleanTerm)) ||
         att.objective.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (att.attendantName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -409,7 +427,16 @@ export default function AttendancesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredAttendances.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-[#C89543]" />
+                        <span className="text-xs text-slate-500 font-medium">Carregando atendimentos...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredAttendances.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
                       <div className="max-w-xs mx-auto space-y-3">
