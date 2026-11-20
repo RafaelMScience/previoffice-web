@@ -24,6 +24,8 @@ dist/
 
 # Supabase
 .supabase/
+supabase/.temp/
+.temp/
 
 # Debug
 npm-debug.log*
