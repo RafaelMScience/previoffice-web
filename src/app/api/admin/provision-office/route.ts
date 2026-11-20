@@ -96,6 +96,8 @@ export async function POST(request: NextRequest) {
         },
         user_metadata: {
           full_name: lawyerName,
+          phone: phone || null,
+          oab_number: `${oabNumber}/${oabUf}`,
         },
       });
 
@@ -114,11 +116,16 @@ export async function POST(request: NextRequest) {
       tenant_id: tenantData.id,
       full_name: lawyerName,
       email: lawyerEmail,
+      phone: phone || null,
+      oab_number: `${oabNumber}/${oabUf}`,
       role: 'MANAGING_LAWYER',
       is_active: true,
     });
 
     if (profileError) {
+      // Rollback both created auth user and tenant to prevent orphaned records
+      await adminClient.auth.admin.deleteUser(authData.user.id);
+      await adminClient.from('tenants').delete().eq('id', tenantData.id);
       return NextResponse.json(
         { error: `Erro ao vincular perfil: ${profileError.message}` },
         { status: 500 }

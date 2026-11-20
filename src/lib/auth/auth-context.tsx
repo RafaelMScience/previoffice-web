@@ -3,8 +3,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { securityStore } from '@/lib/data/mock-security';
+import type { Database } from '@/types/database';
 import type { TeamMember, TeamPermissions } from '@/types/settings';
 import type { User } from '@supabase/supabase-js';
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 interface AuthContextType {
   currentUser: TeamMember | null;
@@ -15,6 +18,7 @@ interface AuthContextType {
   isAdmin: boolean;
   switchUser: (id: string) => void;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   availableUsers: TeamMember[];
   canAccess: (permission: keyof TeamPermissions) => boolean;
 }
@@ -51,7 +55,7 @@ const RECEPTIONIST_PERMISSIONS: TeamPermissions = {
   securityAudit: false,
 };
 
-function mapProfileToTeamMember(profile: any, user?: User | null): TeamMember {
+function mapProfileToTeamMember(profile: ProfileRow, user?: User | null): TeamMember {
   const role = profile.role || 'MANAGING_LAWYER';
   const isAdmin = role === 'MANAGING_LAWYER';
   const memberType = role === 'RECEPTIONIST' ? 'ASSISTANT' : 'LAWYER';
@@ -65,14 +69,40 @@ function mapProfileToTeamMember(profile: any, user?: User | null): TeamMember {
   return {
     id: profile.id,
     tenantId: profile.tenant_id,
-    fullName: profile.full_name || user?.email || 'Advogado Administrador',
+    fullName: profile.full_name || (user?.user_metadata?.full_name as string) || user?.email || 'Advogado Administrador',
     email: profile.email || user?.email || '',
+    phone: profile.phone || (user?.user_metadata?.phone as string) || '',
+    oabNumber: profile.oab_number || (user?.user_metadata?.oab_number as string) || '',
+    avatarUrl: profile.avatar_url || (user?.user_metadata?.avatar_url as string) || '',
     memberType,
     isAdminLawyer: isAdmin,
     active: profile.is_active ?? true,
     permissions,
     createdAt: profile.created_at || new Date().toISOString(),
     updatedAt: profile.updated_at || new Date().toISOString(),
+  };
+}
+
+function buildFallbackMember(user: User): TeamMember {
+  return {
+    id: user.id,
+    tenantId:
+      (user.app_metadata?.tenant_id as string) ||
+      'tenant-default',
+    fullName:
+      (user.user_metadata?.full_name as string) ||
+      user.email?.split('@')[0] ||
+      'Administrador',
+    email: user.email || '',
+    phone: (user.user_metadata?.phone as string) || '',
+    oabNumber: (user.user_metadata?.oab_number as string) || '',
+    avatarUrl: (user.user_metadata?.avatar_url as string) || '',
+    memberType: 'LAWYER',
+    isAdminLawyer: true,
+    active: true,
+    permissions: ADMIN_PERMISSIONS,
+    createdAt: user.created_at,
+    updatedAt: user.created_at,
   };
 }
 
@@ -110,24 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCurrentUser(member);
             setAvailableUsers([member]);
           } else {
-            // Default admin member from authenticated user
-            const fallbackMember: TeamMember = {
-              id: session.user.id,
-              tenantId:
-                (session.user.app_metadata?.tenant_id as string) ||
-                'tenant-default',
-              fullName:
-                (session.user.user_metadata?.full_name as string) ||
-                session.user.email?.split('@')[0] ||
-                'Administrador',
-              email: session.user.email || '',
-              memberType: 'LAWYER',
-              isAdminLawyer: true,
-              active: true,
-              permissions: ADMIN_PERMISSIONS,
-              createdAt: session.user.created_at,
-              updatedAt: session.user.created_at,
-            };
+            const fallbackMember = buildFallbackMember(session.user);
             setCurrentUser(fallbackMember);
             setAvailableUsers([fallbackMember]);
           }
@@ -164,23 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setCurrentUser(member);
           setAvailableUsers([member]);
         } else {
-          const fallbackMember: TeamMember = {
-            id: session.user.id,
-            tenantId:
-              (session.user.app_metadata?.tenant_id as string) ||
-              'tenant-default',
-            fullName:
-              (session.user.user_metadata?.full_name as string) ||
-              session.user.email?.split('@')[0] ||
-              'Administrador',
-            email: session.user.email || '',
-            memberType: 'LAWYER',
-            isAdminLawyer: true,
-            active: true,
-            permissions: ADMIN_PERMISSIONS,
-            createdAt: session.user.created_at,
-            updatedAt: session.user.created_at,
-          };
+          const fallbackMember = buildFallbackMember(session.user);
           setCurrentUser(fallbackMember);
           setAvailableUsers([fallbackMember]);
         }
@@ -240,6 +237,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthUser(null);
   };
 
+  const refreshUser = async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setAuthUser(user);
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile) {
+        const member = mapProfileToTeamMember(profile, user);
+        setCurrentUser(member);
+        setAvailableUsers([member]);
+      } else {
+        const fallbackMember = buildFallbackMember(user);
+        setCurrentUser(fallbackMember);
+        setAvailableUsers([fallbackMember]);
+      }
+    } catch (err) {
+      console.error('Failed to refresh user:', err);
+    }
+  };
+
   const isAuthenticated = Boolean(currentUser && !currentUser.mustChangePassword);
   const permissions = currentUser?.permissions || null;
   const isAdmin = Boolean(currentUser?.isAdminLawyer || permissions?.adminSettings);
@@ -261,6 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         switchUser,
         logout,
+        refreshUser,
         availableUsers,
         canAccess,
       }}

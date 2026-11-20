@@ -36,6 +36,7 @@ versao: 1.0.0
 - [[#8. Máscaras Obrigatórias de Validação e Formatação]]
 - [[#9. Ambiente Emulado Local do Supabase (Docker)]]
 - [[#10. Expurgamento Total de Dados Mock e Conexão Integral de Produção]]
+- [[#11. Sincronização e Edição de Informações Pessoais do Usuário no Supabase]]
 - [[#Notas Relacionadas]]
 
 ---
@@ -280,6 +281,31 @@ Para garantir que o sistema entre em produção limpo (zero clientes fictícios,
    - `src/lib/data/mock-security.ts`: `INITIAL_AUDIT_LOGS = []`, `INITIAL_ACTIVE_SESSIONS = []`, `INITIAL_LGPD_CONSENTS = []`.
 8. **Política RLS de Atualização de Escritório (`supabase/migrations/20261119000004_tenant_update_policy.sql`)**:
    - Adicionada regra `FOR UPDATE` na tabela `public.tenants` permitindo que usuários autenticados atualizem as informações do seu próprio escritório (`auth.uid() = id`).
+
+---
+
+## 11. Sincronização e Edição de Informações Pessoais do Usuário no Supabase
+
+Para permitir que o operador visualize, corrija e atualize suas informações cadastrais registradas no sistema, a aba **"Meu Perfil / Informações Pessoais"** (`/settings?tab=profile`) foi totalmente desvinculada de mocks e integrada ao Supabase:
+
+### 11.1. Carga Dinâmica dos Dados do Usuário Autenticado
+1. **Recuperação Reativa via `useAuth`**: Ao abrir a tela de configurações, os campos do formulário são populados diretamente do `currentUser` (`full_name`, `email`, `phone`, `oab_number`, `role`).
+2. **Formatação com Máscara de Telefone**: O campo de telefone aplica automaticamente a função `maskPhone`, garantindo o padrão brasileiro `(00) 90000-0000` para celular ou `(00) 0000-0000` para fixo durante a digitação.
+3. **Credencial de Acesso Imutável no Perfil**: O campo de e-mail é marcado como somente leitura (`readOnly`) com aviso visual de que se trata do identificador de login da conta, prevenindo desvios acidentais de identidade.
+
+### 11.2. Persistência Dual e Propagação Instantânea (`refreshUser`)
+Quando o operador clica em **"Salvar Alterações"**:
+- **Tabela `public.profiles`**: Atualiza `full_name`, `phone`, `oab_number` e `updated_at`.
+- **Metadados de Auth (`supabase.auth.updateUser`)**: Sincroniza os metadados do usuário autenticado no Supabase Auth.
+- **Propagação sem Reload (`refreshUser`)**: A função `refreshUser()` do `AuthContext` é invocada imediatamente, propagando o novo nome e OAB para a barra lateral, menu de usuário e cabeçalho instantaneamente, sem necessitar de recarregamento de página.
+
+### 11.3. Blindagem de Segurança e RLS Reforçado (`20261120000000_add_profile_contact_fields.sql`)
+1. **Privilégios de Nível de Coluna (*Column-Level Security*)**:
+   - Para evitar escalação de privilégios onde um operador comum pudesse tentar alterar sua própria `role` para `MANAGING_LAWYER` ou alterar seu `tenant_id`, o comando `REVOKE UPDATE ON public.profiles FROM authenticated` foi aplicado, liberando apenas `GRANT UPDATE (full_name, phone, oab_number, avatar_url, updated_at)`.
+2. **Validação Estrita de Tenant**:
+   - A política `User Update Own Profile` valida `id = auth.uid()` e `tenant_id = private.current_tenant_id()`.
+3. **Verificação de Senha Atual no Reset de Credencial**:
+   - A alteração de senha exige reautenticação prévia via `supabase.auth.signInWithPassword({ email, password: currentPassword })` antes de permitir `updateUser({ password: newPassword })`, impedindo sequestro de sessão em máquinas destravadas.
 
 ---
 
