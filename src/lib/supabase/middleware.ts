@@ -31,8 +31,12 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh auth session
-  await supabase.auth.getUser();
+  // Refresh auth session safely (never crash or block SSR if local Docker is offline)
+  try {
+    await supabase.auth.getUser();
+  } catch (e) {
+    // Graceful fallback when database or auth service is temporarily offline
+  }
 
   return supabaseResponse;
 }
