@@ -87,10 +87,26 @@ export async function createFastIntakeInDb(
   attendant: { id: string; name: string }
 ): Promise<Client> {
   const supabase = createClient();
-  const cleanCpf = data.cpf ? data.cpf.replace(/\D/g, '') : null;
+  const cleanCpf = data.cpf?.replace(/\D/g, '') || null;
   const normalizedName = data.fullName.toLowerCase().trim();
 
-  // 1. Insert Client
+  // 1. Pre-flight Check: CPF Uniqueness within Tenant
+  if (cleanCpf) {
+    const { data: existingClient } = await (supabase.from('clients') as any)
+      .select('id, full_name')
+      .eq('tenant_id', tenantId)
+      .eq('normalized_cpf', cleanCpf)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (existingClient) {
+      throw new Error(
+        `Já existe um cliente cadastrado com este CPF neste escritório (${existingClient.full_name}).`
+      );
+    }
+  }
+
+  // 2. Insert Client
   const { data: clientRow, error: clientErr } = await (supabase.from('clients') as any)
     .insert({
       tenant_id: tenantId,
@@ -111,7 +127,14 @@ export async function createFastIntakeInDb(
     .single();
 
   if (clientErr || !clientRow) {
-    throw new Error(clientErr?.message || 'Falha ao salvar cliente no banco.');
+    if (
+      clientErr?.code === '23505' ||
+      clientErr?.message?.includes('idx_clients_unique_cpf_per_tenant') ||
+      clientErr?.message?.includes('duplicate key')
+    ) {
+      throw new Error('Já existe um cliente cadastrado com este CPF neste escritório.');
+    }
+    throw new Error('Falha ao cadastrar cliente no banco de dados. Tente novamente.');
   }
 
   // 2. Insert Initial Attendance
@@ -163,10 +186,26 @@ export async function createFullClientInDb(
   photoUrl?: string
 ): Promise<Client> {
   const supabase = createClient();
-  const cleanCpf = input.cpf ? input.cpf.replace(/\D/g, '') : null;
+  const cleanCpf = input.cpf?.replace(/\D/g, '') || null;
   const normalizedName = input.fullName.toLowerCase().trim();
 
-  // 1. Insert Client with 32 fields
+  // 1. Pre-flight Check: CPF Uniqueness within Tenant
+  if (cleanCpf) {
+    const { data: existingClient } = await (supabase.from('clients') as any)
+      .select('id, full_name')
+      .eq('tenant_id', tenantId)
+      .eq('normalized_cpf', cleanCpf)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (existingClient) {
+      throw new Error(
+        `Já existe um cliente cadastrado com este CPF neste escritório (${existingClient.full_name}).`
+      );
+    }
+  }
+
+  // 2. Insert Client with 32 fields
   const { data: clientRow, error: clientErr } = await (supabase.from('clients') as any)
     .insert({
       tenant_id: tenantId,
@@ -208,7 +247,14 @@ export async function createFullClientInDb(
     .single();
 
   if (clientErr || !clientRow) {
-    throw new Error(clientErr?.message || 'Falha ao registrar cliente completo no banco.');
+    if (
+      clientErr?.code === '23505' ||
+      clientErr?.message?.includes('idx_clients_unique_cpf_per_tenant') ||
+      clientErr?.message?.includes('duplicate key')
+    ) {
+      throw new Error('Já existe um cliente cadastrado com este CPF neste escritório.');
+    }
+    throw new Error('Falha ao cadastrar ficha completa do cliente no banco de dados.');
   }
 
   // 2. Insert Initial Attendance

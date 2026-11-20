@@ -40,46 +40,41 @@ export default function NewClientIntakePage() {
   }
 
   const handleFastSuccess = async (data: FastIntakeData) => {
-    if (!currentUser?.tenantId) return;
-
-    try {
-      await createFastIntakeInDb(data, currentUser.tenantId, {
-        id: currentUser.id,
-        name: currentUser.fullName,
-      });
-      router.push('/');
-    } catch (err: any) {
-      alert(`Erro ao cadastrar cliente: ${err?.message || 'Erro inesperado'}`);
+    if (!currentUser?.tenantId) {
+      throw new Error('Sessão expirada ou escritório não identificado. Recarregue a página.');
     }
+
+    await createFastIntakeInDb(data, currentUser.tenantId, {
+      id: currentUser.id,
+      name: currentUser.fullName,
+    });
+    router.push('/');
   };
 
   const handleFullSave = async (
     data: ClientFullRegistrationInput,
     photoFile?: File
   ) => {
-    if (!currentUser?.tenantId) return;
-
-    try {
-      let photoUrl: string | undefined = undefined;
-      if (photoFile) {
-        photoUrl = await uploadClientPhotoToStorage(photoFile, currentUser.tenantId);
-      }
-
-      const client = await createFullClientInDb(
-        data,
-        currentUser.tenantId,
-        {
-          id: currentUser.id,
-          name: currentUser.fullName,
-        },
-        photoUrl
-      );
-
-      router.push(`/clientes/${client.id}`);
-    } catch (err: any) {
-      alert(`Erro ao salvar ficha completa: ${err?.message || 'Erro de comunicação'}`);
-      throw err;
+    if (!currentUser?.tenantId) {
+      throw new Error('Sessão expirada ou escritório não identificado. Recarregue a página.');
     }
+
+    let photoUrl: string | undefined = undefined;
+    if (photoFile) {
+      photoUrl = await uploadClientPhotoToStorage(photoFile, currentUser.tenantId);
+    }
+
+    const client = await createFullClientInDb(
+      data,
+      currentUser.tenantId,
+      {
+        id: currentUser.id,
+        name: currentUser.fullName,
+      },
+      photoUrl
+    );
+
+    router.push(`/clientes/${client.id}`);
   };
 
   return (

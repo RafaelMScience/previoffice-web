@@ -32,7 +32,7 @@ export interface FastIntakeData {
 interface FastIntakeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmitSuccess: (data: FastIntakeData) => void;
+  onSubmitSuccess: (data: FastIntakeData) => void | Promise<void>;
 }
 
 export function FastIntakeModal({
@@ -153,15 +153,13 @@ export function FastIntakeModal({
     }
 
     setSubmitting(true);
+    setErrorMsg(null);
 
     try {
-      // Simulate quick async registration
-      await new Promise((resolve) => setTimeout(resolve, 350));
-
       const creator = teamMembers.find((m) => m.id === createdById);
       const lawyer = activeLawyers.find((m) => m.id === assignedLawyerId);
 
-      onSubmitSuccess({
+      await onSubmitSuccess({
         fullName: fullName.trim(),
         phone: phone.trim(),
         cpf: cleanCpf || '',
@@ -172,8 +170,9 @@ export function FastIntakeModal({
       });
 
       onClose();
-    } catch {
-      setErrorMsg('Falha ao registrar entrada rápida. Tente novamente.');
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Falha ao registrar entrada rápida. Tente novamente.');
+    } finally {
       setSubmitting(false);
     }
   };

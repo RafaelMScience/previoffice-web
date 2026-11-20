@@ -18,6 +18,7 @@ import {
   Check,
   ShieldCheck,
   Camera,
+  AlertCircle,
 } from 'lucide-react';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { maskCpf, maskPhone, maskCep, maskBenefitNumber } from '@/lib/utils/masks';
@@ -39,6 +40,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   const { currentUser } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Photo upload state
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -152,42 +154,49 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     startTransition(async () => {
-      const payload: ClientFullRegistrationInput = {
-        fullName,
-        cpf: cpf ? cpf.replace(/\D/g, '') : undefined,
-        rg: rg || undefined,
-        birthDate: birthDate || undefined,
-        maritalStatus,
-        profession: profession || undefined,
-        nationality: 'Brasileira',
-        motherName: motherName || undefined,
-        fatherName: fatherName || undefined,
-        postalCode: postalCode || undefined,
-        street: street || undefined,
-        streetNumber: streetNumber || undefined,
-        complement: complement || undefined,
-        neighborhood: neighborhood || undefined,
-        city: city || undefined,
-        state: state || undefined,
-        mobilePhone,
-        phone: phone || undefined,
-        email: email || undefined,
-        benefitType,
-        hasActiveBenefit: false,
-        benefitNumber: benefitNumber || undefined,
-        specialCategories: [specialCategory],
-        dependentCount: 0,
-        inssPassword: inssPassword || undefined,
-        notes: notes || undefined,
-        physicalFileLocation: physicalFileLocation || undefined,
-      };
+      try {
+        const payload: ClientFullRegistrationInput = {
+          fullName,
+          cpf: cpf ? cpf.replace(/\D/g, '') : undefined,
+          rg: rg || undefined,
+          birthDate: birthDate || undefined,
+          maritalStatus,
+          profession: profession || undefined,
+          nationality: 'Brasileira',
+          motherName: motherName || undefined,
+          fatherName: fatherName || undefined,
+          postalCode: postalCode || undefined,
+          street: street || undefined,
+          streetNumber: streetNumber || undefined,
+          complement: complement || undefined,
+          neighborhood: neighborhood || undefined,
+          city: city || undefined,
+          state: state || undefined,
+          mobilePhone,
+          phone: phone || undefined,
+          email: email || undefined,
+          benefitType,
+          hasActiveBenefit: false,
+          benefitNumber: benefitNumber || undefined,
+          specialCategories: [specialCategory],
+          dependentCount: 0,
+          inssPassword: inssPassword || undefined,
+          notes: notes || undefined,
+          physicalFileLocation: physicalFileLocation || undefined,
+        };
 
-      if (onSave) {
-        await onSave(payload, photoFile || undefined);
+        if (onSave) {
+          await onSave(payload, photoFile || undefined);
+        }
+        setSuccessMessage(t.clientForm.saveSuccess);
+        setTimeout(() => setSuccessMessage(null), 4000);
+      } catch (err: any) {
+        setErrorMessage(
+          err?.message || 'Erro ao salvar cliente no banco de dados. Verifique os dados informados.'
+        );
       }
-      setSuccessMessage(t.clientForm.saveSuccess);
-      setTimeout(() => setSuccessMessage(null), 4000);
     });
   };
 
@@ -308,6 +317,14 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
               </button>
             </div>
           </div>
+
+          {/* Validation / Error Banner */}
+          {errorMessage && (
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-3 animate-in fade-in shadow-xs">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div className="flex-1 font-medium">{errorMessage}</div>
+            </div>
+          )}
 
           {/* Section 1: Personal Identification */}
           <div id="personal" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">

@@ -130,12 +130,44 @@ export function TeamManagementTab() {
   const handleSaveMember = (
     memberData: Omit<TeamMember, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>
   ) => {
+    const emailLower = memberData.email.trim().toLowerCase();
+
+    // Check duplicate email across team members
+    if (editingMember) {
+      const isDuplicate = members.some(
+        (m) => m.id !== editingMember.id && m.email.trim().toLowerCase() === emailLower
+      );
+      if (isDuplicate) {
+        setWarningMessage(
+          locale === 'pt-BR'
+            ? `Já existe outro membro da equipe cadastrado com o e-mail "${emailLower}".`
+            : `Another team member is already registered with email "${emailLower}".`
+        );
+        setTimeout(() => setWarningMessage(null), 4000);
+        return;
+      }
+    } else {
+      const isDuplicate = members.some(
+        (m) => m.email.trim().toLowerCase() === emailLower
+      );
+      if (isDuplicate) {
+        setWarningMessage(
+          locale === 'pt-BR'
+            ? `Já existe um membro da equipe cadastrado com o e-mail "${emailLower}".`
+            : `A team member is already registered with email "${emailLower}".`
+        );
+        setTimeout(() => setWarningMessage(null), 4000);
+        return;
+      }
+    }
+
     let saved: TeamMember | null = null;
     if (editingMember) {
       const isPrimaryAdmin = editingMember.id === 'usr-001';
       saved = settingsStore.updateTeamMember({
         ...editingMember,
         ...memberData,
+        email: emailLower,
         active: isPrimaryAdmin ? true : memberData.active,
         permissions: isPrimaryAdmin
           ? { ...memberData.permissions, adminSettings: true }
@@ -145,7 +177,10 @@ export function TeamManagementTab() {
         setMembers((prev) => prev.map((m) => (m.id === saved!.id ? saved! : m)));
       }
     } else {
-      saved = settingsStore.addTeamMember(memberData);
+      saved = settingsStore.addTeamMember({
+        ...memberData,
+        email: emailLower,
+      });
       if (saved) {
         setMembers((prev) => [...prev, saved!]);
       }
@@ -429,6 +464,9 @@ export function TeamManagementTab() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         memberToEdit={editingMember}
+        existingEmails={members
+          .filter((m) => m.id !== editingMember?.id)
+          .map((m) => m.email.trim().toLowerCase())}
         onSave={handleSaveMember}
       />
 

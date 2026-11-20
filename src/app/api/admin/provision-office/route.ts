@@ -60,34 +60,102 @@ export async function POST(request: NextRequest) {
 
     const adminClient = createAdminClient();
 
-    // 4. Insert Tenant in Supabase
+    const cleanOfficeEmail = officeEmail.trim().toLowerCase();
+    const cleanLawyerEmail = lawyerEmail.trim().toLowerCase();
+    const cleanTaxId = taxId ? taxId.replace(/\D/g, '') : null;
+
+    // 4. Pre-Flight Uniqueness Checks
+
+    // 4a. Check if lawyer email already exists in profiles
+    const { data: existingProfile } = await adminClient
+      .from('profiles')
+      .select('id, email, full_name')
+      .eq('email', cleanLawyerEmail)
+      .maybeSingle();
+
+    if (existingProfile) {
+      return NextResponse.json(
+        {
+          error: `O e-mail do advogado administrador (${cleanLawyerEmail}) já está cadastrado no sistema para "${existingProfile.full_name}". Não é permitido duplicar o e-mail de acesso.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    // 4b. Check if office institutional email already exists in tenants
+    const { data: existingTenantEmail } = await adminClient
+      .from('tenants')
+      .select('id, email, office_name')
+      .eq('email', cleanOfficeEmail)
+      .maybeSingle();
+
+    if (existingTenantEmail) {
+      return NextResponse.json(
+        {
+          error: `O e-mail institucional informado (${cleanOfficeEmail}) já está cadastrado para o escritório "${existingTenantEmail.office_name}".`,
+        },
+        { status: 409 }
+      );
+    }
+
+    // 5. Insert Tenant in Supabase (enforced atomically by unique indexes idx_tenants_unique_email_lower and idx_tenants_unique_tax_id_digits)
     const { data: tenantData, error: tenantError } = await adminClient
       .from('tenants')
       .insert({
-        office_name: officeName,
-        lead_lawyer_name: lawyerName,
-        oab_number: `${oabNumber}/${oabUf}`,
-        tax_id: taxId || null,
-        phone,
-        whatsapp: phone,
-        email: officeEmail,
-        address: address || null,
+        office_name: officeName.trim(),
+        lead_lawyer_name: lawyerName.trim(),
+        oab_number: `${oabNumber.trim()}/${oabUf.trim()}`,
+        tax_id: taxId ? taxId.trim() : null,
+        phone: phone ? phone.trim() : null,
+        whatsapp: phone ? phone.trim() : null,
+        email: cleanOfficeEmail,
+        address: address ? address.trim() : null,
         plan_type: planType,
       })
       .select()
       .single();
 
     if (tenantError || !tenantData) {
+      const isUniqueTax =
+        tenantError?.message?.includes('idx_tenants_unique_tax_id_digits') ||
+        tenantError?.details?.includes('idx_tenants_unique_tax_id_digits');
+      if (isUniqueTax) {
+        return NextResponse.json(
+          { error: 'Já existe um escritório cadastrado com este CNPJ/CPF.' },
+          { status: 409 }
+        );
+      }
+
+      const isUniqueEmail =
+        tenantError?.message?.includes('idx_tenants_unique_email_lower') ||
+        tenantError?.details?.includes('idx_tenants_unique_email_lower');
+      if (isUniqueEmail) {
+        return NextResponse.json(
+          {
+            error: `O e-mail institucional informado (${cleanOfficeEmail}) já está cadastrado para outro escritório.`,
+          },
+          { status: 409 }
+        );
+      }
+
+      const isUniqueViolation =
+        tenantError?.code === '23505' ||
+        tenantError?.message?.includes('duplicate key') ||
+        tenantError?.message?.includes('unique');
       return NextResponse.json(
-        { error: `Erro ao criar escritório: ${tenantError?.message}` },
-        { status: 500 }
+        {
+          error: isUniqueViolation
+            ? 'Já existe um escritório cadastrado com este e-mail ou CNPJ/CPF.'
+            : 'Falha ao processar o cadastro do escritório no banco de dados.',
+        },
+        { status: isUniqueViolation ? 409 : 500 }
       );
     }
 
-    // 5. Create Managing Lawyer in Supabase Auth
+    // 6. Create Managing Lawyer in Supabase Auth (enforces auth email uniqueness)
     const { data: authData, error: authError } =
       await adminClient.auth.admin.createUser({
-        email: lawyerEmail,
+        email: cleanLawyerEmail,
         password: lawyerPassword,
         email_confirm: true,
         app_metadata: {
@@ -95,29 +163,37 @@ export async function POST(request: NextRequest) {
           role: 'MANAGING_LAWYER',
         },
         user_metadata: {
-          full_name: lawyerName,
-          phone: phone || null,
-          oab_number: `${oabNumber}/${oabUf}`,
+          full_name: lawyerName.trim(),
+          phone: phone ? phone.trim() : null,
+          oab_number: `${oabNumber.trim()}/${oabUf.trim()}`,
         },
       });
 
     if (authError || !authData.user) {
       // Rollback tenant creation on auth failure
       await adminClient.from('tenants').delete().eq('id', tenantData.id);
+      const isDuplicateAuth =
+        authError?.message?.toLowerCase().includes('already') ||
+        authError?.message?.toLowerCase().includes('registered') ||
+        authError?.status === 422;
       return NextResponse.json(
-        { error: `Erro ao criar usuário administrador: ${authError?.message}` },
-        { status: 500 }
+        {
+          error: isDuplicateAuth
+            ? `O e-mail "${cleanLawyerEmail}" já possui uma conta de autenticação cadastrada.`
+            : 'Erro ao criar usuário administrador no serviço de autenticação.',
+        },
+        { status: isDuplicateAuth ? 409 : 500 }
       );
     }
 
-    // 6. Create Profile in public.profiles
+    // 7. Create Profile in public.profiles (enforced by idx_profiles_unique_email_lower)
     const { error: profileError } = await adminClient.from('profiles').insert({
       id: authData.user.id,
       tenant_id: tenantData.id,
-      full_name: lawyerName,
-      email: lawyerEmail,
-      phone: phone || null,
-      oab_number: `${oabNumber}/${oabUf}`,
+      full_name: lawyerName.trim(),
+      email: cleanLawyerEmail,
+      phone: phone ? phone.trim() : null,
+      oab_number: `${oabNumber.trim()}/${oabUf.trim()}`,
       role: 'MANAGING_LAWYER',
       is_active: true,
     });
@@ -126,9 +202,17 @@ export async function POST(request: NextRequest) {
       // Rollback both created auth user and tenant to prevent orphaned records
       await adminClient.auth.admin.deleteUser(authData.user.id);
       await adminClient.from('tenants').delete().eq('id', tenantData.id);
+      const isUniqueViolation =
+        profileError.code === '23505' ||
+        profileError.message.includes('duplicate key') ||
+        profileError.message.includes('unique');
       return NextResponse.json(
-        { error: `Erro ao vincular perfil: ${profileError.message}` },
-        { status: 500 }
+        {
+          error: isUniqueViolation
+            ? `O e-mail "${cleanLawyerEmail}" já está em uso por outro perfil no sistema.`
+            : 'Erro ao vincular perfil do advogado administrador.',
+        },
+        { status: isUniqueViolation ? 409 : 500 }
       );
     }
 

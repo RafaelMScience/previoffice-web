@@ -89,24 +89,22 @@ export default function ReceptionDashboardPage() {
 
   // Handle Fast Intake Success
   const handleFastIntakeSuccess = async (data: FastIntakeData) => {
-    if (!currentUser?.tenantId) return;
-
-    try {
-      await createFastIntakeInDb(data, currentUser.tenantId, {
-        id: currentUser.id,
-        name: currentUser.fullName,
-      });
-
-      setFastIntakeSuccessMsg(
-        `${t.fastIntake.successMessage} (${data.fullName} — ${data.phone})`
-      );
-      setTimeout(() => setFastIntakeSuccessMsg(null), 5000);
-
-      // Reload real clients from Supabase
-      await loadClients();
-    } catch (err: any) {
-      alert(`Erro ao registrar cliente: ${err?.message || 'Falha de comunicação'}`);
+    if (!currentUser?.tenantId) {
+      throw new Error('Sessão expirada ou escritório não identificado. Recarregue a página.');
     }
+
+    await createFastIntakeInDb(data, currentUser.tenantId, {
+      id: currentUser.id,
+      name: currentUser.fullName,
+    });
+
+    setFastIntakeSuccessMsg(
+      `${t.fastIntake.successMessage} (${data.fullName} — ${data.phone})`
+    );
+    setTimeout(() => setFastIntakeSuccessMsg(null), 5000);
+
+    // Reload real clients from Supabase
+    await loadClients();
   };
 
   const handleOpenMemoryCard = (row: ReceptionTableRow) => {

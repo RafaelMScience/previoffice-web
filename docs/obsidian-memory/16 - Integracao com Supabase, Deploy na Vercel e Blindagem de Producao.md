@@ -309,6 +309,32 @@ Quando o operador clica em **"Salvar Alterações"**:
 
 ---
 
+## 12. Blindagem Antiduplicidade e Unicidade Estrita de E-mail, CNPJ e CPF
+
+Para impedir corrupção cadastral, conflitos de login e contas duplicadas com senhas divergentes, foi implementada uma blindagem antiduplicidade completa em 3 camadas (Banco de Dados PostgreSQL, APIs Next.js e Interfaces de Usuário):
+
+### 12.1. Unicidade a Nível de Banco de Dados (`20261120000001` e `20261120000002`)
+1. **Perfis de Usuário (`public.profiles`)**:
+   - `idx_profiles_unique_email_lower`: Índice único em `LOWER(email)`, impedindo que o mesmo endereço de e-mail seja vinculado a múltiplos operadores, mesmo com variações de maiúsculas/minúsculas.
+2. **Escritórios Jurídicos (`public.tenants`)**:
+   - `idx_tenants_unique_email_lower`: Índice único em `LOWER(email)` para o e-mail institucional do escritório.
+   - `idx_tenants_unique_tax_id_digits`: Índice único parcial sobre os dígitos normalizados `REGEXP_REPLACE(tax_id, '\D', '', 'g')`, impedindo cadastros duplicados de CNPJ ou CPF entre escritórios e ignorando valores não numéricos vazios.
+3. **Clientes Previdenciários (`public.clients`)**:
+   - `idx_clients_unique_cpf_per_tenant`: Índice único parcial composto sobre `(tenant_id, normalized_cpf)` para registros onde `normalized_cpf` não é nulo/vazio e `deleted_at IS NULL`. Isso bloqueia cadastros duplicados do mesmo cliente no mesmo escritório, permitindo o isolamento multi-tenant.
+
+### 12.2. Pre-Flight Checks e Validação Atômica nas Rotas de Provisionamento (`/api/admin/provision-office`)
+1. **Verificação de E-mail de Administrador**: Checagem prévia na tabela `profiles` com `.eq('email', cleanLawyerEmail)`. Se já existir, rejeita com HTTP 409 e mensagem informativa indicando o nome do titular já cadastrado.
+2. **Verificação de E-mail Institucional**: Checagem prévia na tabela `tenants` com `.eq('email', cleanOfficeEmail)`. Se duplicado, rejeita com HTTP 409 informando o nome do escritório titular.
+3. **Criação Atômica de Auth com Rollback**: A criação no Supabase Auth (`admin.createUser`) garante a unicidade da credencial de login. Caso a criação de perfil posterior falhe por constraint, o usuário auth e o tenant são sumariamente expurgados (*rollback* atômico).
+4. **Tratamento de Violação de Constraints (Erro 23505)**: Qualquer tentativa concorrente de duplicidade aciona captura de código `23505` retornando mensagens amigáveis em português ao painel de provisionamento.
+
+### 12.3. Validações e Banners de Alerta nas Interfaces de Cadastro
+1. **Entrada Rápida (`FastIntakeModal`)**: Validação de CPF único por escritório via `createFastIntakeInDb`. Em caso de duplicidade, o modal não é fechado e exibe um banner vermelho explicativo com o nome do cliente já cadastrado.
+2. **Ficha Completa (`ClientFullForm`)**: Tratamento de erro síncrono com banner visual de alerta em caso de CPF duplicado, sem recarregamento ou fechamento involuntário de tela.
+3. **Gestão de Equipe (`TeamManagementTab` & `AddTeamMemberModal`)**: Validação antes do salvamento impedindo a adição ou alteração de membros da equipe com e-mail já existente na banca.
+
+---
+
 ## Notas Relacionadas
 - [[00 - Planejamento Geral e Arquitetura da Versão Web]] — Visão geral da plataforma
 - [[11 - Arquitetura de Seguranca Cibernetica, Defesa Anti-Hacker e Protecao Anti-DDoS]] — Defesa cibernética e blindagem

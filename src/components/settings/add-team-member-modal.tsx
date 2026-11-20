@@ -16,6 +16,7 @@ import {
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
@@ -35,6 +36,7 @@ interface AddTeamMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   memberToEdit?: TeamMember | null;
+  existingEmails?: string[];
   onSave: (memberData: Omit<TeamMember, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>) => void;
 }
 
@@ -72,6 +74,7 @@ export function AddTeamMemberModal({
   isOpen,
   onClose,
   memberToEdit,
+  existingEmails,
   onSave,
 }: AddTeamMemberModalProps) {
   const { t } = useI18n();
@@ -85,8 +88,10 @@ export function AddTeamMemberModal({
   const [tempPassword, setTempPassword] = useState('');
   const [active, setActive] = useState(true);
   const [permissions, setPermissions] = useState<TeamPermissions>(DEFAULT_PERMISSIONS.LAWYER);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    setErrorMsg(null);
     if (memberToEdit) {
       setFullName(memberToEdit.fullName);
       setEmail(memberToEdit.email);
@@ -128,11 +133,18 @@ export function AddTeamMemberModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     if (!fullName.trim() || !email.trim()) return;
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (existingEmails && existingEmails.includes(cleanEmail)) {
+      setErrorMsg(`O e-mail "${cleanEmail}" já está cadastrado para outro membro.`);
+      return;
+    }
 
     onSave({
       fullName: fullName.trim(),
-      email: email.trim().toLowerCase(),
+      email: cleanEmail,
       phone: phone.trim() || undefined,
       memberType,
       oabNumber: memberType === 'LAWYER' ? oabNumber.trim() : undefined,
@@ -174,6 +186,12 @@ export function AddTeamMemberModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+          {errorMsg && (
+            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2.5 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <span className="font-medium">{errorMsg}</span>
+            </div>
+          )}
           {/* Member Classification Selection */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-2">
