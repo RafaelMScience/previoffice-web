@@ -241,6 +241,10 @@ flowchart LR
 - `npm run supabase:status`: Exibe URLs e chaves ativas do cluster local.
 - `npm run supabase:reset`: Apaga o banco local e reaplica todas as tabelas e migrations do zero em segundos.
 
+### 9.3. Replicação Nuvem vs Local e CSP
+1. **Migrations Paritárias**: O banco local Docker executa as mesmas 4 migrations de produção (`20261115000000_initial_schema.sql`, `20261119000001_harden_security_functions.sql`, `20261119000002_storage_policies.sql`, `20261119000003_create_storage_buckets.sql`).
+2. **CSP Híbrido**: O header `Content-Security-Policy` no `next.config.mjs` permite conexões tanto para `https://*.supabase.co` quanto para `http://127.0.0.1:*` e `http://localhost:*`, permitindo alternar livremente entre desenvolvimento local e produção sem bloqueios de rede no navegador.
+
 ---
 
 ## Notas Relacionadas
