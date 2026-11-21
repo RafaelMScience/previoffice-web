@@ -25,7 +25,7 @@ Pelo presente instrumento particular, regido pela Lei Federal nº 8.906/1994 (Es
 
 CONTRATANTE: {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente e domiciliado(a) em {{ENDERECO}}, telefone/WhatsApp: {{TELEFONE}}.
 
-CONTRATADA: SOCIEDADE DE ADVOGADOS, representada neste ato pelo(a) advogado(a) Dr(a). {{NOME_ADVOGADO}}, inscrito(a) na OAB sob o nº {{OAB_ADVOGADO}}, com sede e domicílio profissional no escritório central.
+CONTRATADA: {{NOME_ESCRITORIO}}, representada neste ato pelo(a) advogado(a) {{ADVOGADO}}, inscrito(a) na {{OAB}}, com domicílio profissional no escritório central.
 
 As partes ajustam o presente contrato mediante as seguintes cláusulas:
 
@@ -65,7 +65,7 @@ Localidade, {{DATA_EXTENSO}}.`,
     tenantId: 'system',
     title: 'Minuta Padrão — Benefício Assistencial BPC/LOAS',
     documentCategory: 'FEE_CONTRACT',
-    benefitSpecies: 'Benefício de Prestação Continuada (BPC/LOAS Idoso)',
+    benefitSpecies: 'BPC/LOAS',
     description: 'Padrão oficial com cláusulas de assistência social sem carência (Lei 8.742/93), avaliação pericial e honorários de êxito.',
     defaultFeeModel: 'QUOTA_LITIS',
     defaultQuotaLitisPercentage: 30,
@@ -642,14 +642,27 @@ export class ContractsStore {
           const missingInitials = INITIAL_CONTRACT_TEMPLATES.filter(
             (init) => !storedIds.has(init.id)
           );
-          // If stored templates have old versions of initial templates that lacked the robust legal header,
-          // update them to the robust system version unless modified by the user
+          // Normalize stored templates: system initial templates receive updated institutional formats,
+          // while custom user-created templates are fully preserved with all their data
           const updatedTemplates = parsed.map((storedTpl: ContractTemplate) => {
             const initial = INITIAL_CONTRACT_TEMPLATES.find((i) => i.id === storedTpl.id);
-            if (initial && !storedTpl.contentBody.includes('Lei Federal nº 8.906/1994')) {
-              return { ...initial, ...storedTpl, contentBody: initial.contentBody };
+            if (initial) {
+              return {
+                ...initial,
+                ...storedTpl,
+                tenantId: initial.tenantId,
+                title: initial.title,
+                lawyerName: storedTpl.lawyerName || undefined,
+                lawyerOab: storedTpl.lawyerOab || undefined,
+                documentCategory: storedTpl.documentCategory || initial.documentCategory,
+                contentBody: initial.contentBody,
+              };
             }
-            return storedTpl;
+            return {
+              ...storedTpl,
+              tenantId: storedTpl.tenantId || 'tenant-001',
+              documentCategory: storedTpl.documentCategory || 'FEE_CONTRACT',
+            };
           });
           this.templates = [...updatedTemplates, ...missingInitials];
         } else {

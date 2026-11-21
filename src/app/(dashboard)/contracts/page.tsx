@@ -99,7 +99,7 @@ export default function ContractsPage() {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const tenantId = currentUser?.tenantId || '';
+      const tenantId = currentUser?.tenantId || 'tenant-001';
       // Dispatch independent queries in parallel to eliminate waterfall latency
       const [contractsResult, templatesResult] = await Promise.allSettled([
         fetchContractsFromDb(tenantId),
@@ -150,7 +150,7 @@ export default function ContractsPage() {
     receiptReference?: string,
     notes?: string
   ) => {
-    const tenantId = currentUser?.tenantId || '';
+    const tenantId = currentUser?.tenantId || 'tenant-001';
     const previousContracts = [...contracts];
     const previousSelected = selectedContractForInstallments;
 
@@ -214,7 +214,7 @@ export default function ContractsPage() {
     contractId: string,
     attachment: PhysicalDocumentAttachment
   ) => {
-    const tenantId = currentUser?.tenantId || '';
+    const tenantId = currentUser?.tenantId || 'tenant-001';
     await updateContractSignedStatusInDb(contractId, tenantId, 'ATTACHED', attachment);
     await refreshData();
     triggerToast(t.contracts.uploadSuccessToast);
