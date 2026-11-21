@@ -29,7 +29,7 @@ supabase/.temp/
 .temp/
 
 # Local diagnostic scripts
-scripts/
+/scripts/
 
 # Debug
 npm-debug.log*
