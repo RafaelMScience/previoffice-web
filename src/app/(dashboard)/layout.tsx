@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { OperatorSwitcherModal } from '@/components/ui/operator-switcher-modal';
 import { createClient } from '@/lib/supabase/client';
+import { dedupeRequest } from '@/lib/cache/request-cache';
 
 const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
 
@@ -35,15 +36,28 @@ export default function DashboardLayout({
     const supabase = createClient();
     async function loadCounts() {
       try {
-        const [{ count: clientsCount }, { count: attendancesCount }] = await Promise.all([
-          (supabase.from('clients') as any).select('*', { count: 'exact', head: true }).eq('tenant_id', currentUser!.tenantId).is('deleted_at', null),
-          (supabase.from('attendances') as any).select('*', { count: 'exact', head: true }).eq('tenant_id', currentUser!.tenantId),
-        ]);
+        const counts = await dedupeRequest(
+          `nav-counts:${currentUser!.tenantId}`,
+          async () => {
+            const [{ count: clientsCount }, { count: attendancesCount }] = await Promise.all([
+              (supabase.from('clients') as any)
+                .select('*', { count: 'exact', head: true })
+                .eq('tenant_id', currentUser!.tenantId)
+                .is('deleted_at', null),
+              (supabase.from('attendances') as any)
+                .select('*', { count: 'exact', head: true })
+                .eq('tenant_id', currentUser!.tenantId),
+            ]);
+            return {
+              clients: clientsCount || 0,
+              attendances: attendancesCount || 0,
+            };
+          },
+          { ttlMs: 15000 }
+        );
+
         if (isMounted) {
-          setNavCounts({
-            clients: clientsCount || 0,
-            attendances: attendancesCount || 0,
-          });
+          setNavCounts(counts);
         }
       } catch (e) {
         console.error('Error fetching nav counts:', e);

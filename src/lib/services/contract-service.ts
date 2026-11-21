@@ -7,6 +7,7 @@
 import type { IContractRepository } from '../repositories/contract-repository.ts';
 import { SupabaseContractRepository } from '../repositories/supabase-contract-repository.ts';
 import { MockContractRepository } from '../repositories/mock-contract-repository.ts';
+import { dedupeRequest, invalidateCache } from '../cache/request-cache.ts';
 import type {
   Contract,
   ContractKpis,
@@ -54,19 +55,21 @@ export function setContractRepository(repo: IContractRepository) {
  * Falls back to local storage if database yields 0 or fails.
  */
 export async function fetchContractsFromDb(tenantId: string): Promise<Contract[]> {
-  const repo = getContractRepository();
-  try {
-    const dbContracts = await repo.fetchContracts(tenantId);
-    if (dbContracts.length > 0) {
-      return dbContracts;
+  return dedupeRequest(`contracts:list:${tenantId}`, async () => {
+    const repo = getContractRepository();
+    try {
+      const dbContracts = await repo.fetchContracts(tenantId);
+      if (dbContracts.length > 0) {
+        return dbContracts;
+      }
+    } catch (err) {
+      console.warn('Database fetch failed, falling back to local store:', err);
     }
-  } catch (err) {
-    console.warn('Database fetch failed, falling back to local store:', err);
-  }
 
-  // Graceful fallback to local mock store
-  const mockRepo = new MockContractRepository();
-  return mockRepo.fetchContracts(tenantId);
+    // Graceful fallback to local mock store
+    const mockRepo = new MockContractRepository();
+    return mockRepo.fetchContracts(tenantId);
+  }, { ttlMs: 10000 });
 }
 
 /**
@@ -83,6 +86,7 @@ export async function saveContractToDb(contract: Contract): Promise<void> {
   // Always keep mock store in sync for seamless offline/hybrid operation
   const mockRepo = new MockContractRepository();
   await mockRepo.saveContract(contract);
+  invalidateCache('contracts:');
 }
 
 /**
@@ -103,6 +107,7 @@ export async function updateContractSignedStatusInDb(
 
   const mockRepo = new MockContractRepository();
   await mockRepo.updatePhysicalSignedStatus(contractId, tenantId, status, attachment);
+  invalidateCache('contracts:');
 }
 
 /**
@@ -141,6 +146,7 @@ export async function settleContractInstallmentInDb(
     notes
   );
 
+  invalidateCache('contracts:');
   return updated || mockUpdated;
 }
 
@@ -212,6 +218,8 @@ export function calculateContractKpis(contracts: Contract[]): ContractKpis {
  * Fetch contract templates.
  */
 export async function fetchContractTemplates(tenantId: string): Promise<ContractTemplate[]> {
-  const repo = getContractRepository();
-  return repo.fetchTemplates(tenantId);
+  return dedupeRequest(`templates:list:${tenantId}`, async () => {
+    const repo = getContractRepository();
+    return repo.fetchTemplates(tenantId);
+  }, { ttlMs: 60000 });
 }

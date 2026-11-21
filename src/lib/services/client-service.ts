@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { encryptData, decryptData, isEncrypted } from '@/lib/security/encryption';
+import { dedupeRequest, invalidateCache } from '../cache/request-cache.ts';
 import type { Client, ClientStatus, MaritalStatus, SpecialCategory } from '@/types/client';
 import type { Attendance, AttendanceType, AttendanceWithClient, PendingPhysicalDocument } from '@/types/attendance';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
@@ -11,75 +12,81 @@ import type { FastIntakeData } from '@/components/reception/fast-intake-modal';
  */
 
 export async function fetchClientsFromDb(tenantId: string): Promise<Client[]> {
-  const supabase = createClient();
+  return dedupeRequest(`clients:list:${tenantId}`, async () => {
+    const supabase = createClient();
 
-  const { data, error } = await (supabase.from('clients') as any)
-    .select('*, attendances(id, pending_documents, attended_at)')
-    .eq('tenant_id', tenantId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+    const { data, error } = await (supabase.from('clients') as any)
+      .select('*, attendances(id, pending_documents, attended_at)')
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
 
-  if (error || !data) {
-    console.error('Error fetching clients from Supabase:', error);
-    return [];
-  }
+    if (error) {
+      console.error('Error fetching clients from Supabase:', error);
+      throw error;
+    }
 
-  return (data as any[]).map(mapDbRowToClient);
+    if (!data) return [];
+
+    return (data as any[]).map(mapDbRowToClient);
+  }, { ttlMs: 10000 });
 }
 
 export async function fetchClientByIdFromDb(
   clientId: string,
   tenantId: string
 ): Promise<{ client: Client | null; attendances: Attendance[]; documents: any[] }> {
-  const supabase = createClient();
+  return dedupeRequest(`clients:dossier:${tenantId}:${clientId}`, async () => {
+    const supabase = createClient();
 
-  // 1. Fetch Client
-  const { data: clientRow, error: clientError } = await (supabase.from('clients') as any)
-    .select('*')
-    .eq('id', clientId)
-    .eq('tenant_id', tenantId)
-    .is('deleted_at', null)
-    .maybeSingle();
+    // 1. Fetch Client
+    const { data: clientRow, error: clientError } = await (supabase.from('clients') as any)
+      .select('*')
+      .eq('id', clientId)
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .maybeSingle();
 
-  if (clientError || !clientRow) {
-    return { client: null, attendances: [], documents: [] };
-  }
+    if (clientError || !clientRow) {
+      return { client: null, attendances: [], documents: [] };
+    }
 
-  // 2. Fetch Attendances
-  const { data: attendanceRows } = await (supabase.from('attendances') as any)
-    .select('*')
-    .eq('client_id', clientId)
-    .eq('tenant_id', tenantId)
-    .order('attended_at', { ascending: false });
+    // 2. Fetch Attendances
+    const { data: attendanceRows } = await (supabase.from('attendances') as any)
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('tenant_id', tenantId)
+      .order('attended_at', { ascending: false });
 
-  // 3. Fetch Documents
-  const { data: docRows } = await (supabase.from('documents') as any)
-    .select('*')
-    .eq('client_id', clientId)
-    .eq('tenant_id', tenantId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
+    // 3. Fetch Documents
+    const { data: docRows } = await (supabase.from('documents') as any)
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('tenant_id', tenantId)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
 
-  const client = mapDbRowToClient(clientRow);
-  const attendances: Attendance[] = (attendanceRows || []).map((row: any) => ({
-    id: row.id,
-    tenantId: row.tenant_id,
-    clientId: row.client_id,
-    attendanceType: (row.attendance_type as AttendanceType) || 'OTHER',
-    attendedAt: row.attended_at,
-    objective: row.objective,
-    narrativeHistory: row.narrative_history || undefined,
-    initialIntakeNotes: row.initial_intake_notes || undefined,
-    notes: row.notes || undefined,
-    attendantName: row.attendant_name || undefined,
-    attendantUserId: row.attendant_user_id || undefined,
-    pendingDocuments: row.pending_documents || [],
-    physicalFileLocation: row.physical_file_location || undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }));
+    const client = mapDbRowToClient(clientRow);
+    const attendances: Attendance[] = (attendanceRows || []).map((row: any) => ({
+      id: row.id,
+      tenantId: row.tenant_id,
+      clientId: row.client_id,
+      attendanceType: (row.attendance_type as AttendanceType) || 'OTHER',
+      attendedAt: row.attended_at,
+      objective: row.objective,
+      narrativeHistory: row.narrative_history || undefined,
+      initialIntakeNotes: row.initial_intake_notes || undefined,
+      notes: row.notes || undefined,
+      attendantName: row.attendant_name || undefined,
+      attendantUserId: row.attendant_user_id || undefined,
+      pendingDocuments: row.pending_documents || [],
+      physicalFileLocation: row.physical_file_location || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
 
-  return { client, attendances, documents: docRows || [] };
+    return { client, attendances, documents: docRows || [] };
+  }, { ttlMs: 10000 });
 }
 
 export async function createFastIntakeInDb(
@@ -163,6 +170,9 @@ export async function createFastIntakeInDb(
     attended_at: nowIso,
     pending_documents: pendingDocs,
   });
+
+  invalidateCache('clients:');
+  invalidateCache('nav-counts:');
 
   return mapDbRowToClient({
     ...clientRow,
@@ -332,6 +342,9 @@ export async function createFullClientInDb(
     });
   }
 
+  invalidateCache('clients:');
+  invalidateCache('nav-counts:');
+
   return mapDbRowToClient(clientRow);
 }
 
@@ -351,6 +364,9 @@ export async function updateAttendancePendingDocumentsInDb(
     console.error('Error updating pending documents in attendance:', error);
     throw new Error('Falha ao atualizar status dos documentos pendentes no banco de dados.');
   }
+
+  invalidateCache('clients:');
+  invalidateCache('attendances:');
 }
 
 export async function inactivateClientInDb(
@@ -373,41 +389,48 @@ export async function inactivateClientInDb(
   if (error) {
     throw new Error(error.message);
   }
+
+  invalidateCache('clients:');
+  invalidateCache('nav-counts:');
 }
 
 export async function fetchAttendancesFromDb(tenantId: string): Promise<AttendanceWithClient[]> {
-  const supabase = createClient();
-  const { data, error } = await (supabase.from('attendances') as any)
-    .select('*, client:clients(id, full_name, cpf, phone, mobile_phone, benefit_type)')
-    .eq('tenant_id', tenantId)
-    .order('attended_at', { ascending: false });
+  return dedupeRequest(`attendances:list:${tenantId}`, async () => {
+    const supabase = createClient();
+    const { data, error } = await (supabase.from('attendances') as any)
+      .select('*, client:clients(id, full_name, cpf, phone, mobile_phone, benefit_type)')
+      .eq('tenant_id', tenantId)
+      .order('attended_at', { ascending: false });
 
-  if (error || !data) {
-    console.error('Error fetching attendances from Supabase:', error);
-    return [];
-  }
+    if (error) {
+      console.error('Error fetching attendances from Supabase:', error);
+      throw error;
+    }
 
-  return (data as any[]).map((row: any) => ({
-    id: row.id,
-    tenantId: row.tenant_id,
-    clientId: row.client_id,
-    clientName: row.client?.full_name || 'Cliente',
-    clientCpf: row.client?.cpf || '',
-    clientPhone: row.client?.mobile_phone || row.client?.phone || '',
-    clientBenefitType: row.client?.benefit_type,
-    attendanceType: (row.attendance_type as AttendanceType) || 'OTHER',
-    attendedAt: row.attended_at,
-    objective: row.objective || '',
-    narrativeHistory: row.narrative_history || undefined,
-    initialIntakeNotes: row.initial_intake_notes || undefined,
-    notes: row.notes || undefined,
-    attendantName: row.attendant_name || undefined,
-    attendantUserId: row.attendant_user_id || undefined,
-    pendingDocuments: row.pending_documents || [],
-    physicalFileLocation: row.physical_file_location || undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }));
+    if (!data) return [];
+
+    return (data as any[]).map((row: any) => ({
+      id: row.id,
+      tenantId: row.tenant_id,
+      clientId: row.client_id,
+      clientName: row.client?.full_name || 'Cliente',
+      clientCpf: row.client?.cpf || '',
+      clientPhone: row.client?.mobile_phone || row.client?.phone || '',
+      clientBenefitType: row.client?.benefit_type,
+      attendanceType: (row.attendance_type as AttendanceType) || 'OTHER',
+      attendedAt: row.attended_at,
+      objective: row.objective || '',
+      narrativeHistory: row.narrative_history || undefined,
+      initialIntakeNotes: row.initial_intake_notes || undefined,
+      notes: row.notes || undefined,
+      attendantName: row.attendant_name || undefined,
+      attendantUserId: row.attendant_user_id || undefined,
+      pendingDocuments: row.pending_documents || [],
+      physicalFileLocation: row.physical_file_location || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }, { ttlMs: 10000 });
 }
 
 export async function createAttendanceInDb(
@@ -464,6 +487,10 @@ export async function createAttendanceInDb(
     })
     .eq('id', input.clientId)
     .eq('tenant_id', tenantId);
+
+  invalidateCache('clients:');
+  invalidateCache('attendances:');
+  invalidateCache('nav-counts:');
 
   return {
     id: row.id,

@@ -1,25 +1,28 @@
 import type { LegalDocument, DocumentCategory } from '@/types/document';
 import { compressDocumentImage } from '@/lib/utils/image-compressor';
+import { dedupeRequest, invalidateCache } from '../cache/request-cache.ts';
 
 /**
  * Client-facing service for managing end-to-end encrypted documents.
  */
 
 export async function fetchClientDocuments(clientId: string): Promise<LegalDocument[]> {
-  const response = await fetch(`/api/documents?clientId=${encodeURIComponent(clientId)}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  return dedupeRequest(`documents:list:${clientId}`, async () => {
+    const response = await fetch(`/api/documents?clientId=${encodeURIComponent(clientId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Erro ao carregar documentos do cofre.');
-  }
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Erro ao carregar documentos do cofre.');
+    }
 
-  const data = await response.json();
-  return data.documents || [];
+    const data = await response.json();
+    return data.documents || [];
+  }, { ttlMs: 15000 });
 }
 
 export async function uploadClientDocument(params: {
@@ -59,6 +62,7 @@ export async function uploadClientDocument(params: {
   }
 
   const data = await response.json();
+  invalidateCache(`documents:list:${clientId}`);
   return data.document;
 }
 
@@ -77,7 +81,9 @@ export async function deleteClientDocument(
     throw new Error(errorData.error || 'Erro ao excluir documento.');
   }
 
-  return response.json();
+  const result = await response.json();
+  invalidateCache('documents:list:');
+  return result;
 }
 
 export function getDocumentViewUrl(documentId: string): string {

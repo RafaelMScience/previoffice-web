@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { securityStore } from '@/lib/data/mock-security';
+import { dedupeRequest, invalidateCache, clearCache } from '@/lib/cache/request-cache';
 import type { Database } from '@/types/database';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
 import type { User } from '@supabase/supabase-js';
@@ -215,6 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAvailableUsers([fallbackMember]);
         }
       } else {
+        clearCache();
         setCurrentUser(null);
         setAuthUser(null);
         setAvailableUsers([]);
@@ -254,6 +256,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.clear();
     }
 
+    clearCache();
+
     securityStore.logEvent({
       actorId,
       actorName,
@@ -272,27 +276,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = React.useCallback(async () => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      setAuthUser(user);
+      await dedupeRequest(
+        'auth:refresh-user',
+        async () => {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) return;
+          setAuthUser(user);
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
 
-      if (profile) {
-        const member = mapProfileToTeamMember(profile, user);
-        setCurrentUser(member);
-        setAvailableUsers([member]);
-      } else {
-        const fallbackMember = buildFallbackMember(user);
-        setCurrentUser(fallbackMember);
-        setAvailableUsers([fallbackMember]);
-      }
+          if (profile) {
+            const member = mapProfileToTeamMember(profile, user);
+            setCurrentUser(member);
+            setAvailableUsers([member]);
+          } else {
+            const fallbackMember = buildFallbackMember(user);
+            setCurrentUser(fallbackMember);
+            setAvailableUsers([fallbackMember]);
+          }
+        },
+        { ttlMs: 5000 }
+      );
     } catch (err) {
       console.error('Failed to refresh user:', err);
     }
