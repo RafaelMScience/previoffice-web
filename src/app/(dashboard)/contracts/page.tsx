@@ -108,7 +108,7 @@ export default function ContractsPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Settle installment handler
+  // Optimistic Settle installment handler with rollback
   const handleSettleInstallment = async (
     contractId: string,
     installmentId: string,
@@ -117,18 +117,61 @@ export default function ContractsPage() {
     notes?: string
   ) => {
     const tenantId = currentUser?.tenantId || '';
-    const updated = await settleContractInstallmentInDb(
-      contractId,
-      tenantId,
-      installmentId,
-      paymentMethod,
-      receiptReference,
-      notes
-    );
-    if (updated) {
-      await refreshData();
-      setSelectedContractForInstallments(updated);
-      triggerToast(t.contracts.settleSuccessToast);
+    const previousContracts = [...contracts];
+    const previousSelected = selectedContractForInstallments;
+
+    // 1. Optimistic Update (Immediate UI response)
+    const optimisticContracts = contracts.map((c) => {
+      if (c.id !== contractId) return c;
+      const installments = (c.feeStructure.installments || []).map((inst) => {
+        if (inst.id !== installmentId) return inst;
+        return {
+          ...inst,
+          status: 'PAID' as const,
+          paidAt: new Date().toISOString(),
+          paymentMethod,
+          receiptReference,
+          notes,
+        };
+      });
+      return {
+        ...c,
+        feeStructure: {
+          ...c.feeStructure,
+          installments,
+        },
+      };
+    });
+
+    setContracts(optimisticContracts);
+    const updatedOptimisticContract = optimisticContracts.find((c) => c.id === contractId) || null;
+    if (updatedOptimisticContract) {
+      setSelectedContractForInstallments(updatedOptimisticContract);
+      setKpis(calculateContractKpis(optimisticContracts));
+    }
+    triggerToast(t.contracts.settleSuccessToast);
+
+    // 2. Background Server Sync with Rollback
+    try {
+      const updated = await settleContractInstallmentInDb(
+        contractId,
+        tenantId,
+        installmentId,
+        paymentMethod,
+        receiptReference,
+        notes
+      );
+      if (updated) {
+        setSelectedContractForInstallments(updated);
+      } else {
+        throw new Error('Falha ao confirmar no servidor');
+      }
+    } catch (err: any) {
+      // 3. Rollback on Server Error
+      setContracts(previousContracts);
+      setSelectedContractForInstallments(previousSelected);
+      setKpis(calculateContractKpis(previousContracts));
+      triggerToast(`Não foi possível confirmar a baixa: ${err?.message || 'Erro de rede'}. O valor foi restaurado.`);
     }
   };
 
