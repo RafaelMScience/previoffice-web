@@ -208,7 +208,7 @@ export async function uploadClientPhotoToStorage(
   const { data, error } = await supabase.storage
     .from('client-photos')
     .upload(fileName, file, {
-      cacheControl: '3600',
+      cacheControl: '31536000',
       contentType: file.type || 'image/webp',
       upsert: true,
     });

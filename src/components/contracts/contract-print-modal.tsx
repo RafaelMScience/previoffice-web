@@ -275,7 +275,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
         </div>
 
         {/* Document Selection Tabs */}
-        <div className="px-6 pt-2 border-b border-slate-200 bg-white flex items-center justify-between overflow-x-auto gap-4">
+        <div className="px-4 sm:px-6 pt-2.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between overflow-x-auto gap-4">
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
@@ -283,16 +283,16 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                 setDocType('CONTRACT');
                 setViewCustomPdf(true);
               }}
-              className={`flex items-center gap-2.5 px-4 sm:px-5 py-3 sm:py-3.5 border-b-[3px] text-sm sm:text-base font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2.5 sm:gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-b-[3px] text-base sm:text-lg font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'CONTRACT'
-                  ? 'border-[#082A52] text-[#082A52] bg-slate-50/80 rounded-t-lg shadow-2xs'
-                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-slate-50/40 rounded-t-lg'
+                  ? 'border-[#082A52] text-[#082A52] bg-white rounded-t-xl shadow-xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-white/60 rounded-t-xl'
               }`}
             >
-              <FileText className="w-5 h-5 text-[#C89543] shrink-0" />
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-[#C89543] shrink-0" />
               <span>1. Contrato de Honorários OAB</span>
               {customContractDoc?.fileDataUrl && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                   PDF Vinculado
                 </span>
               )}
@@ -304,16 +304,16 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                 setDocType('POA');
                 setViewCustomPdf(true);
               }}
-              className={`flex items-center gap-2.5 px-4 sm:px-5 py-3 sm:py-3.5 border-b-[3px] text-sm sm:text-base font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2.5 sm:gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-b-[3px] text-base sm:text-lg font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'POA'
-                  ? 'border-[#082A52] text-[#082A52] bg-slate-50/80 rounded-t-lg shadow-2xs'
-                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-slate-50/40 rounded-t-lg'
+                  ? 'border-[#082A52] text-[#082A52] bg-white rounded-t-xl shadow-xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-white/60 rounded-t-xl'
               }`}
             >
-              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 shrink-0" />
               <span>2. Procuração Ad Judicia et Extra</span>
               {customPoaDoc?.fileDataUrl && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                   PDF Vinculado
                 </span>
               )}
@@ -322,13 +322,13 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
             <button
               type="button"
               onClick={() => setDocType('FOLDER_COVER')}
-              className={`flex items-center gap-2.5 px-4 sm:px-5 py-3 sm:py-3.5 border-b-[3px] text-sm sm:text-base font-bold transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2.5 sm:gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-b-[3px] text-base sm:text-lg font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'FOLDER_COVER'
-                  ? 'border-[#082A52] text-[#082A52] bg-slate-50/80 rounded-t-lg shadow-2xs'
-                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-slate-50/40 rounded-t-lg'
+                  ? 'border-[#082A52] text-[#082A52] bg-white rounded-t-xl shadow-xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-white/60 rounded-t-xl'
               }`}
             >
-              <FolderLock className="w-5 h-5 text-amber-600 shrink-0" />
+              <FolderLock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 shrink-0" />
               <span>3. Capa de Pasta Física (Arquivo)</span>
             </button>
           </div>
@@ -446,7 +446,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                         <p>
                           <strong>CONTRATANTE:</strong> <strong>{contract.clientName}</strong>, inscrito(a) no CPF/MF sob o nº{' '}
                           <span className="font-mono font-bold">{contract.clientCpf}</span>, telefone{' '}
-                          <span>{contract.clientPhone || 'Não informado'}</span>, domiciliado(a) no Estado da Paraíba, doravante denominado(a) simplesmente <strong>CONTRATANTE</strong>.
+                          <span>{contract.clientPhone || 'Não informado'}</span>, domiciliado(a) no Estado do Amazonas, doravante denominado(a) simplesmente <strong>CONTRATANTE</strong>.
                         </p>
 
                         <p>
@@ -631,7 +631,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                   ) : (
                     <div className="space-y-3 text-xs leading-relaxed text-slate-800">
                       <p>
-                        <strong>OUTORGANTE:</strong> <strong>{contract.clientName}</strong>, brasileiro(a), inscrito(a) no Cadastro de Pessoas Físicas (CPF/MF) sob o nº <span className="font-mono font-bold">{contract.clientCpf}</span>, residente e domiciliado(a) no Estado da Paraíba.
+                        <strong>OUTORGANTE:</strong> <strong>{contract.clientName}</strong>, brasileiro(a), inscrito(a) no Cadastro de Pessoas Físicas (CPF/MF) sob o nº <span className="font-mono font-bold">{contract.clientCpf}</span>, residente e domiciliado(a) no Estado do Amazonas.
                       </p>
 
                       <p>

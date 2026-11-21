@@ -235,7 +235,7 @@ export function LegalContractModal({
             ? 'Viúvo(a)'
             : 'União Estável',
         clientProfession: client.profession || 'Agricultor(a) Familiar',
-        clientAddress: fullAddress || 'Domiciliado(a) no Estado da Paraíba',
+        clientAddress: fullAddress || 'Domiciliado(a) no Estado do Amazonas',
         clientPhone: client.phone || 'Não informado',
         benefitSpecies: client.benefitType || selectedTemplate.benefitSpecies || 'Aposentadoria Previdenciária',
         feeDescription: generatedFeeClause,
@@ -280,7 +280,7 @@ export function LegalContractModal({
             ? 'Viúvo(a)'
             : 'União Estável',
         clientProfession: client.profession || 'Agricultor(a) Familiar',
-        clientAddress: fullAddress || 'Domiciliado(a) no Estado da Paraíba',
+        clientAddress: fullAddress || 'Domiciliado(a) no Estado do Amazonas',
         clientPhone: client.phone || 'Não informado',
         benefitSpecies: client.benefitType || selectedTemplate?.benefitSpecies || 'Aposentadoria Previdenciária',
         feeDescription: `${quotaLitisPercentage}% (${quotaLitisPercentage} por cento)`,
@@ -350,7 +350,7 @@ export function LegalContractModal({
           ? 'Viúvo(a)'
           : 'União Estável',
       clientProfession: client.profession || 'Agricultor(a) Familiar',
-      clientAddress: fullAddress || 'Domiciliado(a) no Estado da Paraíba',
+      clientAddress: fullAddress || 'Domiciliado(a) no Estado do Amazonas',
       clientPhone: client.phone || 'Não informado',
       benefitSpecies: client.benefitType || selectedTemplate.benefitSpecies || 'Aposentadoria Previdenciária',
       feeDescription: generatedFeeClause,
@@ -961,43 +961,43 @@ export function LegalContractModal({
             {/* Top Bar da Folha A4 com Abas de Documentos e Ações Rápidas */}
             <div className="bg-white border-b border-slate-300 px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs">
               {/* Abas dos 3 Documentos */}
-              <div className="flex items-center gap-1.5 overflow-x-auto">
+              <div className="flex items-center gap-2 overflow-x-auto">
                 <button
                   type="button"
                   onClick={() => setSelectedDoc('contrato')}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
                     selectedDoc === 'contrato'
                       ? 'bg-[#082A52] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <FileText className="w-4 h-4 text-[#C89543]" />
+                  <FileText className="w-5 h-5 text-[#C89543]" />
                   <span>1. Contrato de Honorários</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSelectedDoc('procuracao')}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
                     selectedDoc === 'procuracao'
                       ? 'bg-[#082A52] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <ShieldCheck className="w-4 h-4 text-[#C89543]" />
+                  <ShieldCheck className="w-5 h-5 text-[#C89543]" />
                   <span>2. Procuração Ad Judicia</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSelectedDoc('capa')}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
                     selectedDoc === 'capa'
                       ? 'bg-[#082A52] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <FolderLock className="w-4 h-4 text-[#C89543]" />
+                  <FolderLock className="w-5 h-5 text-[#C89543]" />
                   <span>3. Capa de Pasta</span>
                 </button>
               </div>
