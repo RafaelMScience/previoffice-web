@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { securityStore } from '@/lib/data/mock-security';
 import { dedupeRequest, invalidateCache, clearCache } from '@/lib/cache/request-cache';
@@ -312,28 +312,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const permissions = currentUser?.permissions || null;
   const isAdmin = Boolean(currentUser?.isAdminLawyer || permissions?.adminSettings);
 
-  const canAccess = (permission: keyof TeamPermissions): boolean => {
-    if (!currentUser || !permissions) return false;
-    if (isAdmin) return true;
-    return Boolean(permissions[permission]);
-  };
+  const canAccess = useCallback(
+    (permission: keyof TeamPermissions): boolean => {
+      if (!currentUser || !permissions) return false;
+      if (isAdmin) return true;
+      return Boolean(permissions[permission]);
+    },
+    [currentUser, permissions, isAdmin]
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      currentUser,
+      authUser,
+      isAuthenticated,
+      isLoading,
+      permissions,
+      isAdmin,
+      switchUser,
+      logout,
+      refreshUser,
+      availableUsers,
+      canAccess,
+    }),
+    [
+      currentUser,
+      authUser,
+      isAuthenticated,
+      isLoading,
+      permissions,
+      isAdmin,
+      switchUser,
+      logout,
+      refreshUser,
+      availableUsers,
+      canAccess,
+    ]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        authUser,
-        isAuthenticated,
-        isLoading,
-        permissions,
-        isAdmin,
-        switchUser,
-        logout,
-        refreshUser,
-        availableUsers,
-        canAccess,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

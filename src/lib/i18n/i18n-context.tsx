@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import type { Locale, Translations } from './types';
 import { enTranslations } from './dictionaries/en';
 import { ptTranslations } from './dictionaries/pt';
@@ -49,7 +49,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  const setLocale = (newLocale: Locale) => {
+  const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
     try {
       localStorage.setItem(STORAGE_KEY, newLocale);
@@ -57,12 +57,17 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Local storage disabled
     }
-  };
+  }, []);
 
-  const t = dictionaries[locale] || ptTranslations;
+  const t = useMemo(() => dictionaries[locale] || ptTranslations, [locale]);
+
+  const value = useMemo(
+    () => ({ locale, setLocale, t }),
+    [locale, setLocale, t]
+  );
 
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   );

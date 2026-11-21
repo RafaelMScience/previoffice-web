@@ -9,7 +9,7 @@ interface ContractsKpiCardsProps {
   kpis: ContractKpis;
 }
 
-export function ContractsKpiCards({ kpis }: ContractsKpiCardsProps) {
+export const ContractsKpiCards = React.memo(function ContractsKpiCards({ kpis }: ContractsKpiCardsProps) {
   const { t } = useI18n();
 
   const formatBrl = (val: number) => {
@@ -114,4 +114,4 @@ export function ContractsKpiCards({ kpis }: ContractsKpiCardsProps) {
       </div>
     </div>
   );
-}
+});
