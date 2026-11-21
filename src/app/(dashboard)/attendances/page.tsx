@@ -27,6 +27,7 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import type { AttendanceType, AttendanceWithClient } from '@/types/attendance';
 import { NewGeneralAttendanceModal } from '@/components/attendances/new-general-attendance-modal';
+import { AttendancesTableSkeleton } from '@/components/attendances/attendances-table-skeleton';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { fetchAttendancesFromDb } from '@/lib/services/client-service';
@@ -428,14 +429,7 @@ export default function AttendancesPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-[#C89543]" />
-                        <span className="text-xs text-slate-500 font-medium">Carregando atendimentos...</span>
-                      </div>
-                    </td>
-                  </tr>
+                  <AttendancesTableSkeleton />
                 ) : filteredAttendances.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-12 text-center text-slate-400">

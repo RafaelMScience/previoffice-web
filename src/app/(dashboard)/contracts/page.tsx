@@ -30,6 +30,10 @@ import {
 
 import { ContractsKpiCards } from '@/components/contracts/contracts-kpi-cards';
 import {
+  ContractsKpiCardsSkeleton,
+  ContractsTableSkeleton,
+} from '@/components/contracts/contracts-skeleton';
+import {
   ContractsTable,
   type ContractFilterTab,
 } from '@/components/contracts/contracts-table';
@@ -49,6 +53,7 @@ export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [templates, setTemplates] = useState<ContractTemplate[]>([]);
   const [kpis, setKpis] = useState<ContractKpis | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // View & Filter State
   const [activeViewTab, setActiveViewTab] = useState<ActiveViewTab>('CONTRACTS');
@@ -72,12 +77,17 @@ export default function ContractsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const refreshData = async () => {
-    const tenantId = currentUser?.tenantId || '';
-    const loadedContracts = await fetchContractsFromDb(tenantId);
-    const loadedTemplates = await fetchContractTemplates(tenantId);
-    setContracts(loadedContracts);
-    setTemplates(loadedTemplates);
-    setKpis(calculateContractKpis(loadedContracts));
+    setIsLoading(true);
+    try {
+      const tenantId = currentUser?.tenantId || '';
+      const loadedContracts = await fetchContractsFromDb(tenantId);
+      const loadedTemplates = await fetchContractTemplates(tenantId);
+      setContracts(loadedContracts);
+      setTemplates(loadedTemplates);
+      setKpis(calculateContractKpis(loadedContracts));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -203,7 +213,11 @@ export default function ContractsPage() {
       </div>
 
       {/* Executive KPI Cards */}
-      {kpis && <ContractsKpiCards kpis={kpis} />}
+      {isLoading ? (
+        <ContractsKpiCardsSkeleton />
+      ) : (
+        kpis && <ContractsKpiCards kpis={kpis} />
+      )}
 
       {/* Main View Toggle Switcher */}
       <div className="flex items-center justify-between border-b border-slate-200">
@@ -253,7 +267,9 @@ export default function ContractsPage() {
       </div>
 
       {/* Active Tab Content */}
-      {activeViewTab === 'CONTRACTS' || !canAccess('templatesManage') ? (
+      {isLoading ? (
+        <ContractsTableSkeleton />
+      ) : activeViewTab === 'CONTRACTS' || !canAccess('templatesManage') ? (
         <ContractsTable
           contracts={contracts}
           searchTerm={searchTerm}

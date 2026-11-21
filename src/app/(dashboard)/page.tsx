@@ -15,6 +15,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { ReceptionTable, type ReceptionTableRow } from '@/components/reception/reception-table';
+import { DashboardTableSkeleton } from '@/components/dashboard/dashboard-table-skeleton';
 import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
 import { useI18n } from '@/lib/i18n/i18n-context';
@@ -260,10 +261,7 @@ export default function ReceptionDashboardPage() {
         </div>
 
         {loadingRows ? (
-          <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-[#C89543]" />
-            <span className="text-xs text-slate-500 font-medium">Carregando atendimentos do banco...</span>
-          </div>
+          <DashboardTableSkeleton />
         ) : receptionRows.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-3 bg-slate-50/50">
             <Users className="w-10 h-10 text-slate-300" />
