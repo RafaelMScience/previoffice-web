@@ -9,6 +9,19 @@
 export type MetricName = 'CLS' | 'FCP' | 'FID' | 'INP' | 'LCP' | 'TTFB';
 export type VitalsRating = 'good' | 'needs-improvement' | 'poor';
 
+export const VALID_CORE_WEB_VITALS: readonly MetricName[] = [
+  'CLS',
+  'FCP',
+  'FID',
+  'INP',
+  'LCP',
+  'TTFB',
+] as const;
+
+export function isValidMetricName(name: unknown): name is MetricName {
+  return typeof name === 'string' && VALID_CORE_WEB_VITALS.includes(name as MetricName);
+}
+
 export interface MetricPayload {
   id: string;
   name: MetricName;
@@ -127,17 +140,11 @@ export class WebVitalsStore {
   }
 
   public record(name: MetricName, value: number): void {
-    if (!CORE_WEB_VITALS_THRESHOLDS[name] || typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    if (!isValidMetricName(name) || typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
       return;
     }
-    if (!this.samples.has(name)) {
-      this.samples.set(name, []);
-    }
-    const list = this.samples.get(name)!;
-    list.push(value);
-    if (list.length > this.maxSamplesPerMetric) {
-      list.shift();
-    }
+    const current = this.samples.get(name) || [];
+    this.samples.set(name, [...current, value].slice(-this.maxSamplesPerMetric));
   }
 
   public getSummary(name: MetricName): VitalsSummary {
@@ -175,9 +182,12 @@ export function sendVitalToAnalytics(metric: MetricPayload, endpoint = '/api/tel
   });
 
   if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
-    const blob = new Blob([payload], { type: 'application/json' });
-    const success = navigator.sendBeacon(endpoint, blob);
-    if (success) return;
+    try {
+      const blob = new Blob([payload], { type: 'application/json' });
+      if (navigator.sendBeacon(endpoint, blob)) return;
+    } catch {
+      // Fall back to fetch keepalive if sendBeacon is blocked by CSP or browser policy
+    }
   }
 
   fetch(endpoint, {

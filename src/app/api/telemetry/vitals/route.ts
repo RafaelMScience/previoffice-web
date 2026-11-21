@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   globalVitalsStore,
   classifyVitalMetric,
-  evaluateVitalsAlert,
-  CORE_WEB_VITALS_THRESHOLDS,
+  isValidMetricName,
   MetricPayload,
   MetricName,
 } from '@/lib/telemetry/vitals';
@@ -14,8 +13,7 @@ export async function POST(req: NextRequest) {
 
     if (
       !body ||
-      !body.name ||
-      !(body.name in CORE_WEB_VITALS_THRESHOLDS) ||
+      !isValidMetricName(body.name) ||
       typeof body.value !== 'number' ||
       !Number.isFinite(body.value) ||
       body.value < 0
@@ -46,7 +44,7 @@ export async function GET(req: NextRequest) {
   const metric = searchParams.get('metric') as MetricName | null;
 
   if (metric) {
-    if (!(metric in CORE_WEB_VITALS_THRESHOLDS)) {
+    if (!isValidMetricName(metric)) {
       return NextResponse.json({ error: 'Unsupported or invalid metric parameter' }, { status: 400 });
     }
     const summary = globalVitalsStore.getSummary(metric);

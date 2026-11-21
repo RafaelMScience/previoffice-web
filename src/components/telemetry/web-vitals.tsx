@@ -1,7 +1,12 @@
 'use client';
 
 import { useReportWebVitals } from 'next/web-vitals';
-import { sendVitalToAnalytics, MetricName, VitalsRating } from '@/lib/telemetry/vitals';
+import {
+  sendVitalToAnalytics,
+  isValidMetricName,
+  MetricName,
+  VitalsRating,
+} from '@/lib/telemetry/vitals';
 
 /**
  * WebVitalsReporter (Item 31)
@@ -11,10 +16,18 @@ import { sendVitalToAnalytics, MetricName, VitalsRating } from '@/lib/telemetry/
  */
 export function WebVitalsReporter() {
   useReportWebVitals((metric) => {
+    // Only forward recognized Core Web Vitals, filtering out Next.js internal routing/hydration metrics
+    if (!isValidMetricName(metric.name)) return;
+
+    const roundedValue =
+      metric.name === 'CLS'
+        ? Math.round(metric.value * 10000) / 10000
+        : Math.round(metric.value * 100) / 100;
+
     sendVitalToAnalytics({
       id: metric.id,
       name: metric.name as MetricName,
-      value: Math.round(metric.value * 100) / 100,
+      value: roundedValue,
       rating: metric.rating as VitalsRating,
       delta: metric.delta,
       navigationType: metric.navigationType,

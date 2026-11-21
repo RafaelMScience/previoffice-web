@@ -4,6 +4,7 @@ import {
   classifyVitalMetric,
   calculatePercentile,
   evaluateVitalsAlert,
+  isValidMetricName,
   WebVitalsStore,
   CORE_WEB_VITALS_THRESHOLDS,
 } from './vitals.ts';
@@ -101,5 +102,45 @@ describe('Item 31: Monitoramento do Core Web Vitals no Mundo Real (RUM & Alertas
     const summary = store.getSummary('LCP');
     assert.equal(summary.count, 0);
     assert.equal(summary.alertTriggered, false);
+  });
+
+  it('validates supported Core Web Vitals metric names correctly', () => {
+    assert.equal(isValidMetricName('LCP'), true);
+    assert.equal(isValidMetricName('INP'), true);
+    assert.equal(isValidMetricName('CLS'), true);
+    assert.equal(isValidMetricName('FCP'), true);
+    assert.equal(isValidMetricName('TTFB'), true);
+    assert.equal(isValidMetricName('FID'), true);
+    assert.equal(isValidMetricName('Next.js-hydration'), false);
+    assert.equal(isValidMetricName('random_string'), false);
+    assert.equal(isValidMetricName(null), false);
+    assert.equal(isValidMetricName(undefined), false);
+  });
+
+  it('correctly classifies TTFB, FCP, and FID thresholds', () => {
+    // TTFB: good <= 800, needs-improvement <= 1800, poor > 1800
+    assert.equal(classifyVitalMetric('TTFB', 350), 'good');
+    assert.equal(classifyVitalMetric('TTFB', 1200), 'needs-improvement');
+    assert.equal(classifyVitalMetric('TTFB', 2200), 'poor');
+
+    // FCP: good <= 1800, needs-improvement <= 3000, poor > 3000
+    assert.equal(classifyVitalMetric('FCP', 1100), 'good');
+    assert.equal(classifyVitalMetric('FCP', 2200), 'needs-improvement');
+    assert.equal(classifyVitalMetric('FCP', 3600), 'poor');
+
+    // FID: good <= 100, needs-improvement <= 300, poor > 300
+    assert.equal(classifyVitalMetric('FID', 50), 'good');
+    assert.equal(classifyVitalMetric('FID', 150), 'needs-improvement');
+    assert.equal(classifyVitalMetric('FID', 400), 'poor');
+  });
+
+  it('enforces ring buffer eviction capped at maxSamplesPerMetric (200)', () => {
+    for (let i = 1; i <= 250; i++) {
+      store.record('LCP', i * 10);
+    }
+    const summary = store.getSummary('LCP');
+    assert.equal(summary.count, 200);
+    // Values 1..50 should have been evicted; p75 of 510..2500 is calculated correctly
+    assert.ok(summary.p75 >= 2000);
   });
 });
