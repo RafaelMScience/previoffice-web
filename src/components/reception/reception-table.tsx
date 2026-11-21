@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useVirtualList } from '@/hooks/use-virtual-list';
 import type { AttendanceType } from '@/types/attendance';
 
 export interface ReceptionTableRow {
@@ -70,6 +71,17 @@ export function ReceptionTable({
       }
     });
   }, [effectiveRows, debouncedSearchTerm, activeFilter]);
+
+  // Virtualization for long lists (> 25 rows) to keep DOM lean and 60fps scrolling (Item 23)
+  const shouldVirtualize = filteredRows.length > 25;
+  const { startIndex, endIndex, topPadding, bottomPadding, onScroll } = useVirtualList({
+    totalItems: filteredRows.length,
+    itemHeight: 74,
+    containerHeight: 650,
+    overscan: 4,
+  });
+
+  const visibleRows = shouldVirtualize ? filteredRows.slice(startIndex, endIndex) : filteredRows;
 
   const renderAttendanceTypeBadge = (type: AttendanceType) => {
     switch (type) {
@@ -155,9 +167,12 @@ export function ReceptionTable({
       </div>
 
       {/* Table Content */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-700">
-          <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+      <div
+        className={`overflow-x-auto ${shouldVirtualize ? 'max-h-[650px] overflow-y-auto' : ''}`}
+        onScroll={shouldVirtualize ? onScroll : undefined}
+      >
+        <table className="w-full text-left text-sm text-slate-700" aria-rowcount={filteredRows.length}>
+          <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200 sticky top-0 z-10">
             <tr>
               <th scope="col" className="px-5 py-3.5">{t.receptionTable.colClientInfo}</th>
               <th scope="col" className="px-5 py-3.5">{t.receptionTable.colVisitDetails}</th>
@@ -177,12 +192,19 @@ export function ReceptionTable({
                 </td>
               </tr>
             ) : (
-              filteredRows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="hover:bg-amber-50/40 transition-colors group cursor-pointer"
-                  onClick={() => router.push(`/clientes/${row.id}`)}
-                >
+              <>
+                {shouldVirtualize && topPadding > 0 && (
+                  <tr aria-hidden="true" style={{ height: topPadding }}>
+                    <td colSpan={6} />
+                  </tr>
+                )}
+                {visibleRows.map((row, idx) => (
+                  <tr
+                    key={row.id}
+                    aria-rowindex={shouldVirtualize ? startIndex + idx + 1 : idx + 1}
+                    className="hover:bg-amber-50/40 transition-colors group cursor-pointer"
+                    onClick={() => router.push(`/clientes/${row.id}`)}
+                  >
                   {/* Client Info */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
@@ -300,9 +322,15 @@ export function ReceptionTable({
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
+              ))}
+              {shouldVirtualize && bottomPadding > 0 && (
+                <tr aria-hidden="true" style={{ height: bottomPadding }}>
+                  <td colSpan={6} />
+                </tr>
+              )}
+            </>
+          )}
+        </tbody>
         </table>
       </div>
 
