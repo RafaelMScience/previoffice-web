@@ -10,6 +10,7 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useVirtualList } from '@/hooks/use-virtual-list';
 import { prefetchClientDetails } from '@/lib/services/prefetch-service';
+import { IsolatedSearchInput } from '@/components/common/isolated-search-input';
 import type { AttendanceType } from '@/types/attendance';
 
 export interface ReceptionTableRow {
@@ -44,8 +45,7 @@ export function ReceptionTable({
 }: ReceptionTableProps) {
   const { t } = useI18n();
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL');
 
   const effectiveRows = rows !== undefined ? rows : (initialRows || []);
@@ -107,17 +107,11 @@ export function ReceptionTable({
     <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
       {/* Table Action Bar */}
       <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Search Input */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder={t.receptionTable.searchPlaceholder}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white transition-all text-slate-800 placeholder-slate-400"
-          />
-        </div>
+        {/* Isolated Search Input: Prevents table re-rendering on every keystroke (Item 30) */}
+        <IsolatedSearchInput
+          placeholder={t.receptionTable.searchPlaceholder}
+          onSearch={setDebouncedSearchTerm}
+        />
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
