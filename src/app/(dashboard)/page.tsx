@@ -69,6 +69,7 @@ export default function ReceptionDashboardPage() {
 
         return {
           id: c.id,
+          tenantId: c.tenantId,
           fullName: c.fullName,
           cpf: c.cpf || c.normalizedCpf || '---',
           photoUrl: c.photoReference || null,

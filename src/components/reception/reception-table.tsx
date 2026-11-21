@@ -9,10 +9,12 @@ import { formatCpf } from '@/lib/domain/cpf-validator';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useVirtualList } from '@/hooks/use-virtual-list';
+import { prefetchClientDetails } from '@/lib/services/prefetch-service';
 import type { AttendanceType } from '@/types/attendance';
 
 export interface ReceptionTableRow {
   id: string;
+  tenantId?: string;
   fullName: string;
   cpf: string;
   photoUrl?: string | null;
@@ -203,6 +205,8 @@ export function ReceptionTable({
                     key={row.id}
                     aria-rowindex={shouldVirtualize ? startIndex + idx + 1 : idx + 1}
                     className="hover:bg-amber-50/40 transition-colors group cursor-pointer"
+                    onMouseEnter={() => prefetchClientDetails(row.id, row.tenantId || '')}
+                    onFocus={() => prefetchClientDetails(row.id, row.tenantId || '')}
                     onClick={() => router.push(`/clientes/${row.id}`)}
                   >
                   {/* Client Info */}
