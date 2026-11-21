@@ -18,13 +18,14 @@ import {
   Percent,
   PanelLeftClose,
   PanelLeftOpen,
+  Layers,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { settingsStore } from '@/lib/data/mock-settings';
 import type { Client } from '@/types/client';
-import type { ContractTemplate, FeeModel } from '@/types/contract';
+import type { ContractTemplate, FeeModel, DocumentCategory } from '@/types/contract';
 import { contractsStore } from '@/lib/data/mock-contracts';
 import {
   mergeTemplatePlaceholders,
@@ -32,7 +33,11 @@ import {
   generateFeeInstallments,
 } from '@/lib/utils/template-engine';
 import { maskCpf, maskPhone } from '@/lib/utils/masks';
-import { formatBenefitType, getCanonicalBenefitKey } from '@/lib/utils/benefit-translations';
+import {
+  formatBenefitType,
+  getCanonicalBenefitKey,
+  formatDocumentCategory,
+} from '@/lib/utils/benefit-translations';
 
 const DEFAULT_POA_TEMPLATE = `PROCURAÇÃO AD JUDICIA ET EXTRA
 
@@ -48,6 +53,16 @@ Confere ainda poderes especiais e expressos para requerer, desistir, transigir, 
 
 FINALIDADE ESPECÍFICA DO MANDATO:
 A presente procuração destina-se especificamente ao pleito, concessão e liquidação do benefício previdenciário de {{BENEFICIO}} (Pasta Documental: {{PASTA_FISICA}}).`;
+
+export interface ModalDocItem {
+  id: string;
+  templateId?: string;
+  category: DocumentCategory | 'FOLDER_COVER';
+  categoryLabel: string;
+  title: string;
+  description: string;
+  content: string;
+}
 
 interface LegalContractModalProps {
   client: Client;
@@ -75,7 +90,6 @@ export function LegalContractModal({
   }, [currentUser]);
 
   const [templates, setTemplates] = useState<ContractTemplate[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState<'contrato' | 'procuracao' | 'capa'>('contrato');
   const [selectedLawyer, setSelectedLawyer] = useState(() => lawyerOptions[0]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   
@@ -109,7 +123,11 @@ export function LegalContractModal({
   const [isFormSaved, setIsFormSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [mobileTab, setMobileTab] = useState<'config' | 'doc'>('doc');
+  const [isDocsPanelOpen, setIsDocsPanelOpen] = useState(true);
+  const [focusedDocId, setFocusedDocId] = useState<string>('contrato');
+  const [isEditingCustomDoc, setIsEditingCustomDoc] = useState(false);
+  const [customDocBodies, setCustomDocBodies] = useState<Record<string, string>>({});
+  const [mobileTab, setMobileTab] = useState<'config' | 'docs' | 'doc'>('doc');
 
   // Fetch real registered office name from Supabase tenants table
   useEffect(() => {
@@ -197,6 +215,27 @@ export function LegalContractModal({
   const cabinetLocation = useMemo(() => {
     return client.physicalFileLocation || 'Armário Geral do Escritório';
   }, [client]);
+
+  const folderCoverBody = useMemo(() => {
+    return `ETIQUETA E CAPA DE PRONTUÁRIO JURÍDICO — PREVIOFFICE
+
+ESCRITÓRIO: ${officeName} (${officeOab})
+CLIENTE: ${client.fullName}
+CPF: ${maskCpf(client.cpf)} | RG: ${client.rg || 'Não informado'}
+BENEFÍCIO REQUERIDO: ${formatBenefitType(client.benefitType, locale === 'en-US' ? 'en-US' : 'pt-BR')}
+ADVOGADO RESPONSÁVEL: ${selectedLawyer.name} (${selectedLawyer.oab})
+DATA DE CADASTRO: ${todayFormatted}
+
+LOCALIZAÇÃO FÍSICA NO ARQUIVO:
+${cabinetLocation}
+
+DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
+1. Instrumento Particular de Contrato de Honorários Advocatícios
+2. Procuração Ad Judicia et Extra com Poderes para Recebimento de RPV
+3. Declaração de Hipossuficiência Econômica (Gratuidade Judiciária)
+4. Extratos do CNIS e Autodeclaração de Segurado Especial Rural
+5. Comprovantes de Residência e Documentos Pessoais Autenticados`;
+  }, [officeName, officeOab, client, selectedLawyer, todayFormatted, cabinetLocation, locale]);
 
   // Dynamic Lawyer Standard Fee Clause
   const generatedFeeClause = useMemo(() => {
@@ -295,6 +334,117 @@ export function LegalContractModal({
     }
   }, [selectedLawyer, client, fullAddress, cabinetLocation, todayFormatted, officeName, officeOab, selectedTemplate, isEditingCustomPoa, isPoaEditedManually]);
 
+  const availableDocuments = useMemo<ModalDocItem[]>(() => {
+    const list: ModalDocItem[] = [];
+
+    // 1. Contrato de Honorários Principal
+    list.push({
+      id: 'contrato',
+      templateId: selectedTemplate?.id,
+      category: 'FEE_CONTRACT',
+      categoryLabel: 'Contrato de Honorários',
+      title: selectedTemplate?.title || 'Contrato de Prestação de Serviços Advocatícios',
+      description: 'Instrumento contratual principal com regime de honorários e cláusula de RPV/Precatório.',
+      content: customBody,
+    });
+
+    // 2. Procuração Ad Judicia et Extra
+    const poaTpl = templates.find((t) => t.documentCategory === 'POWER_OF_ATTORNEY' || t.id === 'tpl-005');
+    list.push({
+      id: 'procuracao',
+      templateId: poaTpl?.id,
+      category: 'POWER_OF_ATTORNEY',
+      categoryLabel: 'Procuração Ad Judicia',
+      title: poaTpl?.title || 'Procuração Ad Judicia et Extra (Previdenciária)',
+      description: 'Poderes gerais para o foro e poderes expressos (Art. 105 CPC) para INSS e Justiça Federal.',
+      content: customPoaBody,
+    });
+
+    // 3. Qualquer outro modelo cadastrado na Biblioteca de Minutas (Declarações, Renúncias, Requerimentos, etc.)
+    const otherTemplates = templates.filter(
+      (t) => t.id !== selectedTemplateId && t.id !== poaTpl?.id && t.documentCategory !== 'POWER_OF_ATTORNEY'
+    );
+
+    otherTemplates.forEach((t) => {
+      const mergedContent = customDocBodies[t.id] ?? mergeTemplatePlaceholders(t.contentBody, {
+        clientName: client.fullName,
+        clientCpf: client.cpf ? maskCpf(client.cpf) : '___.___.___-__',
+        clientRg: client.rg || 'Não informado',
+        clientMaritalStatus:
+          client.maritalStatus === 'MARRIED'
+            ? 'Casado(a)'
+            : client.maritalStatus === 'SINGLE'
+            ? 'Solteiro(a)'
+            : client.maritalStatus === 'DIVORCED'
+            ? 'Divorciado(a)'
+            : client.maritalStatus === 'WIDOWED'
+            ? 'Viúvo(a)'
+            : 'União Estável',
+        clientProfession: client.profession || 'Agricultor(a) Familiar',
+        clientAddress: fullAddress || 'Domiciliado(a) no Estado do Amazonas',
+        clientPhone: client.phone || 'Não informado',
+        benefitSpecies: client.benefitType || t.benefitSpecies || 'Aposentadoria Previdenciária',
+        feeDescription: generatedFeeClause,
+        lawyerName: selectedLawyer.name,
+        lawyerOab: selectedLawyer.oab,
+        officeName,
+        officeOab,
+        cabinetFolder: cabinetLocation,
+        fullDate: todayFormatted,
+      });
+
+      list.push({
+        id: t.id,
+        templateId: t.id,
+        category: t.documentCategory || 'OTHER',
+        categoryLabel: formatDocumentCategory(t.documentCategory, t.customCategoryName),
+        title: t.title,
+        description: t.description || `Minuta de ${formatDocumentCategory(t.documentCategory, t.customCategoryName)} cadastrada na biblioteca.`,
+        content: mergedContent,
+      });
+    });
+
+    // 4. Capa de Pasta Física (Etiqueta OAB)
+    list.push({
+      id: 'capa',
+      category: 'FOLDER_COVER',
+      categoryLabel: 'Identificação Física',
+      title: 'Capa e Etiqueta de Pasta de Arquivo',
+      description: 'Ficha catalográfica padronizada para colagem na pasta física do arquivo do escritório.',
+      content: folderCoverBody,
+    });
+
+    return list;
+  }, [
+    selectedTemplate,
+    selectedTemplateId,
+    templates,
+    customBody,
+    customPoaBody,
+    customDocBodies,
+    client,
+    fullAddress,
+    generatedFeeClause,
+    selectedLawyer,
+    officeName,
+    officeOab,
+    cabinetLocation,
+    todayFormatted,
+    folderCoverBody,
+  ]);
+
+  const activeDoc = useMemo<ModalDocItem>(() => {
+    return availableDocuments.find((d) => d.id === focusedDocId) || availableDocuments[0];
+  }, [availableDocuments, focusedDocId]);
+
+  const handleSelectDoc = (docId: string) => {
+    setFocusedDocId(docId);
+    setIsEditingCustomBody(false);
+    setIsEditingCustomPoa(false);
+    setIsEditingCustomDoc(false);
+    setMobileTab('doc');
+  };
+
   if (!isOpen) return null;
 
   const handleLawyerChange = (name: string) => {
@@ -313,6 +463,7 @@ export function LegalContractModal({
 
   const handleTemplateChange = (tplId: string) => {
     setSelectedTemplateId(tplId);
+    setFocusedDocId('contrato');
     setIsEditingCustomBody(false);
     setIsContractEditedManually(false);
     const tpl = templates.find((t) => t.id === tplId);
@@ -334,7 +485,7 @@ export function LegalContractModal({
     if (!selectedTemplate) return;
     setIsContractEditedManually(false);
     setIsEditingCustomBody(false);
-    setSelectedDoc('contrato');
+    setFocusedDocId('contrato');
     const merged = mergeTemplatePlaceholders(selectedTemplate.contentBody, {
       clientName: client.fullName,
       clientCpf: client.cpf ? maskCpf(client.cpf) : '___.___.___-__',
@@ -367,14 +518,30 @@ export function LegalContractModal({
   };
 
   const handleCopyText = () => {
-    if (selectedDoc === 'contrato' && isEditingCustomBody) {
-      navigator.clipboard.writeText(customBody);
-    } else if (selectedDoc === 'procuracao' && isEditingCustomPoa) {
-      navigator.clipboard.writeText(customPoaBody);
-    } else {
+    if (focusedDocId === 'contrato') {
+      if (isEditingCustomBody) {
+        navigator.clipboard.writeText(customBody);
+      } else {
+        const printableArea = document.getElementById('client-contract-printable-area');
+        navigator.clipboard.writeText(printableArea ? printableArea.innerText : customBody);
+      }
+    } else if (focusedDocId === 'procuracao') {
+      if (isEditingCustomPoa) {
+        navigator.clipboard.writeText(customPoaBody);
+      } else {
+        const printableArea = document.getElementById('client-contract-printable-area');
+        navigator.clipboard.writeText(printableArea ? printableArea.innerText : customPoaBody);
+      }
+    } else if (focusedDocId === 'capa') {
       const printableArea = document.getElementById('client-contract-printable-area');
-      const text = printableArea ? printableArea.innerText : customBody;
-      navigator.clipboard.writeText(text);
+      navigator.clipboard.writeText(printableArea ? printableArea.innerText : folderCoverBody);
+    } else {
+      if (isEditingCustomDoc) {
+        navigator.clipboard.writeText(customDocBodies[activeDoc.id] ?? activeDoc.content);
+      } else {
+        const printableArea = document.getElementById('client-contract-printable-area');
+        navigator.clipboard.writeText(printableArea ? printableArea.innerText : activeDoc.content);
+      }
     }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -389,6 +556,10 @@ export function LegalContractModal({
     }
     if (isEditingCustomPoa) {
       setIsEditingCustomPoa(false);
+      needsDelay = true;
+    }
+    if (isEditingCustomDoc) {
+      setIsEditingCustomDoc(false);
       needsDelay = true;
     }
     if (needsDelay) {
@@ -615,7 +786,7 @@ export function LegalContractModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-1 sm:p-3 md:p-4">
-      <div className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-[98vw] 2xl:max-w-7xl h-[96vh] max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-[99vw] 2xl:max-w-[1540px] h-[96vh] max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Top Status Bar (Discreto com controle de visualização do modelo temporário) */}
         <div className="bg-[#081322] text-white px-3 sm:px-4 py-2 border-b border-white/10 flex items-center justify-between shrink-0 text-xs">
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
@@ -643,33 +814,61 @@ export function LegalContractModal({
               </button>
               <button
                 type="button"
+                onClick={() => setMobileTab('docs')}
+                className={`px-2 py-1 rounded-md font-semibold transition-all ${
+                  mobileTab === 'docs' ? 'bg-[#C89543] text-white shadow-xs' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Documentos ({availableDocuments.length})
+              </button>
+              <button
+                type="button"
                 onClick={() => setMobileTab('doc')}
                 className={`px-2 py-1 rounded-md font-semibold transition-all ${
                   mobileTab === 'doc' ? 'bg-[#C89543] text-white shadow-xs' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Ver Folha A4
+                Folha A4
               </button>
             </div>
 
-            {/* Desktop Sidebar Toggle */}
+            {/* Desktop Sidebar 1: Parâmetros Toggle */}
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-all cursor-pointer"
-              title={isSidebarOpen ? 'Ocultar Painel Lateral para Modo Leitura 100%' : 'Mostrar Painel de Configurações'}
+              className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                isSidebarOpen
+                  ? 'bg-white/10 hover:bg-white/20 text-white border-white/15'
+                  : 'bg-[#C89543]/20 hover:bg-[#C89543]/30 text-[#C89543] border-[#C89543]/40'
+              }`}
+              title={isSidebarOpen ? 'Ocultar Painel de Parâmetros' : 'Mostrar Painel de Parâmetros'}
             >
               {isSidebarOpen ? (
                 <>
                   <PanelLeftClose className="w-3.5 h-3.5 text-[#C89543]" />
-                  <span>Ocultar Painel</span>
+                  <span>Ocultar Parâmetros</span>
                 </>
               ) : (
                 <>
                   <PanelLeftOpen className="w-3.5 h-3.5 text-[#C89543]" />
-                  <span>Mostrar Painel</span>
+                  <span>Mostrar Parâmetros</span>
                 </>
               )}
+            </button>
+
+            {/* Desktop Sidebar 2: Documentos da Minuta Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsDocsPanelOpen(!isDocsPanelOpen)}
+              className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+                isDocsPanelOpen
+                  ? 'bg-white/10 hover:bg-white/20 text-white border-white/15'
+                  : 'bg-[#C89543]/20 hover:bg-[#C89543]/30 text-[#C89543] border-[#C89543]/40'
+              }`}
+              title={isDocsPanelOpen ? 'Ocultar Lista de Documentos' : 'Mostrar Lista de Documentos'}
+            >
+              <Layers className="w-3.5 h-3.5 text-[#C89543]" />
+              <span>{isDocsPanelOpen ? `Ocultar Documentos (${availableDocuments.length})` : `Documentos (${availableDocuments.length})`}</span>
             </button>
 
             <button
@@ -682,14 +881,14 @@ export function LegalContractModal({
           </div>
         </div>
 
-        {/* Main Content Area (2 Colunas) */}
+        {/* Main Content Area (3 Colunas Ocultáveis de Forma Independente) */}
         <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
-          {/* COLUNA ESQUERDA: Painel Lateral de Configurações */}
+          {/* COLUNA 1: Painel Lateral de Configurações & Parâmetros */}
           <div
             className={`
-              w-full md:w-[380px] lg:w-[410px] xl:w-[430px] shrink-0 bg-[#0B192E] text-white flex flex-col border-b md:border-b-0 md:border-r border-white/10 h-full overflow-hidden transition-all duration-200
+              w-full md:w-[320px] lg:w-[350px] xl:w-[370px] shrink-0 bg-[#0B192E] text-white flex flex-col border-b md:border-b-0 md:border-r border-white/10 h-full overflow-hidden transition-all duration-200
               ${!isSidebarOpen ? 'md:hidden' : ''}
-              ${mobileTab === 'doc' ? 'hidden md:flex' : 'flex'}
+              ${mobileTab === 'config' ? 'flex' : 'hidden md:flex'}
             `}
           >
             {/* Header da Coluna Esquerda */}
@@ -951,60 +1150,114 @@ export function LegalContractModal({
             </div>
           </div>
 
-          {/* COLUNA DIREITA: Área Nobre da Folha A4 em Tela Cheia */}
+          {/* COLUNA 2: Lista de Documentos Vinculados à Minuta (Ocultável Separadamente) */}
+          <div
+            className={`
+              w-full md:w-[280px] lg:w-[310px] xl:w-[330px] shrink-0 bg-slate-900 text-white flex flex-col border-b md:border-b-0 md:border-r border-slate-700/80 h-full overflow-hidden transition-all duration-200
+              ${!isDocsPanelOpen ? 'md:hidden' : ''}
+              ${mobileTab === 'docs' ? 'flex' : 'hidden md:flex'}
+            `}
+          >
+            {/* Header da Coluna de Documentos */}
+            <div className="p-3 bg-slate-800/80 border-b border-slate-700 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2 text-xs font-bold text-white">
+                <Layers className="w-4 h-4 text-[#C89543]" />
+                <span>Documentos da Minuta</span>
+              </div>
+              <span className="text-[10px] font-bold text-slate-300 bg-slate-700 px-2 py-0.5 rounded-full">
+                {availableDocuments.length} disponíveis
+              </span>
+            </div>
+
+            {/* Lista Vertical de Documentos */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2">
+              {availableDocuments.map((doc, idx) => {
+                const isFocused = doc.id === focusedDocId;
+                return (
+                  <div
+                    key={doc.id}
+                    onClick={() => handleSelectDoc(doc.id)}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer text-left relative ${
+                      isFocused
+                        ? 'bg-[#082A52] border-[#C89543] shadow-md ring-1 ring-[#C89543]/40'
+                        : 'bg-slate-800/60 border-slate-700/80 hover:bg-slate-800 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1.5">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-[#C89543] truncate max-w-[170px]">
+                        {idx + 1}. {doc.categoryLabel}
+                      </span>
+                      {isFocused && (
+                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.2 rounded shrink-0 flex items-center gap-1">
+                          <Check className="w-2.5 h-2.5" />
+                          <span>Em Foco</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <h4 className="text-xs font-bold text-white mt-1.5 line-clamp-1">
+                      {doc.title}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">
+                      {doc.description}
+                    </p>
+
+                    <div className="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400">
+                      <span>{doc.id === 'contrato' && isContractEditedManually ? 'Texto Personalizado' : doc.id === 'procuracao' && isPoaEditedManually ? 'Texto Personalizado' : customDocBodies[doc.id] ? 'Texto Personalizado' : 'Modelo Padronizado'}</span>
+                      <span className="text-[#C89543] font-semibold flex items-center gap-0.5">
+                        Ver na Folha &rarr;
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Rodapé informativo da Coluna de Documentos */}
+            <div className="p-2.5 bg-slate-950/70 border-t border-slate-800 text-[11px] text-slate-400 text-center">
+              <span>Clique no documento para exibir na Folha A4</span>
+            </div>
+          </div>
+
+          {/* COLUNA 3: Área Nobre da Folha A4 em Tela Cheia */}
           <div
             className={`
               flex-1 min-h-0 flex flex-col bg-slate-200 h-full overflow-hidden
-              ${mobileTab === 'config' ? 'hidden md:flex' : 'flex'}
+              ${mobileTab === 'doc' ? 'flex' : 'hidden md:flex'}
             `}
           >
-            {/* Top Bar da Folha A4 com Abas de Documentos e Ações Rápidas */}
+            {/* Top Bar da Folha A4 com Identificação do Documento Ativo e Ações Rápidas */}
             <div className="bg-white border-b border-slate-300 px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 shadow-xs">
-              {/* Abas dos 3 Documentos */}
-              <div className="flex items-center gap-2 overflow-x-auto">
-                <button
-                  type="button"
-                  onClick={() => setSelectedDoc('contrato')}
-                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-                    selectedDoc === 'contrato'
-                      ? 'bg-[#082A52] text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  <FileText className="w-5 h-5 text-[#C89543]" />
-                  <span>1. Contrato de Honorários</span>
-                </button>
+              {/* Identificação do Documento em Foco e Seletor Rápido */}
+              <div className="flex items-center gap-2 overflow-x-auto min-w-0">
+                <span className="font-extrabold text-[#082A52] text-xs sm:text-sm flex items-center gap-1.5 shrink-0">
+                  <FileText className="w-4 h-4 text-[#C89543]" />
+                  <span className="truncate max-w-[180px] sm:max-w-xs md:max-w-sm">{activeDoc.title}</span>
+                </span>
+                <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-semibold border border-slate-200 shrink-0">
+                  {activeDoc.categoryLabel}
+                </span>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedDoc('procuracao')}
-                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-                    selectedDoc === 'procuracao'
-                      ? 'bg-[#082A52] text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  <ShieldCheck className="w-5 h-5 text-[#C89543]" />
-                  <span>2. Procuração Ad Judicia</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedDoc('capa')}
-                  className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all flex items-center gap-2.5 whitespace-nowrap cursor-pointer ${
-                    selectedDoc === 'capa'
-                      ? 'bg-[#082A52] text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  <FolderLock className="w-5 h-5 text-[#C89543]" />
-                  <span>3. Capa de Pasta</span>
-                </button>
+                {/* Seletor Rápido caso a barra de documentos esteja oculta */}
+                {!isDocsPanelOpen && (
+                  <select
+                    value={focusedDocId}
+                    onChange={(e) => handleSelectDoc(e.target.value)}
+                    className="bg-slate-100 text-[#082A52] border border-slate-300 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#C89543] cursor-pointer"
+                    title="Alternar documento visualizado"
+                  >
+                    {availableDocuments.map((doc, idx) => (
+                      <option key={doc.id} value={doc.id}>
+                        {idx + 1}. {doc.categoryLabel} - {doc.title}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
-              {/* Ações da Folha: Edição inline e Ações Rápidas */}
+              {/* Ações da Folha: Edição inline, Copiar, Imprimir */}
               <div className="flex items-center gap-2">
-                {selectedDoc === 'contrato' && (
+                {focusedDocId === 'contrato' && (
                   <button
                     type="button"
                     onClick={() => setIsEditingCustomBody(!isEditingCustomBody)}
@@ -1015,7 +1268,7 @@ export function LegalContractModal({
                   </button>
                 )}
 
-                {selectedDoc === 'procuracao' && (
+                {focusedDocId === 'procuracao' && (
                   <button
                     type="button"
                     onClick={() => setIsEditingCustomPoa(!isEditingCustomPoa)}
@@ -1026,17 +1279,34 @@ export function LegalContractModal({
                   </button>
                 )}
 
-                {/* Se a barra lateral estiver fechada, botão de imprimir rápido */}
-                {!isSidebarOpen && (
+                {focusedDocId !== 'contrato' && focusedDocId !== 'procuracao' && focusedDocId !== 'capa' && (
                   <button
                     type="button"
-                    onClick={handlePrint}
-                    className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#082A52] text-white hover:bg-[#0c396d] text-xs font-bold shadow-xs transition-all cursor-pointer"
+                    onClick={() => setIsEditingCustomDoc(!isEditingCustomDoc)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold text-[#0B78D0] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all cursor-pointer"
                   >
-                    <Printer className="w-3.5 h-3.5 text-[#C89543]" />
-                    <span>Imprimir</span>
+                    <Edit3 className="w-3 h-3" />
+                    <span>{isEditingCustomDoc ? 'Visualizar Formato Impresso' : 'Editar Texto Desta Minuta'}</span>
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleCopyText}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-500" />}
+                  <span>{copied ? 'Copiado!' : 'Copiar'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#082A52] text-white hover:bg-[#0c396d] text-xs font-bold shadow-xs transition-all cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5 text-[#C89543]" />
+                  <span>Imprimir A4</span>
+                </button>
               </div>
             </div>
 
@@ -1047,7 +1317,7 @@ export function LegalContractModal({
                 className="bg-white w-full max-w-[794px] min-h-[1123px] h-auto shadow-2xl rounded-xs border border-slate-300 p-8 sm:p-14 md:p-16 text-slate-900 text-xs sm:text-sm leading-relaxed space-y-6 flex flex-col justify-between shrink-0 mb-8"
               >
             {/* DOCUMENT 1: CONTRATO DE HONORÁRIOS */}
-            {selectedDoc === 'contrato' && (
+            {focusedDocId === 'contrato' && (
               <div className="space-y-4 text-justify flex-1 flex flex-col justify-between">
                 <div>
                   {/* Header */}
@@ -1134,7 +1404,7 @@ export function LegalContractModal({
             )}
 
             {/* DOCUMENT 2: PROCURAÇÃO AD JUDICIA */}
-            {selectedDoc === 'procuracao' && (
+            {focusedDocId === 'procuracao' && (
               <div className="space-y-4 text-justify flex-1 flex flex-col justify-between">
                 <div>
                   <div className="text-center border-b-2 border-[#082A52] pb-4 mb-4">
@@ -1214,7 +1484,7 @@ export function LegalContractModal({
             )}
 
             {/* DOCUMENT 3: CAPA DE PASTA FÍSICA */}
-            {selectedDoc === 'capa' && (
+            {focusedDocId === 'capa' && (
               <div className="border-4 border-double border-[#082A52] p-6 sm:p-8 rounded-lg space-y-6">
                 <div className="text-center border-b-2 border-[#082A52] pb-4">
                   <div className="flex items-center justify-center gap-2 text-[#082A52] mb-1">
@@ -1313,6 +1583,102 @@ export function LegalContractModal({
                 <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
                   <span>{locale === 'en-US' ? 'Filing Date:' : 'Data de Autuação:'} {todayFormatted}</span>
                   <span>{officeName} • {officeOab}</span>
+                </div>
+              </div>
+            )}
+
+            {/* DOCUMENTOS ADICIONAIS / MINUTAS PERSONALIZADAS DA BIBLIOTECA */}
+            {focusedDocId !== 'contrato' && focusedDocId !== 'procuracao' && focusedDocId !== 'capa' && (
+              <div className="space-y-4 text-justify flex-1 flex flex-col justify-between">
+                <div>
+                  {/* Cabeçalho da Minuta */}
+                  <div className="text-center border-b-2 border-[#082A52] pb-4 mb-5">
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                      {officeName} • {officeOab}
+                    </div>
+                    <h2 className="font-bold text-base sm:text-lg text-[#082A52] uppercase mt-1 tracking-tight">
+                      {activeDoc.title}
+                    </h2>
+                    <div className="text-xs text-[#C89543] font-bold mt-0.5">
+                      {activeDoc.categoryLabel}
+                    </div>
+                  </div>
+
+                  {/* Toggle Edição Inline */}
+                  <div className="print:hidden flex justify-end pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingCustomDoc(!isEditingCustomDoc)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0B78D0] hover:underline cursor-pointer"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span>
+                        {isEditingCustomDoc
+                          ? 'Visualizar Formato Impresso'
+                          : 'Editar Cláusulas Específicas deste Documento'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {isEditingCustomDoc ? (
+                    <div className="space-y-2">
+                      <span className="text-[11px] text-amber-800 font-semibold block">
+                        Você está editando o texto exclusivo deste documento para {client.fullName}. (O modelo padrão global não será alterado).
+                      </span>
+                      <textarea
+                        rows={18}
+                        value={customDocBodies[activeDoc.id] ?? activeDoc.content}
+                        onChange={(e) => {
+                          setCustomDocBodies((prev) => ({
+                            ...prev,
+                            [activeDoc.id]: e.target.value,
+                          }));
+                        }}
+                        className="w-full p-3 border border-slate-300 rounded-lg font-mono text-xs text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#0B78D0]"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-3 font-sans text-xs sm:text-sm leading-relaxed text-slate-800 whitespace-pre-wrap">
+                      {customDocBodies[activeDoc.id] ?? activeDoc.content}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bloco de Assinaturas e Testemunhas */}
+                <div className="pt-8 space-y-8 break-inside-avoid text-xs">
+                  <div className="text-right text-slate-600">
+                    {locale === 'en-US' ? `Location, ${todayFormatted}.` : `Localidade, ${todayFormatted}.`}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 text-center pt-2">
+                    <div className="border-t border-slate-800 pt-1.5">
+                      <strong className="block text-slate-900">{client.fullName}</strong>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        {locale === 'en-US' ? 'PRINCIPAL' : 'REQUERENTE / DECLARANTE'} • {locale === 'en-US' ? 'Tax ID (CPF):' : 'CPF:'} {maskCpf(client.cpf)}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-1.5">
+                      <strong className="block text-slate-900">{selectedLawyer.name}</strong>
+                      <span className="text-[11px] text-slate-500">
+                        {selectedLawyer.oab} • {officeName}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 text-left text-[11px] pt-4">
+                    <div className="border-t border-slate-400 pt-1">
+                      <span>{locale === 'en-US' ? '1st Witness:' : '1ª Testemunha:'}</span><br />
+                      <span>{locale === 'en-US' ? 'Name:' : 'Nome:'} ____________________________________</span><br />
+                      <span>{locale === 'en-US' ? 'Tax ID (CPF):' : 'CPF:'} _____________________________________</span>
+                    </div>
+
+                    <div className="border-t border-slate-400 pt-1">
+                      <span>{locale === 'en-US' ? '2nd Witness:' : '2ª Testemunha:'}</span><br />
+                      <span>{locale === 'en-US' ? 'Name:' : 'Nome:'} ____________________________________</span><br />
+                      <span>{locale === 'en-US' ? 'Tax ID (CPF):' : 'CPF:'} _____________________________________</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
