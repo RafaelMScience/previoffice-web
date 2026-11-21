@@ -30,6 +30,7 @@ const FastIntakeModal = dynamic(
 );
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useFetchWithAbort } from '@/hooks/use-fetch-with-abort';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { fetchClientsFromDb, createFastIntakeInDb } from '@/lib/services/client-service';
 import { formatBenefitType } from '@/lib/utils/benefit-translations';
@@ -38,6 +39,7 @@ import type { Client } from '@/types/client';
 export default function ReceptionDashboardPage() {
   const { t } = useI18n();
   const { canAccess, currentUser } = useAuth();
+  const { getSignal } = useFetchWithAbort();
 
   // Reception table state
   const [receptionRows, setReceptionRows] = useState<ReceptionTableRow[]>([]);
@@ -53,9 +55,11 @@ export default function ReceptionDashboardPage() {
 
   const loadClients = useCallback(async () => {
     if (!currentUser?.tenantId) return;
+    const signal = getSignal();
     setLoadingRows(true);
     try {
       const clients = await fetchClientsFromDb(currentUser.tenantId);
+      if (signal.aborted) return;
       setClientsCache(clients);
 
       const rows: ReceptionTableRow[] = clients.map((c) => {
