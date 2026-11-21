@@ -83,17 +83,27 @@ export interface PhysicalDocumentAttachment {
   replacedBy?: string;
 }
 
+export type DocumentCategory =
+  | 'FEE_CONTRACT'          // Contrato de Honorários Advocatícios
+  | 'POWER_OF_ATTORNEY'     // Procuração Ad Judicia et Extra
+  | 'DECLARATION_HIPO'      // Declaração de Hipossuficiência Econômica
+  | 'WAIVER_TERM'           // Termo de Renúncia / Desistência
+  | 'INSS_REQUEST'          // Requerimento Administrativo INSS
+  | 'OTHER';                // Outro Tipo Personalizado
+
 export interface ContractTemplate {
   id: string;
   tenantId: string;
   title: string;
+  documentCategory?: DocumentCategory;
+  customCategoryName?: string;          // Nome livre caso documentCategory seja 'OTHER'
   benefitSpecies: string;                // e.g. "Aposentadoria Rural", "BPC/LOAS", "Pensão por Morte"
   description: string;
   defaultFeeModel: FeeModel;
   defaultQuotaLitisPercentage: number;   // Usually 30% for social security
   clausesCount: number;
   isDefault: boolean;
-  lawyerName?: string;                   // Optional: Advogado titular do modelo (ex: "Dr. Alexandre Pontes")
+  lawyerName?: string;                   // Opcional: só salvo se o usuário preencher explicitamente
   lawyerOab?: string;                    // e.g. "OAB/AM 55.858"
   contentBody: string;                   // Markdown or standard template text with dynamic placeholders
   createdAt: string;

@@ -27,6 +27,7 @@ import {
   calculateContractKpis,
   fetchContractTemplates,
 } from '@/lib/services/contract-service';
+import { invalidateCache } from '@/lib/cache/request-cache';
 
 import dynamic from 'next/dynamic';
 
@@ -233,15 +234,25 @@ export default function ContractsPage() {
   const handleAddTemplate = (
     templateData: Omit<ContractTemplate, 'id' | 'createdAt' | 'updatedAt'>
   ) => {
-    const newTpl = contractsStore.addTemplate(templateData);
+    const tenantId = currentUser?.tenantId || 'tenant-001';
+    const newTpl = contractsStore.addTemplate({
+      ...templateData,
+      tenantId,
+    });
+    invalidateCache('templates:');
     refreshData();
     triggerToast(`Minuta "${newTpl.title}" cadastrada com sucesso!`);
   };
 
   // Update template handler
   const handleUpdateTemplate = (templateData: ContractTemplate) => {
-    const updated = contractsStore.updateTemplate(templateData);
+    const tenantId = currentUser?.tenantId || templateData.tenantId || 'tenant-001';
+    const updated = contractsStore.updateTemplate({
+      ...templateData,
+      tenantId,
+    });
     if (updated) {
+      invalidateCache('templates:');
       refreshData();
       triggerToast(`Minuta "${updated.title}" atualizada com sucesso!`);
     }

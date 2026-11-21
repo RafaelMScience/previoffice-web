@@ -10,23 +10,22 @@ import type {
 export const INITIAL_CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
     id: 'tpl-001',
-    tenantId: 'tenant-001',
-    title: 'Minuta Padrão — Aposentadoria por Idade Rural (Dr. Alexandre Pontes)',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Aposentadoria por Idade Rural',
+    documentCategory: 'FEE_CONTRACT',
     benefitSpecies: 'Aposentadoria por Idade Rural',
     description: 'Padrão oficial para lavradores e segurados especiais com comprovação de atividade campesina, destacamento de RPV e Quota Litis 30%.',
     defaultFeeModel: 'QUOTA_LITIS',
     defaultQuotaLitisPercentage: 30,
     clausesCount: 8,
     isDefault: true,
-    lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/AM 55.858',
     contentBody: `INSTRUMENTO PARTICULAR DE CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS PROFISSIONAIS — APOSENTADORIA RURAL
 
 Pelo presente instrumento particular, regido pela Lei Federal nº 8.906/1994 (Estatuto da Advocacia e da OAB), pelos artigos 593 e seguintes e 653 e seguintes da Lei Federal nº 10.406/2002 (Código Civil Brasileiro), pelo Código de Ética e Disciplina da OAB e pela legislação previdenciária de regência (Lei nº 8.213/1991), têm entre si justo e acordado:
 
 CONTRATANTE: {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente e domiciliado(a) em {{ENDERECO}}, telefone/WhatsApp: {{TELEFONE}}.
 
-CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, inscrita na OAB/AM, representada neste ato pelo(a) advogado(a) Dr(a). {{NOME_ADVOGADO}}, inscrito(a) na OAB sob o nº {{OAB_ADVOGADO}}, com sede e domicílio profissional no escritório central.
+CONTRATADA: SOCIEDADE DE ADVOGADOS, representada neste ato pelo(a) advogado(a) Dr(a). {{NOME_ADVOGADO}}, inscrito(a) na OAB sob o nº {{OAB_ADVOGADO}}, com sede e domicílio profissional no escritório central.
 
 As partes ajustam o presente contrato mediante as seguintes cláusulas:
 
@@ -63,22 +62,21 @@ Localidade, {{DATA_EXTENSO}}.`,
   },
   {
     id: 'tpl-002',
-    tenantId: 'tenant-001',
-    title: 'Minuta Padrão — BPC/LOAS Incapacidade e Idoso (Dra. Camila Santos)',
-    benefitSpecies: 'BPC/LOAS',
-    description: 'Modelo oficial da Dra. Camila com cláusulas de assistência social sem carência (Lei 8.742/93), avaliação pericial e honorários de êxito.',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Benefício Assistencial BPC/LOAS',
+    documentCategory: 'FEE_CONTRACT',
+    benefitSpecies: 'Benefício de Prestação Continuada (BPC/LOAS Idoso)',
+    description: 'Padrão oficial com cláusulas de assistência social sem carência (Lei 8.742/93), avaliação pericial e honorários de êxito.',
     defaultFeeModel: 'QUOTA_LITIS',
     defaultQuotaLitisPercentage: 30,
     clausesCount: 8,
     isDefault: true,
-    lawyerName: 'Dra. Camila Santos',
-    lawyerOab: 'OAB/AM 22.100',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS PROFISSIONAIS — BENEFÍCIO DE PRESTAÇÃO CONTINUADA (BPC/LOAS)
 
 Pelo presente instrumento particular, regido pela Lei Federal nº 8.906/1994 (Estatuto da OAB), artigos 593 e seguintes e 653 e seguintes da Lei Federal nº 10.406/2002 (Código Civil) e Lei Federal nº 8.742/1993 (Lei Orgânica da Assistência Social - LOAS), celebram entre si:
 
 CONTRATANTE: {{NOME_CLIENTE}}, portador(a) do CPF/MF nº {{CPF}}, RG nº {{RG}}, residente em {{ENDERECO}}, telefone: {{TELEFONE}}.
-CONTRATADA: Sociedade de Advogados sob patrocínio de {{NOME_ADVOGADO}}, {{OAB_ADVOGADO}}.
+CONTRATADA: SOCIEDADE DE ADVOGADOS, sob o patrocínio técnico do corpo jurídico responsável.
 
 CLÁUSULA 1ª — DO OBJETO: Prestação de serviços jurídicos para postulação e obtenção do Benefício de Prestação Continuada da Assistência Social ({{BENEFICIO}}), em favor da pessoa com deficiência ou idoso hipossuficiente (Pasta: {{PASTA_FISICA}}).
 CLÁUSULA 2ª — DOS HONORÁRIOS CONTRATUAIS: Pelos serviços prestados, em conformidade com o art. 22 da Lei Federal nº 8.906/1994 e o Código de Ética e Disciplina da OAB, o(a) CONTRATANTE pagará à CONTRATADA a título de honorários advocatícios:
@@ -96,22 +94,21 @@ Localidade, {{DATA_EXTENSO}}.`,
   },
   {
     id: 'tpl-003',
-    tenantId: 'tenant-001',
-    title: 'Minuta Padrão — Aposentadoria Urbana & Regras de Transição (Dr. Alexandre Pontes)',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Aposentadoria Urbana & Regras de Transição',
+    documentCategory: 'FEE_CONTRACT',
     benefitSpecies: 'Aposentadoria por Tempo de Contribuição',
     description: 'Averbação de PPP/LTCAT insalubre, retificação de vínculos no CNIS, regras de transição da EC 103/2019 e quota litis padrão OAB.',
     defaultFeeModel: 'QUOTA_LITIS',
     defaultQuotaLitisPercentage: 30,
     clausesCount: 8,
     isDefault: true,
-    lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/AM 55.858',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS PREVIDENCIÁRIOS — APOSENTADORIA URBANA E REGRAS DE TRANSIÇÃO (EC 103/2019)
 
 Pelo presente instrumento, regido pela Lei Federal nº 8.906/1994, Lei Federal nº 10.406/2002 e Lei Federal nº 8.213/1991:
 
 CONTRATANTE: {{NOME_CLIENTE}}, portador(a) do CPF {{CPF}}, RG {{RG}}, residente em {{ENDERECO}}, telefone: {{TELEFONE}}.
-CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, representada por {{NOME_ADVOGADO}}, {{OAB_ADVOGADO}}.
+CONTRATADA: SOCIEDADE DE ADVOGADOS, sob representação do corpo jurídico da banca.
 
 CLÁUSULA 1ª — DO OBJETO: Retificação, acerto de vínculos e remunerações no CNIS, averbação de tempo especial/insalubre e postulação administrativa e judicial do benefício de {{BENEFICIO}} (Pasta: {{PASTA_FISICA}}).
 CLÁUSULA 2ª — DOS HONORÁRIOS CONTRATUAIS: Pelos serviços profissionais prestados, em conformidade com o art. 22 da Lei Federal nº 8.906/1994 e o Código de Ética e Disciplina da OAB, o(a) CONTRATANTE pagará à CONTRATADA a título de honorários advocatícios:
@@ -129,22 +126,21 @@ Localidade, {{DATA_EXTENSO}}.`,
   },
   {
     id: 'tpl-004',
-    tenantId: 'tenant-001',
-    title: 'Minuta Padrão — Planejamento Previdenciário Parcelado (Banca Geral)',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Planejamento Previdenciário Parcelado',
+    documentCategory: 'FEE_CONTRACT',
     benefitSpecies: 'Planejamento Previdenciário',
     description: 'Estrutura com honorários fixos de consultoria para estudo técnico de aposentadoria e análise contributiva.',
     defaultFeeModel: 'FIXED_INSTALLMENT',
     defaultQuotaLitisPercentage: 0,
     clausesCount: 7,
     isDefault: false,
-    lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/AM 55.858',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS JURÍDICOS E CONSULTORIA — PLANEJAMENTO PREVIDENCIÁRIO
 
 Pelo presente instrumento, regido pela Lei Federal nº 8.906/1994 e artigos 593 e seguintes da Lei Federal nº 10.406/2002:
 
 CONTRATANTE: {{NOME_CLIENTE}}, CPF: {{CPF}}, residente em {{ENDERECO}}, telefone: {{TELEFONE}}.
-CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, sob a responsabilidade de {{NOME_ADVOGADO}}, {{OAB_ADVOGADO}}.
+CONTRATADA: SOCIEDADE DE ADVOGADOS, sob a responsabilidade técnica do advogado condutor.
 
 CLÁUSULA 1ª — DO OBJETO: Elaboração de Estudo Técnico de Planejamento Previdenciário contendo análise detalhada do CNIS, contagem de tempo de contribuição, projeção de regras de transição e cálculo de Renda Mensal Inicial (RMI) mais vantajosa (Pasta: {{PASTA_FISICA}}).
 CLÁUSULA 2ª — DO VALOR E FORMA DE PAGAMENTO: Pela prestação dos serviços de consultoria técnica, o(a) CONTRATANTE pagará {{HONORARIOS}}.
@@ -156,6 +152,52 @@ CLÁUSULA 7ª — DO FORO: Foro do domicílio do(a) CONTRATANTE.
 
 Localidade, {{DATA_EXTENSO}}.`,
     createdAt: '2026-03-01T11:00:00Z',
+    updatedAt: '2026-11-20T15:30:00Z',
+  },
+  {
+    id: 'tpl-005',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Procuração Ad Judicia et Extra (Previdenciária)',
+    documentCategory: 'POWER_OF_ATTORNEY',
+    benefitSpecies: 'Geral / Todos os Benefícios',
+    description: 'Procuração com poderes especiais para postulação e levantamento de RPV/precatório perante o INSS e Justiça Federal.',
+    defaultFeeModel: 'QUOTA_LITIS',
+    defaultQuotaLitisPercentage: 30,
+    clausesCount: 4,
+    isDefault: true,
+    contentBody: `PROCURAÇÃO AD JUDICIA ET EXTRA
+
+OUTORGANTE: {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente e domiciliado(a) em {{ENDERECO}}, telefone/WhatsApp: {{TELEFONE}}.
+
+OUTORGADOS: Os advogados integrantes da SOCIEDADE DE ADVOGADOS, com endereço profissional onde recebem intimações e notificações de estilo.
+
+PODERES: Pelo presente instrumento de mandato, o(a) OUTORGANTE confere aos OUTORGADOS amplos poderes para o foro em geral, com a cláusula "ad judicia et extra", em qualquer Juízo, Instância, Tribunal ou Repartição Pública, especialmente perante o INSTITUTO NACIONAL DO SEGURO SOCIAL (INSS), Ministério da Previdência Social, Caixa Econômica Federal e Banco do Brasil, podendo propor e acompanhar ações administrativas e judiciais em prol do benefício de {{BENEFICIO}}, praticando todos os atos necessários ao bom e fiel cumprimento deste mandato, inclusive confessar, reconhecer a procedência do pedido, transigir, desistir, renunciar ao direito sobre o qual se funda a ação, firmar compromissos, receber valores, dar e receber quitação, requerer expedição e levantamento de RPV e Precatórios, e substabelecer esta a outrem, com ou sem reserva de iguais poderes.
+
+Localidade, {{DATA_EXTENSO}}.`,
+    createdAt: '2026-03-05T10:00:00Z',
+    updatedAt: '2026-11-20T15:30:00Z',
+  },
+  {
+    id: 'tpl-006',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Declaração de Hipossuficiência Econômica',
+    documentCategory: 'DECLARATION_HIPO',
+    benefitSpecies: 'Geral / Todos os Benefícios',
+    description: 'Declaração formal de insuficiência de recursos para gratuidade da justiça (art. 98 do CPC).',
+    defaultFeeModel: 'QUOTA_LITIS',
+    defaultQuotaLitisPercentage: 0,
+    clausesCount: 2,
+    isDefault: true,
+    contentBody: `DECLARAÇÃO DE HIPOSSUFICIÊNCIA ECONÔMICA (JUSTIÇA GRATUITA)
+
+Eu, {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente e domiciliado(a) em {{ENDERECO}},
+
+DECLARO, sob as penas da lei e em conformidade com o artigo 98 e seguintes da Lei Federal nº 13.105/2015 (Código de Processo Civil) e artigo 5º, inciso LXXIV da Constituição Federal de 1988, que não possuo condições financeiras de arcar com as custas processuais, despesas judiciais e honorários advocatícios sem prejuízo do sustento próprio e de minha família.
+
+Por ser a expressão da verdade, firmo a presente declaração para que produza seus regulares efeitos de direito perante os órgãos jurisdicionais competentes.
+
+Localidade, {{DATA_EXTENSO}}.`,
+    createdAt: '2026-03-10T10:00:00Z',
     updatedAt: '2026-11-20T15:30:00Z',
   },
 ];
@@ -584,7 +626,7 @@ export function calculateContractKpis(contracts: Contract[]): ContractKpis {
 const TEMPLATES_STORAGE_KEY = 'previoffice_contract_templates';
 const CONTRACTS_STORAGE_KEY = 'previoffice_contracts';
 
-class ContractsStore {
+export class ContractsStore {
   private contracts: Contract[] = [...INITIAL_CONTRACTS];
   private templates: ContractTemplate[] = [...INITIAL_CONTRACT_TEMPLATES];
   private isLoadedFromStorage = false;
@@ -777,11 +819,27 @@ class ContractsStore {
     }
     const idx = this.templates.findIndex((t) => t.id === updated.id);
     if (idx === -1) return null;
+
+    if (updated.isDefault) {
+      const docCat = updated.documentCategory || 'FEE_CONTRACT';
+      this.templates = this.templates.map((t) => {
+        if (
+          t.id !== updated.id &&
+          t.tenantId === updated.tenantId &&
+          t.benefitSpecies === updated.benefitSpecies &&
+          (t.documentCategory || 'FEE_CONTRACT') === docCat
+        ) {
+          return { ...t, isDefault: false };
+        }
+        return t;
+      });
+    }
+
     const tpl: ContractTemplate = {
       ...updated,
       updatedAt: new Date().toISOString(),
     };
-    this.templates[idx] = tpl;
+    this.templates = this.templates.map((t) => (t.id === updated.id ? tpl : t));
     this.saveToStorage();
     return tpl;
   }
@@ -790,9 +848,24 @@ class ContractsStore {
     if (!this.isLoadedFromStorage) {
       this.loadFromStorage();
     }
+
+    if (template.isDefault) {
+      const docCat = template.documentCategory || 'FEE_CONTRACT';
+      this.templates = this.templates.map((t) => {
+        if (
+          t.tenantId === template.tenantId &&
+          t.benefitSpecies === template.benefitSpecies &&
+          (t.documentCategory || 'FEE_CONTRACT') === docCat
+        ) {
+          return { ...t, isDefault: false };
+        }
+        return t;
+      });
+    }
+
     const newTpl: ContractTemplate = {
       ...template,
-      id: `tpl-${Date.now()}`,
+      id: `tpl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -807,7 +880,7 @@ class ContractsStore {
     }
     const created: Contract = {
       ...newContract,
-      id: `ctr-${Date.now()}`,
+      id: `ctr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

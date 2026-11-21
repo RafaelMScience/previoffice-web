@@ -259,14 +259,21 @@ export class SupabaseContractRepository implements IContractRepository {
     // Templates can be extended to a database table or combined with system presets
     const { contractsStore } = await import('@/lib/data/mock-contracts');
     const all = contractsStore.getTemplates();
-    return all.filter(
-      (t) =>
-        !tenantId ||
-        t.tenantId === tenantId ||
-        t.isDefault ||
-        t.tenantId === 'tenant-001' ||
-        t.tenantId === 'system'
-    );
+    return all.filter((t) => {
+      if (!tenantId) return t.tenantId === 'system';
+      if (t.tenantId === tenantId) return true;
+      if (t.tenantId === 'system') {
+        const hasTenantOverride = all.some(
+          (custom) =>
+            custom.tenantId === tenantId &&
+            custom.benefitSpecies === t.benefitSpecies &&
+            (custom.documentCategory || 'FEE_CONTRACT') === (t.documentCategory || 'FEE_CONTRACT') &&
+            custom.isDefault
+        );
+        return !hasTenantOverride;
+      }
+      return false;
+    });
   }
 
   async saveTemplate(template: ContractTemplate): Promise<void> {

@@ -29,7 +29,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { fetchClientsFromDb } from '@/lib/services/client-service';
 import { maskCpf } from '@/lib/utils/masks';
 import { generateFeeInstallments } from '@/lib/utils/template-engine';
-import { formatBenefitType } from '@/lib/utils/benefit-translations';
+import { formatBenefitType, formatDocumentCategory } from '@/lib/utils/benefit-translations';
 
 interface NewContractModalProps {
   isOpen: boolean;
@@ -107,7 +107,26 @@ export function NewContractModal({
           setSelectedClientId(mapped[0].id);
           setCabinetLocation(mapped[0].location);
           if (mapped[0].benefit) {
-            setBenefitSpecies(formatBenefitType(mapped[0].benefit, 'pt-BR'));
+            const formatted = formatBenefitType(mapped[0].benefit, 'pt-BR');
+            setBenefitSpecies(formatted);
+            const matched = templates.find(
+              (t) =>
+                (formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit) &&
+                t.isDefault &&
+                (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory)
+            ) || templates.find(
+              (t) => (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory) && t.isDefault
+            ) || templates.find(
+              (t) => formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit
+            ) || templates[0];
+
+            if (matched) {
+              setTemplateId(matched.id);
+              setFeeModel(matched.defaultFeeModel);
+              if (matched.defaultQuotaLitisPercentage) {
+                setQuotaLitisPercentage(matched.defaultQuotaLitisPercentage);
+              }
+            }
           }
         }
       } catch (err) {
@@ -139,13 +158,37 @@ export function NewContractModal({
 
   const currentClient = clientOptions.find((c) => c.id === selectedClientId) || clientOptions[0];
 
+  const autoSelectDefaultTemplate = (targetBenefit: string) => {
+    const formatted = formatBenefitType(targetBenefit, 'pt-BR');
+    const matched = templates.find(
+      (t) =>
+        (formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === targetBenefit) &&
+        t.isDefault &&
+        (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory)
+    ) || templates.find(
+      (t) => (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory) && t.isDefault
+    ) || templates.find(
+      (t) => formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === targetBenefit
+    ) || templates[0];
+
+    if (matched) {
+      setTemplateId(matched.id);
+      setFeeModel(matched.defaultFeeModel);
+      if (matched.defaultQuotaLitisPercentage) {
+        setQuotaLitisPercentage(matched.defaultQuotaLitisPercentage);
+      }
+    }
+  };
+
   const handleClientChange = (clientId: string) => {
     setSelectedClientId(clientId);
     const client = clientOptions.find((c) => c.id === clientId);
     if (client) {
       setCabinetLocation(client.location);
       if (client.benefit) {
-        setBenefitSpecies(formatBenefitType(client.benefit, 'pt-BR'));
+        const formatted = formatBenefitType(client.benefit, 'pt-BR');
+        setBenefitSpecies(formatted);
+        autoSelectDefaultTemplate(formatted);
       }
     }
   };
@@ -222,14 +265,14 @@ export function NewContractModal({
         fileSizeFormatted: uploadedFileSizeFormatted,
         fileType: 'application/pdf',
         uploadedAt: new Date().toISOString(),
-        uploadedBy: currentUser?.fullName || 'Dr. Alexandre Pontes',
+        uploadedBy: currentUser?.fullName || 'Advogado(a) Responsável',
         physicalCabinetLocation: cabinetLocation || 'Armário Geral',
         signerType: 'CLIENT_SIGNATURE',
         documentCategory,
         isSigned: isSignedDocument,
         fileDataUrl: uploadedDataUrl,
         replacedAt: new Date().toISOString(),
-        replacedBy: currentUser?.fullName || 'Dr. Alexandre Pontes',
+        replacedBy: currentUser?.fullName || 'Advogado(a) Responsável',
       };
     }
 
@@ -270,9 +313,9 @@ export function NewContractModal({
       isCustomEdited: Boolean(customAttachment),
       customEditedBy: customAttachment?.replacedBy,
       customEditedAt: customAttachment?.replacedAt,
-      lawyerName: tpl?.lawyerName || 'Dr. Alexandre Pontes',
-      lawyerOab: tpl?.lawyerOab || 'OAB/AM 55.858',
-      officeName: 'Alexandre Pontes Sociedade de Advogados',
+      lawyerName: tpl?.lawyerName || currentUser?.fullName || 'Advogado(a) Responsável',
+      lawyerOab: tpl?.lawyerOab || (currentUser as any)?.oabNumber || '',
+      officeName: (currentUser as any)?.officeName || 'Sociedade de Advogados',
       issuedAt: new Date().toISOString(),
       signedAt: isSignedDocument ? new Date().toISOString() : undefined,
       physicalFileLocation: cabinetLocation || 'Armário Geral',
@@ -340,11 +383,12 @@ export function NewContractModal({
               <select
                 value={templateId}
                 onChange={(e) => handleTemplateChange(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30 font-medium"
               >
                 {templates.map((tpl) => (
                   <option key={tpl.id} value={tpl.id}>
-                    {tpl.title}
+                    {tpl.isDefault ? '★ [PADRÃO] ' : ''}
+                    {formatDocumentCategory(tpl.documentCategory, tpl.customCategoryName)}: {tpl.title}
                   </option>
                 ))}
               </select>
@@ -360,6 +404,7 @@ export function NewContractModal({
                 required
                 value={benefitSpecies}
                 onChange={(e) => setBenefitSpecies(e.target.value)}
+                onBlur={() => autoSelectDefaultTemplate(benefitSpecies)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30"
               />
             </div>
