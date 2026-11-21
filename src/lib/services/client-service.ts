@@ -26,8 +26,16 @@ export async function fetchClientsFromDb(
   return dedupeRequest(`clients:list:${tenantId}:${page}:${limit}`, async () => {
     const supabase = createClient();
 
+    // Optimized column selection (Item 24): omit heavy text blobs (notes, cnis summary, inss password) on listings
     const { data, error } = await (supabase.from('clients') as any)
-      .select('*, attendances(id, pending_documents, attended_at)')
+      .select(`
+        id, tenant_id, full_name, normalized_name, cpf, normalized_cpf, rg, birth_date,
+        marital_status, profession, postal_code, street, street_number, complement,
+        neighborhood, city, state, phone, mobile_phone, email, monthly_income,
+        dependent_count, has_active_benefit, benefit_type, benefit_number, photo_reference,
+        visit_count, last_visit_at, last_attendant_name, status, active, created_at, updated_at,
+        attendances(id, pending_documents, attended_at)
+      `)
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
@@ -134,7 +142,7 @@ export async function fetchBatchAttendancesByClientIds(
 
   const supabase = createClient();
   const { data, error } = await (supabase.from('attendances') as any)
-    .select('*')
+    .select('id, tenant_id, client_id, attendance_type, attended_at, objective, attendant_name, attendant_user_id, pending_documents, physical_file_location, created_at, updated_at')
     .in('client_id', clientIds)
     .eq('tenant_id', tenantId)
     .order('attended_at', { ascending: false });
@@ -166,7 +174,7 @@ export async function fetchBatchDocumentsByClientIds(
 
   const supabase = createClient();
   const { data, error } = await (supabase.from('documents') as any)
-    .select('*')
+    .select('id, tenant_id, client_id, original_name, display_name, category, mime_type, extension, size_bytes, storage_path, created_at, updated_at')
     .in('client_id', clientIds)
     .eq('tenant_id', tenantId)
     .is('deleted_at', null)

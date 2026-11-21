@@ -69,8 +69,15 @@ export class SupabaseContractRepository implements IContractRepository {
   async fetchContracts(tenantId: string): Promise<Contract[]> {
     try {
       const supabase = this.getClient();
+      // Optimized column projection (Item 24): omit heavy text bodies (custom_contract_body, custom_poa_body) on listings
       const { data, error } = await (supabase.from('contracts') as any)
-        .select('*, clients(id, full_name, cpf, mobile_phone, phone, physical_file_location)')
+        .select(`
+          id, tenant_id, client_id, contract_number, template_id, template_title,
+          benefit_species, status, fee_structure, lawyer_name, lawyer_oab, office_name,
+          physical_signed_status, physical_file_location, is_custom_edited, custom_edited_by,
+          custom_edited_at, issued_at, created_at, updated_at,
+          clients(id, full_name, cpf, mobile_phone, phone, physical_file_location)
+        `)
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
 
