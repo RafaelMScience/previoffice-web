@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   FileText,
   Search,
@@ -23,6 +23,7 @@ import type { ContractTemplate, FeeModel } from '@/types/contract';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { TEMPLATE_PLACEHOLDERS } from '@/lib/utils/template-engine';
 import { formatBenefitType } from '@/lib/utils/benefit-translations';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface TemplatesManagementViewProps {
   templates: ContractTemplate[];
@@ -46,6 +47,7 @@ export function TemplatesManagementView({
 }: TemplatesManagementViewProps) {
   const { t } = useI18n();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [selectedTemplateForPreview, setSelectedTemplateForPreview] = useState<ContractTemplate | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -65,16 +67,17 @@ export function TemplatesManagementView({
   const [lawyerOab, setLawyerOab] = useState(LAWYER_OPTIONS[0].oab);
   const [isDefault, setIsDefault] = useState(true);
 
-  const filteredTemplates = templates.filter((tpl) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      tpl.title.toLowerCase().includes(term) ||
-      tpl.benefitSpecies.toLowerCase().includes(term) ||
-      tpl.description.toLowerCase().includes(term) ||
-      (tpl.lawyerName && tpl.lawyerName.toLowerCase().includes(term))
+  const filteredTemplates = useMemo(() => {
+    if (!debouncedSearchTerm.trim()) return templates;
+    const term = debouncedSearchTerm.toLowerCase();
+    return templates.filter(
+      (tpl) =>
+        tpl.title.toLowerCase().includes(term) ||
+        tpl.benefitSpecies.toLowerCase().includes(term) ||
+        tpl.description.toLowerCase().includes(term) ||
+        (tpl.lawyerName && tpl.lawyerName.toLowerCase().includes(term))
     );
-  });
+  }, [templates, debouncedSearchTerm]);
 
   const handleCopyClauses = (tpl: ContractTemplate) => {
     navigator.clipboard.writeText(tpl.contentBody);

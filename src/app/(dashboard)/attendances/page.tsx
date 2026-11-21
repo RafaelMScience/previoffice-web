@@ -31,6 +31,7 @@ import { AttendancesTableSkeleton } from '@/components/attendances/attendances-t
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { fetchAttendancesFromDb } from '@/lib/services/client-service';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function AttendancesPage() {
   const { t } = useI18n();
@@ -41,6 +42,7 @@ export default function AttendancesPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterType, setFilterType] = useState<
     'ALL' | 'RETURN_DOCUMENTS' | 'FIRST_CONSULTATION' | 'CONTRACT_SIGNING'
   >('ALL');
@@ -92,13 +94,13 @@ export default function AttendancesPage() {
 
   // Filtered attendances
   const filteredAttendances = useMemo(() => {
-    const cleanTerm = searchTerm.replace(/\D/g, '');
+    const cleanTerm = debouncedSearchTerm.replace(/\D/g, '');
     return attendances.filter((att) => {
       const matchesSearch =
-        att.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        att.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
         (cleanTerm.length > 0 && att.clientCpf.includes(cleanTerm)) ||
-        att.objective.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (att.attendantName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        att.objective.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (att.attendantName || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
 
@@ -113,7 +115,7 @@ export default function AttendancesPage() {
       }
       return true;
     });
-  }, [attendances, searchTerm, filterType]);
+  }, [attendances, debouncedSearchTerm, filterType]);
 
   if (!canAccess('receptionDesk')) {
     return (

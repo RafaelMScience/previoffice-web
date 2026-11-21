@@ -10,6 +10,8 @@ import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { OperatorSwitcherModal } from '@/components/ui/operator-switcher-modal';
 import { createClient } from '@/lib/supabase/client';
 import { dedupeRequest } from '@/lib/cache/request-cache';
+import { useDebounce } from '@/hooks/use-debounce';
+import { formatCpf } from '@/lib/domain/cpf-validator';
 
 const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
 
@@ -24,6 +26,106 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [navCounts, setNavCounts] = useState<{ clients: number; attendances: number }>({ clients: 0, attendances: 0 });
+
+  // Debounced global search state with request cancellation
+  const [globalSearchTerm, setGlobalSearchTerm] = useState('');
+  const debouncedGlobalSearch = useDebounce(globalSearchTerm, 300);
+  const [searchResults, setSearchResults] = useState<
+    Array<{ id: string; fullName: string; cpf?: string; benefitType?: string }>
+  >([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const searchContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Ctrl + K keyboard shortcut to focus global search and click-outside handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Cancellable debounced search effect: aborts prior in-flight request when user types
+  useEffect(() => {
+    if (!debouncedGlobalSearch.trim() || !currentUser?.tenantId) {
+      setSearchResults([]);
+      setIsSearching(false);
+      setIsSearchOpen(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsSearching(true);
+    const supabase = createClient();
+    const term = debouncedGlobalSearch.trim();
+    const cleanTerm = term.replace(/\D/g, '');
+
+    async function executeSearch() {
+      try {
+        let query = (supabase.from('clients') as any)
+          .select('id, full_name, cpf, benefit_type')
+          .eq('tenant_id', currentUser!.tenantId)
+          .is('deleted_at', null)
+          .abortSignal(controller.signal)
+          .limit(6);
+
+        // Sanitize search term to prevent PostgREST .or() syntax tree parse errors on commas or parentheses
+        const safeTerm = term.replace(/[,()]/g, ' ').trim();
+
+        if (cleanTerm.length >= 3) {
+          query = query.or(`full_name.ilike.%${safeTerm}%,normalized_cpf.ilike.%${cleanTerm}%`);
+        } else {
+          query = query.ilike('full_name', `%${safeTerm}%`);
+        }
+
+        const { data, error } = await query;
+        if (!controller.signal.aborted && !error && data) {
+          setSearchResults(
+            data.map((c: any) => ({
+              id: c.id,
+              fullName: c.full_name,
+              cpf: c.cpf,
+              benefitType: c.benefit_type,
+            }))
+          );
+          setIsSearchOpen(true);
+        }
+      } catch (err: any) {
+        if (err?.name !== 'AbortError' && !controller.signal.aborted) {
+          console.error('Error during global search:', err);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsSearching(false);
+        }
+      }
+    }
+
+    executeSearch();
+
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedGlobalSearch, currentUser?.tenantId]);
 
   // Revalidate user profile on route changes to detect real-time deactivation immediately
   useEffect(() => {
@@ -303,16 +405,82 @@ export default function DashboardLayout({
       <div className="flex-grow flex flex-col h-screen overflow-y-auto">
         {/* Topbar */}
         <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 w-96 focus-within:border-[#C89543] focus-within:bg-white transition-all">
-            <Search className="w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder={t.topbar.searchPlaceholder}
-              className="bg-transparent border-none outline-none text-xs w-full text-slate-800 placeholder:text-slate-400"
-            />
-            <span className="text-[10px] bg-white border border-slate-200 rounded px-1.5 py-0.5 text-slate-400 font-semibold">
-              Ctrl + K
-            </span>
+          {/* Debounced Cancellable Global Search Input with Autocomplete */}
+          <div ref={searchContainerRef} className="relative">
+            <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 w-96 focus-within:border-[#C89543] focus-within:bg-white transition-all">
+              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={globalSearchTerm}
+                onChange={(e) => setGlobalSearchTerm(e.target.value)}
+                onFocus={() => {
+                  if (searchResults.length > 0) setIsSearchOpen(true);
+                }}
+                placeholder={t.topbar.searchPlaceholder}
+                className="bg-transparent border-none outline-none text-xs w-full text-slate-800 placeholder:text-slate-400"
+              />
+              {isSearching ? (
+                <span className="w-3.5 h-3.5 border-2 border-[#C89543] border-t-transparent rounded-full animate-spin shrink-0" />
+              ) : globalSearchTerm ? (
+                <button
+                  type="button"
+                  aria-label="Limpar pesquisa"
+                  onClick={() => {
+                    setGlobalSearchTerm('');
+                    setSearchResults([]);
+                    setIsSearchOpen(false);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 text-xs px-1"
+                >
+                  ✕
+                </button>
+              ) : (
+                <span className="text-[10px] bg-white border border-slate-200 rounded px-1.5 py-0.5 text-slate-400 font-semibold shrink-0">
+                  Ctrl + K
+                </span>
+              )}
+            </div>
+
+            {/* Autocomplete Results Dropdown */}
+            {isSearchOpen && searchResults.length > 0 && (
+              <div
+                className="absolute left-0 top-full mt-1.5 w-96 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150"
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                <div className="p-2 bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Resultados da busca rápida
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {searchResults.map((client) => (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => {
+                        setIsSearchOpen(false);
+                        setGlobalSearchTerm('');
+                        router.push(`/clientes/${client.id}`);
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 hover:bg-amber-50/60 transition-colors flex items-center justify-between group"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="text-xs font-bold text-slate-900 group-hover:text-[#C89543] truncate">
+                          {client.fullName}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-mono">
+                          {client.cpf ? formatCpf(client.cpf) : 'CPF não informado'}
+                        </div>
+                      </div>
+                      {client.benefitType && (
+                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium shrink-0">
+                          {client.benefitType}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

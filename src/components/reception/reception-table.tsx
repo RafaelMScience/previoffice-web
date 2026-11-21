@@ -7,6 +7,7 @@ import { Search, AlertCircle, FileText, CheckCircle2, ArrowUpRight, Clock, UserC
 import { Badge } from '@/components/ui/badge';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useDebounce } from '@/hooks/use-debounce';
 import type { AttendanceType } from '@/types/attendance';
 
 export interface ReceptionTableRow {
@@ -41,18 +42,19 @@ export function ReceptionTable({
   const { t } = useI18n();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL');
 
   const effectiveRows = rows !== undefined ? rows : (initialRows || []);
 
   const filteredRows = useMemo(() => {
     return effectiveRows.filter((row) => {
-      // Search matching
-      const matchesSearch =
-        row.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        row.cpf.includes(searchTerm.replace(/\D/g, ''));
+      // Search matching with debounced term to prevent sluggish re-renders on keystrokes
+      const cleanDigits = debouncedSearchTerm.replace(/\D/g, '');
+      const matchesName = row.fullName.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      const matchesCpf = cleanDigits.length > 0 && row.cpf.includes(cleanDigits);
 
-      if (!matchesSearch) return false;
+      if (debouncedSearchTerm.trim() && !matchesName && !matchesCpf) return false;
 
       // Filter category matching
       switch (activeFilter) {
@@ -67,7 +69,7 @@ export function ReceptionTable({
           return true;
       }
     });
-  }, [effectiveRows, searchTerm, activeFilter]);
+  }, [effectiveRows, debouncedSearchTerm, activeFilter]);
 
   const renderAttendanceTypeBadge = (type: AttendanceType) => {
     switch (type) {
