@@ -64,14 +64,19 @@ export async function POST(request: NextRequest) {
     const cleanLawyerEmail = lawyerEmail.trim().toLowerCase();
     const cleanTaxId = taxId ? taxId.replace(/\D/g, '') : null;
 
-    // 4. Pre-Flight Uniqueness Checks
-
-    // 4a. Check if lawyer email already exists in profiles
-    const { data: existingProfile } = await adminClient
-      .from('profiles')
-      .select('id, email, full_name')
-      .eq('email', cleanLawyerEmail)
-      .maybeSingle();
+    // 4. Pre-Flight Uniqueness Checks (dispatched in parallel)
+    const [{ data: existingProfile }, { data: existingTenantEmail }] = await Promise.all([
+      adminClient
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('email', cleanLawyerEmail)
+        .maybeSingle(),
+      adminClient
+        .from('tenants')
+        .select('id, email, office_name')
+        .eq('email', cleanOfficeEmail)
+        .maybeSingle(),
+    ]);
 
     if (existingProfile) {
       return NextResponse.json(
@@ -81,13 +86,6 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-
-    // 4b. Check if office institutional email already exists in tenants
-    const { data: existingTenantEmail } = await adminClient
-      .from('tenants')
-      .select('id, email, office_name')
-      .eq('email', cleanOfficeEmail)
-      .maybeSingle();
 
     if (existingTenantEmail) {
       return NextResponse.json(

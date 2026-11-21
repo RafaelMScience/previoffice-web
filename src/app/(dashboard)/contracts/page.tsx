@@ -80,8 +80,22 @@ export default function ContractsPage() {
     setIsLoading(true);
     try {
       const tenantId = currentUser?.tenantId || '';
-      const loadedContracts = await fetchContractsFromDb(tenantId);
-      const loadedTemplates = await fetchContractTemplates(tenantId);
+      // Dispatch independent queries in parallel to eliminate waterfall latency
+      const [contractsResult, templatesResult] = await Promise.allSettled([
+        fetchContractsFromDb(tenantId),
+        fetchContractTemplates(tenantId),
+      ]);
+
+      const loadedContracts = contractsResult.status === 'fulfilled' ? contractsResult.value : [];
+      const loadedTemplates = templatesResult.status === 'fulfilled' ? templatesResult.value : [];
+
+      if (contractsResult.status === 'rejected') {
+        console.error('Falha ao carregar contratos em paralelo:', contractsResult.reason);
+      }
+      if (templatesResult.status === 'rejected') {
+        console.error('Falha ao carregar templates em paralelo:', templatesResult.reason);
+      }
+
       setContracts(loadedContracts);
       setTemplates(loadedTemplates);
       setKpis(calculateContractKpis(loadedContracts));
