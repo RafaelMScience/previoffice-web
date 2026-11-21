@@ -14,10 +14,20 @@ import {
   ArrowUpRight,
   Loader2,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { ReceptionTable, type ReceptionTableRow } from '@/components/reception/reception-table';
 import { DashboardTableSkeleton } from '@/components/dashboard/dashboard-table-skeleton';
-import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
-import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
+import type { FastIntakeData } from '@/components/reception/fast-intake-modal';
+
+// Dynamic code splitting for modals (Item 22)
+const MemoryCardModal = dynamic(
+  () => import('@/components/memory-card/memory-card-modal').then((mod) => mod.MemoryCardModal),
+  { ssr: false }
+);
+const FastIntakeModal = dynamic(
+  () => import('@/components/reception/fast-intake-modal').then((mod) => mod.FastIntakeModal),
+  { ssr: false }
+);
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';

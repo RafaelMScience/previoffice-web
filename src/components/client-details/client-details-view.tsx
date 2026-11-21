@@ -12,20 +12,41 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { ClientDetailHeader } from './client-detail-header';
+import dynamic from 'next/dynamic';
 import { AttendanceTimeline } from './attendance-timeline';
-import { NewAttendanceModal } from './new-attendance-modal';
 import { DocumentVault } from './document-vault';
 import { BenefitDiagnosticCard } from './benefit-diagnostic-card';
-import { LegalContractModal } from './legal-contract-modal';
-import { ClientPdfReportModal } from './client-pdf-report-modal';
-import { InactivateClientModal } from './inactivate-client-modal';
 import { CaseUpdatesPanel } from './case-updates-panel';
-import { NewCaseUpdateModal } from './new-case-update-modal';
-import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { formatBenefitType } from '@/lib/utils/benefit-translations';
+
+// Dynamic code splitting for client detail modals (Item 22)
+const NewAttendanceModal = dynamic(
+  () => import('./new-attendance-modal').then((mod) => mod.NewAttendanceModal),
+  { ssr: false }
+);
+const LegalContractModal = dynamic(
+  () => import('./legal-contract-modal').then((mod) => mod.LegalContractModal),
+  { ssr: false }
+);
+const ClientPdfReportModal = dynamic(
+  () => import('./client-pdf-report-modal').then((mod) => mod.ClientPdfReportModal),
+  { ssr: false }
+);
+const InactivateClientModal = dynamic(
+  () => import('./inactivate-client-modal').then((mod) => mod.InactivateClientModal),
+  { ssr: false }
+);
+const NewCaseUpdateModal = dynamic(
+  () => import('./new-case-update-modal').then((mod) => mod.NewCaseUpdateModal),
+  { ssr: false }
+);
+const MemoryCardModal = dynamic(
+  () => import('@/components/memory-card/memory-card-modal').then((mod) => mod.MemoryCardModal),
+  { ssr: false }
+);
 import type { Client, ClientStatus } from '@/types/client';
 import type { Attendance } from '@/types/attendance';
 import type { CaseUpdate } from '@/types/case-update';

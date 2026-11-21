@@ -28,6 +28,8 @@ import {
   fetchContractTemplates,
 } from '@/lib/services/contract-service';
 
+import dynamic from 'next/dynamic';
+
 import { ContractsKpiCards } from '@/components/contracts/contracts-kpi-cards';
 import {
   ContractsKpiCardsSkeleton,
@@ -37,11 +39,28 @@ import {
   ContractsTable,
   type ContractFilterTab,
 } from '@/components/contracts/contracts-table';
-import { InstallmentsDrawerModal } from '@/components/contracts/installments-drawer-modal';
-import { UploadSignedModal } from '@/components/contracts/upload-signed-modal';
-import { ContractPrintModal } from '@/components/contracts/contract-print-modal';
-import { TemplatesManagementView } from '@/components/contracts/templates-management-view';
-import { NewContractModal } from '@/components/contracts/new-contract-modal';
+
+// Dynamic code splitting for heavy modals and sub-views (Item 22)
+const InstallmentsDrawerModal = dynamic(
+  () => import('@/components/contracts/installments-drawer-modal').then((mod) => mod.InstallmentsDrawerModal),
+  { ssr: false }
+);
+const UploadSignedModal = dynamic(
+  () => import('@/components/contracts/upload-signed-modal').then((mod) => mod.UploadSignedModal),
+  { ssr: false }
+);
+const ContractPrintModal = dynamic(
+  () => import('@/components/contracts/contract-print-modal').then((mod) => mod.ContractPrintModal),
+  { ssr: false }
+);
+const TemplatesManagementView = dynamic(
+  () => import('@/components/contracts/templates-management-view').then((mod) => mod.TemplatesManagementView),
+  { ssr: false }
+);
+const NewContractModal = dynamic(
+  () => import('@/components/contracts/new-contract-modal').then((mod) => mod.NewContractModal),
+  { ssr: false }
+);
 
 type ActiveViewTab = 'CONTRACTS' | 'TEMPLATES';
 
