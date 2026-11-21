@@ -519,6 +519,8 @@ export function ClientPdfReportModal({
                 <img
                   src={client.photoReference}
                   alt={client.fullName}
+                  width={56}
+                  height={56}
                   className="w-14 h-14 rounded-lg object-cover border border-[#C89543]/40 shrink-0"
                   loading="eager"
                   decoding="sync"

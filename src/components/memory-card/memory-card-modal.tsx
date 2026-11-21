@@ -87,6 +87,8 @@ export function MemoryCardModal({
                 <img
                   src={client.photoReference}
                   alt={client.fullName}
+                  width={48}
+                  height={48}
                   className="w-12 h-12 rounded-xl object-cover border border-white/20 shrink-0"
                   loading="lazy"
                   decoding="async"

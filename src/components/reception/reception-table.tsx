@@ -190,6 +190,8 @@ export function ReceptionTable({
                         <img
                           src={row.photoUrl}
                           alt={row.fullName}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 flex-shrink-0"
                           loading="lazy"
                           decoding="async"

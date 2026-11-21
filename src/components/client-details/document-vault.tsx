@@ -529,6 +529,7 @@ export function DocumentVault({ clientId, clientName }: DocumentVaultProps) {
                 <iframe
                   src={viewBlobUrl || getDocumentViewUrl(viewingDoc.id)}
                   title={viewingDoc.displayName}
+                  loading="lazy"
                   className="w-full h-[75vh] rounded-lg border border-slate-300 shadow-sm bg-white"
                 />
               ) : (

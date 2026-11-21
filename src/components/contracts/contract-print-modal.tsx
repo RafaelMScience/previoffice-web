@@ -404,6 +404,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                   <iframe
                     src={activeCustomDoc.fileDataUrl}
                     title="PDF Personalizado do Escritório"
+                    loading="lazy"
                     className="w-full h-[780px] border-none"
                   />
                 ) : (
