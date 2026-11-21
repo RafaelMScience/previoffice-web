@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { X, Clock, CheckSquare, Plus, FileSignature, FolderOpen, Smartphone } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Client } from '@/types/client';
 
 interface MemoryCardModalProps {
@@ -122,7 +123,7 @@ export function MemoryCardModal({
             </div>
             <div>
               <span className="text-slate-400 block font-medium">Alvo / Benefício:</span>
-              <span className="font-semibold text-slate-800">{client.benefitType || 'Geral'}</span>
+              <span className="font-semibold text-slate-800">{formatBenefitType(client.benefitType, 'pt-BR') || 'Geral'}</span>
             </div>
           </div>
 

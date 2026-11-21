@@ -20,6 +20,7 @@ import type { AttendanceType, AttendanceWithClient, PendingPhysicalDocument } fr
 import type { Client } from '@/types/client';
 import { fetchClientsFromDb, createAttendanceInDb } from '@/lib/services/client-service';
 import { maskCpf, maskPhone } from '@/lib/utils/masks';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 
 interface NewGeneralAttendanceModalProps {
   isOpen: boolean;
@@ -57,7 +58,7 @@ export function NewGeneralAttendanceModal({
           setClients(data);
           if (data.length > 0) {
             setSelectedClientId(data[0].id);
-            setObjective(data[0].benefitType || '');
+            setObjective(formatBenefitType(data[0].benefitType, 'pt-BR'));
           }
         })
         .catch((err) => console.error('Error fetching clients for modal:', err))
@@ -94,7 +95,7 @@ export function NewGeneralAttendanceModal({
     setSelectedClientId(clientId);
     const client = clients.find((c) => c.id === clientId);
     if (client) {
-      setObjective(client.benefitType || '');
+      setObjective(formatBenefitType(client.benefitType, 'pt-BR'));
     }
   };
 
@@ -187,7 +188,7 @@ export function NewGeneralAttendanceModal({
               >
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.fullName} — CPF: {c.cpf ? maskCpf(c.cpf) : 'Não informado'} {c.benefitType ? `(${c.benefitType})` : ''}
+                    {c.fullName} — CPF: {c.cpf ? maskCpf(c.cpf) : 'Não informado'} {c.benefitType ? `(${formatBenefitType(c.benefitType, 'pt-BR')})` : ''}
                   </option>
                 ))}
               </select>

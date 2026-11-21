@@ -15,6 +15,7 @@ import {
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import { maskPhone } from '@/lib/utils/masks';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Client, MaritalStatus } from '@/types/client';
 import type { Attendance, AttendanceType } from '@/types/attendance';
 
@@ -37,7 +38,8 @@ export function ClientPdfReportModal({
   lawyerOab = 'OAB/PB 18.234',
   officeName = 'Alexandre Pontes Sociedade de Advogados',
 }: ClientPdfReportModalProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === 'en-US';
 
   // Export Presets
   const [preset, setPreset] = useState<'all' | 'registration' | 'attendances'>('all');
@@ -131,10 +133,10 @@ export function ClientPdfReportModal({
     doc.open();
     doc.write(`
       <!DOCTYPE html>
-      <html lang="pt-BR">
+      <html lang="${isEn ? 'en-US' : 'pt-BR'}">
         <head>
           <meta charset="utf-8" />
-          <title>Ficha do Cliente - ${client.fullName}</title>
+          <title>${isEn ? 'Client Record' : 'Ficha do Cliente'} - ${client.fullName}</title>
           ${styleTags}
           <style>
             @page {
@@ -190,13 +192,13 @@ export function ClientPdfReportModal({
 
   // Helper date parsing (immune to UTC-3 midnight timezone shifts)
   const formatBirthDate = (isoDate?: string) => {
-    if (!isoDate) return 'Não informado';
+    if (!isoDate) return isEn ? 'Not informed' : 'Não informado';
     const parts = isoDate.split('T')[0].split('-');
     if (parts.length === 3) {
       const [year, month, day] = parts;
-      return `${day}/${month}/${year}`;
+      return isEn ? `${month}/${day}/${year}` : `${day}/${month}/${year}`;
     }
-    return new Date(isoDate).toLocaleDateString('pt-BR');
+    return new Date(isoDate).toLocaleDateString(isEn ? 'en-US' : 'pt-BR');
   };
 
   const calculateAge = (birthDateString?: string) => {
@@ -218,11 +220,29 @@ export function ClientPdfReportModal({
   };
 
   const formatCurrency = (val?: number) => {
-    if (val === undefined || isNaN(val)) return 'Não informado';
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+    if (val === undefined || isNaN(val)) return isEn ? 'Not informed' : 'Não informado';
+    return new Intl.NumberFormat(isEn ? 'en-US' : 'pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
   const formatMaritalStatus = (status?: MaritalStatus | string) => {
+    if (isEn) {
+      switch (status) {
+        case 'SINGLE':
+          return 'Single';
+        case 'MARRIED':
+          return 'Married';
+        case 'STABLE_UNION':
+          return 'Stable Union';
+        case 'DIVORCED':
+          return 'Divorced';
+        case 'SEPARATED':
+          return 'Separated';
+        case 'WIDOWED':
+          return 'Widowed';
+        default:
+          return status || 'Not informed';
+      }
+    }
     switch (status) {
       case 'SINGLE':
         return 'Solteiro(a)';
@@ -250,18 +270,32 @@ export function ClientPdfReportModal({
   const perCapitaIncome =
     client.monthlyIncome !== undefined
       ? formatCurrency(client.monthlyIncome / householdMembers)
-      : 'Não informado';
+      : (isEn ? 'Not informed' : 'Não informado');
 
   const getAttendanceTypeLabel = (type: AttendanceType) => {
+    if (isEn) {
+      switch (type) {
+        case 'FIRST_CONSULTATION':
+        case 'FIRST_VISIT':
+          return '1st Consultation';
+        case 'RETURN_DOCUMENTS':
+        case 'RETURN':
+          return 'Return with Documents';
+        case 'CONTRACT_SIGNING':
+          return 'Contract Signing';
+        default:
+          return 'Social Security Guidance';
+      }
+    }
     switch (type) {
       case 'FIRST_CONSULTATION':
       case 'FIRST_VISIT':
-        return '1ª Consulta / Triagem';
+        return '1ª Consulta';
       case 'RETURN_DOCUMENTS':
       case 'RETURN':
         return 'Retorno c/ Documentos';
       case 'CONTRACT_SIGNING':
-        return 'Assinatura de Contrato OAB';
+        return 'Assinatura de Contrato';
       default:
         return 'Orientação Previdenciária';
     }
@@ -456,7 +490,9 @@ export function ClientPdfReportModal({
                   {officeName}
                 </h1>
                 <p className="text-xs font-semibold text-[#C89543] tracking-wider uppercase mt-0.5">
-                  Previdência Social • Advocacia Previdenciária & Administrativa
+                  {isEn
+                    ? 'Social Security Law • Legal & Administrative Practice'
+                    : 'Previdência Social • Advocacia Previdenciária e Administrativa'}
                 </p>
                 <p className="text-[10px] text-slate-500 mt-0.5">
                   {lawyerName} • {lawyerOab}
@@ -464,11 +500,14 @@ export function ClientPdfReportModal({
               </div>
 
               <div className="text-right text-[10px] text-slate-500 font-mono">
-                <span className="block font-bold text-[#082A52] text-xs">FICHA CADASTRAL</span>
+                <span className="block font-bold text-[#082A52] text-xs">
+                  {isEn ? 'CLIENT RECORD' : 'FICHA CADASTRAL'}
+                </span>
                 <span>Ref: #{client.id.toUpperCase()}</span>
                 <span className="block mt-0.5">
-                  Emitido em: {generatedAt.toLocaleDateString('pt-BR')} às{' '}
-                  {generatedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  {isEn
+                    ? `Issued on: ${generatedAt.toLocaleDateString('en-US')} at ${generatedAt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
+                    : `Emitido em: ${generatedAt.toLocaleDateString('pt-BR')} às ${generatedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
                 </span>
               </div>
             </div>
@@ -486,7 +525,7 @@ export function ClientPdfReportModal({
                 <div className="w-14 h-14 rounded-lg bg-white/10 border border-[#C89543]/40 flex flex-col items-center justify-center shrink-0">
                   <User className="w-6 h-6 text-[#C89543]" />
                   <span className="text-[7px] font-bold tracking-wider text-slate-300 uppercase mt-0.5">
-                    Sem Foto
+                    {isEn ? 'No Photo' : 'Sem Foto'}
                   </span>
                 </div>
               )}
@@ -504,25 +543,25 @@ export function ClientPdfReportModal({
                     }`}
                   >
                     {client.status === 'INACTIVE'
-                      ? 'Cadastro Inativo'
+                      ? (isEn ? 'Inactive Client' : 'Cadastro Inativo')
                       : client.status === 'CLOSED'
-                      ? 'Contrato Assinado / Ativo'
+                      ? (isEn ? 'Signed Contract' : 'Contrato Assinado')
                       : client.status === 'PENDING'
-                      ? 'Em Maturação'
-                      : 'Primeiro Contato / Ativo'}
+                      ? (isEn ? 'Maturing Lead' : 'Em Maturação')
+                      : (isEn ? 'Active Client' : 'Primeiro Contato')}
                   </span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-slate-200">
                   <span>
-                    <strong className="text-[#C89543]">CPF:</strong> {formatCpf(client.cpf || '')}
+                    <strong className="text-[#C89543]">{isEn ? 'Tax ID:' : 'CPF:'}</strong> {formatCpf(client.cpf || '')}
                   </span>
                   <span>
-                    <strong className="text-[#C89543]">RG:</strong> {client.rg || 'Não informado'}
+                    <strong className="text-[#C89543]">{isEn ? 'ID:' : 'RG:'}</strong> {client.rg || (isEn ? 'Not informed' : 'Não informado')}
                   </span>
                   <span>
-                    <strong className="text-[#C89543]">Pasta:</strong>{' '}
-                    {client.physicalFileLocation || 'Arquivo Geral'}
+                    <strong className="text-[#C89543]">{isEn ? 'Folder:' : 'Pasta:'}</strong>{' '}
+                    {client.physicalFileLocation || (isEn ? 'General Archive' : 'Arquivo Geral')}
                   </span>
                 </div>
               </div>
@@ -539,47 +578,47 @@ export function ClientPdfReportModal({
                         <User className="w-2.5 h-2.5" />
                       </div>
                       <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
-                        Dados Pessoais
+                        {isEn ? 'Personal Data' : 'Dados Pessoais'}
                       </h3>
                     </div>
 
                     <div className="space-y-0.5 text-xs">
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Nome Completo:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Full Name:' : 'Nome Completo:'}</span>
                         <span className="font-semibold text-[#16324F] text-right truncate pl-2">
                           {client.fullName}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Nascimento:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Date of Birth:' : 'Nascimento:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {client.birthDate
-                            ? `${formattedBirth} ${age !== null ? `(${age} anos)` : ''}`
-                            : 'Não informado'}
+                            ? `${formattedBirth} ${age !== null ? (isEn ? `(${age} years old)` : `(${age} anos)`) : ''}`
+                            : (isEn ? 'Not informed' : 'Não informado')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Estado Civil:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Marital Status:' : 'Estado Civil:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {formatMaritalStatus(client.maritalStatus)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Profissão:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Profession:' : 'Profissão:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                          {client.profession || 'Não informado'}
+                          {client.profession || (isEn ? 'Not informed' : 'Não informado')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Nome da Mãe:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? "Mother's Name:" : 'Nome da Mãe:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                          {client.motherName || 'Não informado'}
+                          {client.motherName || (isEn ? 'Not informed' : 'Não informado')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5">
-                        <span className="text-slate-500 shrink-0">Nome do Pai:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? "Father's Name:" : 'Nome do Pai:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                          {client.fatherName || 'Não informado'}
+                          {client.fatherName || (isEn ? 'Not informed' : 'Não informado')}
                         </span>
                       </div>
                     </div>
@@ -594,37 +633,37 @@ export function ClientPdfReportModal({
                         <FileText className="w-2.5 h-2.5" />
                       </div>
                       <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
-                        Documentos
+                        {isEn ? 'Documents' : 'Documentos'}
                       </h3>
                     </div>
 
                     <div className="space-y-0.5 text-xs">
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">CPF:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Tax ID (CPF):' : 'CPF:'}</span>
                         <span className="font-mono font-bold text-[#16324F] text-right">
                           {formatCpf(client.cpf || '')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">RG:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Identity Card (RG):' : 'RG:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                          {client.rg ? client.rg : 'Não informado'}
+                          {client.rg ? client.rg : (isEn ? 'Not informed' : 'Não informado')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Pasta Física:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Physical Folder:' : 'Pasta Física:'}</span>
                         <span className="font-mono text-[11px] font-semibold text-slate-700 text-right truncate pl-2">
-                          {client.physicalFileLocation || 'Arquivo Geral - Pasta Principal'}
+                          {client.physicalFileLocation || (isEn ? 'General Archive - Main Folder' : 'Arquivo Geral - Pasta Principal')}
                         </span>
                       </div>
                       <div className="pt-0.5">
                         <span className="block text-[10px] text-slate-500 uppercase font-semibold mb-0.5">
-                          Documentos Vinculados à Pasta:
+                          {isEn ? 'Attached Documents:' : 'Documentos Vinculados à Pasta:'}
                         </span>
                         <div className="text-[11px] text-slate-600 space-y-0.5">
-                          <p>• Documentos pessoais de identificação (RG / CNH / CPF)</p>
-                          <p>• Comprovante de residência atualizado</p>
-                          <p>• Extrato Previdenciário do CNIS / CTPS</p>
+                          <p>• {isEn ? 'Personal identification documents' : 'Documentos pessoais de identificação'}</p>
+                          <p>• {isEn ? 'Updated proof of residence' : 'Comprovante de residência atualizado'}</p>
+                          <p>• {isEn ? 'Social security statement (CNIS and Work Card)' : 'Extrato Previdenciário do CNIS e CTPS'}</p>
                         </div>
                       </div>
                     </div>
@@ -643,40 +682,40 @@ export function ClientPdfReportModal({
                       <MapPin className="w-2.5 h-2.5" />
                     </div>
                     <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
-                      Endereço Residencial
+                      {isEn ? 'Residential Address' : 'Endereço Residencial'}
                     </h3>
                   </div>
 
                   <div className="space-y-0.5 text-xs">
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500 shrink-0">Logradouro:</span>
+                      <span className="text-slate-500 shrink-0">{isEn ? 'Street:' : 'Logradouro:'}</span>
                       <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                        {client.street || 'Não informado'}
+                        {client.street || (isEn ? 'Not informed' : 'Não informado')}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500 shrink-0">Número / Compl:</span>
+                      <span className="text-slate-500 shrink-0">{isEn ? 'Number & Compl:' : 'Número e Compl:'}</span>
                       <span className="font-medium text-[#16324F] text-right truncate pl-2">
                         {client.streetNumber || 'S/N'}{' '}
                         {client.complement ? `(${client.complement})` : ''}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500 shrink-0">Bairro:</span>
+                      <span className="text-slate-500 shrink-0">{isEn ? 'Neighborhood:' : 'Bairro:'}</span>
                       <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                        {client.neighborhood || 'Não informado'}
+                        {client.neighborhood || (isEn ? 'Not informed' : 'Não informado')}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500 shrink-0">Cidade / UF:</span>
+                      <span className="text-slate-500 shrink-0">{isEn ? 'City & State:' : 'Cidade e UF:'}</span>
                       <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                        {client.city ? `${client.city} - ${client.state || 'PB'}` : 'Não informado'}
+                        {client.city ? `${client.city} - ${client.state || 'PB'}` : (isEn ? 'Not informed' : 'Não informado')}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5">
-                      <span className="text-slate-500 shrink-0">CEP:</span>
+                      <span className="text-slate-500 shrink-0">{isEn ? 'Postal Code (CEP):' : 'CEP:'}</span>
                       <span className="font-mono font-medium text-[#16324F] text-right">
-                        {client.postalCode || 'Não informado'}
+                        {client.postalCode || (isEn ? 'Not informed' : 'Não informado')}
                       </span>
                     </div>
                   </div>
@@ -689,27 +728,27 @@ export function ClientPdfReportModal({
                       <Phone className="w-2.5 h-2.5" />
                     </div>
                     <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
-                      Contatos & Recados
+                      {isEn ? 'Contacts & Phone Numbers' : 'Contatos e Telefones'}
                     </h3>
                   </div>
 
                   <div className="space-y-0.5 text-xs">
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500 shrink-0">Celular / WhatsApp:</span>
+                      <span className="text-slate-500 shrink-0">{isEn ? 'Mobile Phone:' : 'Celular e WhatsApp:'}</span>
                       <span className="font-medium text-[#16324F] text-right truncate pl-2 font-mono">
-                        {client.mobilePhone ? maskPhone(client.mobilePhone) : 'Não informado'}
+                        {client.mobilePhone ? maskPhone(client.mobilePhone) : (isEn ? 'Not informed' : 'Não informado')}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                      <span className="text-slate-500 shrink-0">Telefone Fixo / Recado:</span>
+                      <span className="text-slate-500 shrink-0">{isEn ? 'Landline Phone:' : 'Telefone Fixo:'}</span>
                       <span className="font-medium text-[#16324F] text-right truncate pl-2 font-mono">
-                        {client.phone ? maskPhone(client.phone) : 'Não informado'}
+                        {client.phone ? maskPhone(client.phone) : (isEn ? 'Not informed' : 'Não informado')}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5">
-                      <span className="text-slate-500 shrink-0">E-mail:</span>
+                      <span className="text-slate-500 shrink-0">{isEn ? 'Email:' : 'E-mail:'}</span>
                       <span className="font-medium text-[#16324F] text-right truncate pl-2 lowercase">
-                        {client.email || 'Não informado'}
+                        {client.email || (isEn ? 'Not informed' : 'Não informado')}
                       </span>
                     </div>
                   </div>
@@ -728,33 +767,33 @@ export function ClientPdfReportModal({
                         <Users className="w-2.5 h-2.5" />
                       </div>
                       <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
-                        Composição Socioeconômica (LOAS)
+                        {isEn ? 'Socioeconomic Profile (LOAS)' : 'Composição Socioeconômica (LOAS)'}
                       </h3>
                     </div>
 
                     <div className="space-y-0.5 text-xs">
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Qtd. de Dependentes:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Dependents Count:' : 'Qtd. de Dependentes:'}</span>
                         <span className="font-medium text-[#16324F] text-right">
                           {client.dependentCount !== undefined
-                            ? `${client.dependentCount} dependente(s)`
-                            : 'Não informado'}
+                            ? `${client.dependentCount} ${isEn ? (client.dependentCount === 1 ? 'dependent' : 'dependents') : (client.dependentCount === 1 ? 'dependente' : 'dependentes')}`
+                            : (isEn ? 'Not informed' : 'Não informado')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Pessoas no Grupo:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Household Members:' : 'Pessoas no Grupo:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                          {householdMembers} {householdMembers === 1 ? 'pessoa' : 'pessoas'}
+                          {householdMembers} {isEn ? (householdMembers === 1 ? 'person' : 'people') : (householdMembers === 1 ? 'pessoa' : 'pessoas')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Renda Familiar Total:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Total Household Income:' : 'Renda Familiar Total:'}</span>
                         <span className="font-bold text-[#16324F] text-right">
                           {formatCurrency(client.monthlyIncome)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5">
-                        <span className="text-slate-500 shrink-0">Renda Per Capita (LOAS):</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Per Capita Income (LOAS):' : 'Renda Per Capita (LOAS):'}</span>
                         <span className="font-bold text-[#0B78D0] text-right">
                           {perCapitaIncome}
                         </span>
@@ -771,29 +810,31 @@ export function ClientPdfReportModal({
                         <Briefcase className="w-2.5 h-2.5" />
                       </div>
                       <h3 className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider">
-                        Informações Previdenciárias
+                        {isEn ? 'Social Security Information' : 'Informações Previdenciárias'}
                       </h3>
                     </div>
 
                     <div className="space-y-0.5 text-xs">
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Tipo de Benefício:</span>
+                        <span className="text-slate-500 shrink-0">
+                          {isEn ? 'Benefit Species:' : 'Espécie do Benefício:'}
+                        </span>
                         <span className="font-semibold text-[#16324F] text-right truncate pl-2">
-                          {client.benefitType || 'Não informado'}
+                          {formatBenefitType(client.benefitType, isEn ? 'en-US' : 'pt-BR')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
-                        <span className="text-slate-500 shrink-0">Número do Benefício (NB):</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Benefit Number (NB):' : 'Número do Benefício (NB):'}</span>
                         <span className="font-mono font-medium text-[#16324F] text-right">
-                          {client.benefitNumber || 'Não informado'}
+                          {client.benefitNumber || (isEn ? 'Not informed' : 'Não informado')}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-0.5">
-                        <span className="text-slate-500 shrink-0">Categoria Especial:</span>
+                        <span className="text-slate-500 shrink-0">{isEn ? 'Special Category:' : 'Categoria Especial:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
                           {client.specialCategories && client.specialCategories.length > 0
                             ? client.specialCategories.join(', ')
-                            : 'Não informado'}
+                            : (isEn ? 'Not informed' : 'Não informado')}
                         </span>
                       </div>
                     </div>
@@ -806,7 +847,7 @@ export function ClientPdfReportModal({
             {client.notes && (
               <div className="w-full min-w-0 bg-white border border-[#D8E5EF] rounded-lg p-3 space-y-1">
                 <span className="text-[11px] font-bold text-[#082A52] uppercase tracking-wider block">
-                  Observações e Relato de Fatos
+                  {isEn ? 'Notes and Reported Facts' : 'Observações e Relato de Fatos'}
                 </span>
                 <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">
                   {client.notes}
@@ -821,36 +862,39 @@ export function ClientPdfReportModal({
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-[#0B78D0]" />
                     <h3 className="text-[11px] font-extrabold text-[#082A52] uppercase tracking-wider">
-                      Histórico de Atendimentos Presenciais
+                      {isEn ? 'In-Person Attendance History' : 'Histórico de Atendimentos Presenciais'}
                     </h3>
                   </div>
                   <span className="text-[9px] font-bold text-[#082A52] bg-[#EEF6FD] px-2 py-0.5 rounded-full border border-[#D8E5EF]">
-                    Total de Consultas: {attendances.length || client.visitCount}
+                    {isEn ? 'Total Consultations:' : 'Total de Consultas:'} {attendances.length || client.visitCount}
                   </span>
                 </div>
 
                 {attendances.length === 0 ? (
                   <div className="bg-[#EEF6FD] border border-[#D8E5EF] rounded-lg p-3 text-center text-xs text-slate-600">
-                    Nenhum histórico detalhado de comparecimento registrado para este segurado.
+                    {isEn
+                      ? 'No detailed attendance history registered for this client.'
+                      : 'Nenhum histórico detalhado de comparecimento registrado para este segurado.'}
                   </div>
                 ) : (
                   <div className="border border-[#D8E5EF] rounded-lg overflow-hidden w-full">
                     <table className="w-full text-left text-xs text-slate-700">
                       <thead className="bg-[#EEF6FD] text-[9px] uppercase font-bold text-[#082A52] border-b border-[#D8E5EF]">
                         <tr>
-                          <th className="px-2.5 py-1.5">Data / Hora</th>
-                          <th className="px-2.5 py-1.5">Tipo</th>
-                          <th className="px-2.5 py-1.5">Profissional</th>
-                          <th className="px-2.5 py-1.5">Status</th>
-                          <th className="px-2.5 py-1.5">Objetivo / Observações</th>
+                          <th className="px-2.5 py-1.5">{isEn ? 'Date & Time' : 'Data e Hora'}</th>
+                          <th className="px-2.5 py-1.5">{isEn ? 'Type' : 'Tipo'}</th>
+                          <th className="px-2.5 py-1.5">{isEn ? 'Professional' : 'Profissional'}</th>
+                          <th className="px-2.5 py-1.5">{isEn ? 'Status' : 'Status'}</th>
+                          <th className="px-2.5 py-1.5">{isEn ? 'Objective & Notes' : 'Objetivo e Observações'}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {attendances.map((att) => (
                           <tr key={att.id} className="hover:bg-slate-50/50 break-inside-avoid">
                             <td className="px-2.5 py-1.5 font-mono text-[10px] whitespace-nowrap">
-                              {new Date(att.attendedAt).toLocaleDateString('pt-BR')} às{' '}
-                              {new Date(att.attendedAt).toLocaleTimeString('pt-BR', {
+                              {new Date(att.attendedAt).toLocaleDateString(isEn ? 'en-US' : 'pt-BR')}{' '}
+                              {isEn ? 'at' : 'às'}{' '}
+                              {new Date(att.attendedAt).toLocaleTimeString(isEn ? 'en-US' : 'pt-BR', {
                                 hour: '2-digit',
                                 minute: '2-digit',
                               })}
@@ -863,7 +907,7 @@ export function ClientPdfReportModal({
                             </td>
                             <td className="px-2.5 py-1.5">
                               <span className="text-[8px] font-bold text-[#168447] bg-[#E3F7E9] px-1.5 py-0.5 rounded">
-                                Realizado
+                                {isEn ? 'Completed' : 'Realizado'}
                               </span>
                             </td>
                             <td className="px-2.5 py-1.5 text-[11px] text-slate-600">
@@ -898,10 +942,10 @@ export function ClientPdfReportModal({
                           {client.fullName}
                         </span>
                         <span className="block text-[10px] text-slate-500 font-mono">
-                          CPF: {formatCpf(client.cpf || '')}
+                          {isEn ? 'Tax ID (CPF):' : 'CPF:'} {formatCpf(client.cpf || '')}
                         </span>
-                        <span className="block text-[8px] text-slate-400 uppercase tracking-wider">
-                          Assinatura do Cliente / Segurado
+                        <span className="block text-[8px] text-slate-600 font-bold uppercase tracking-wider">
+                          {isEn ? 'Client Signature' : 'Assinatura do Cliente'}
                         </span>
                       </div>
                     </div>
@@ -920,8 +964,8 @@ export function ClientPdfReportModal({
                         <span className="block text-[10px] text-slate-500 font-medium">
                           {lawyerOab}
                         </span>
-                        <span className="block text-[8px] text-slate-400 uppercase tracking-wider">
-                          Advogado Responsável / Visto OAB
+                        <span className="block text-[8px] text-slate-600 font-bold uppercase tracking-wider">
+                          {isEn ? 'Responsible Attorney' : 'Advogado Responsável'}
                         </span>
                       </div>
                     </div>
@@ -933,10 +977,12 @@ export function ClientPdfReportModal({
             {/* Rodapé Oficial da Folha */}
             <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[8px] text-slate-500 break-inside-avoid w-full">
               <span className="font-semibold text-[#082A52]">
-                {officeName} — Todos os direitos reservados.
+                {officeName} — {isEn ? 'All rights reserved.' : 'Todos os direitos reservados.'}
               </span>
               <span>
-                Documento impresso em conformidade com o Estatuto da OAB e a LGPD (Lei nº 13.709/18).
+                {isEn
+                  ? 'Official document printed in accordance with Bar Association regulations and Data Privacy laws.'
+                  : 'Documento impresso em conformidade com o Estatuto da OAB e a LGPD (Lei nº 13.709/18).'}
               </span>
             </div>
           </div>

@@ -26,6 +26,7 @@ import {
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { maskPhone, maskCpf } from '@/lib/utils/masks';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Client, ClientStatus } from '@/types/client';
 import type { CaseUpdate } from '@/types/case-update';
 
@@ -344,7 +345,7 @@ export function ClientDetailHeader({
               <h1 className="text-2xl font-bold text-slate-900">{client.fullName}</h1>
               {client.benefitType && (
                 <span className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                  {client.benefitType}
+                  {formatBenefitType(client.benefitType, 'pt-BR')}
                 </span>
               )}
             </div>

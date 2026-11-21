@@ -25,6 +25,7 @@ import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Client, ClientStatus } from '@/types/client';
 import type { Attendance } from '@/types/attendance';
 import type { CaseUpdate } from '@/types/case-update';
@@ -407,7 +408,7 @@ export function ClientDetailsView({
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
         clientId={client.id}
-        defaultObjective={client.benefitType || 'Aposentadoria Rural - Segurado Especial'}
+        defaultObjective={formatBenefitType(client.benefitType, 'pt-BR') || 'Aposentadoria Rural - Segurado Especial'}
         onSave={handleSaveAttendance}
       />
 

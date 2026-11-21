@@ -24,6 +24,14 @@ describe('Document Presets Domain', () => {
     assert.ok(docs.some((d) => d.description.toLowerCase().includes('laudo')));
   });
 
+  it('should return temporary disability documents whether passed in English or Portuguese', () => {
+    const docsEn = getDefaultDocumentsForBenefit('Temporary Disability');
+    assert.ok(docsEn.some((d) => d.description.toLowerCase().includes('atestado / laudo médico')));
+
+    const docsPt = getDefaultDocumentsForBenefit('Benefício por Incapacidade Temporária (Auxílio-Doença)');
+    assert.ok(docsPt.some((d) => d.description.toLowerCase().includes('atestado / laudo médico')));
+  });
+
   it('should fallback to default general documents if benefit is unknown', () => {
     const docs = getDefaultDocumentsForBenefit('NonExistentBenefit');
     assert.ok(docs.length >= 2);

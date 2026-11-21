@@ -57,7 +57,7 @@ export function LanguageSwitcher({
     <div
       className={`inline-flex items-center bg-slate-100 border border-slate-200/80 rounded-lg p-0.5 shadow-xs ${className}`}
       role="group"
-      aria-label="Language selection"
+      aria-label={locale === 'pt-BR' ? 'Seleção de idioma' : 'Language selection'}
     >
       <button
         type="button"

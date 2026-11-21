@@ -75,6 +75,12 @@ export interface PhysicalDocumentAttachment {
   signerType: 'CLIENT_SIGNATURE' | 'ROGO_WITNESSES' | 'LEGAL_REPRESENTATIVE';
   notes?: string;
   downloadUrl?: string;
+  // Custom document replacement & category fields:
+  documentCategory?: 'FEE_CONTRACT' | 'POWER_OF_ATTORNEY' | 'OTHER';
+  isSigned?: boolean;
+  fileDataUrl?: string;
+  replacedAt?: string;
+  replacedBy?: string;
 }
 
 export interface ContractTemplate {
@@ -109,6 +115,9 @@ export interface Contract {
   status: ContractStatus;
   physicalSignedStatus: PhysicalSignedStatus;
   physicalAttachment?: PhysicalDocumentAttachment;
+  customContractAttachment?: PhysicalDocumentAttachment;
+  customPoaAttachment?: PhysicalDocumentAttachment;
+  customDocuments?: PhysicalDocumentAttachment[];
   feeStructure: ContractFeeStructure;
   
   lawyerName: string;                    // e.g. "Dr. Alexandre Pontes"
@@ -120,6 +129,13 @@ export interface Contract {
   concludedAt?: string;
   physicalFileLocation: string;          // Office cabinet folder index
   notes?: string;
+
+  // Custom clause editing audit
+  isCustomEdited?: boolean;
+  customEditedBy?: string;
+  customEditedAt?: string;
+  customContractBody?: string;
+  customPoaBody?: string;
   
   createdAt: string;
   updatedAt: string;

@@ -21,6 +21,7 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { fetchClientsFromDb, createFastIntakeInDb } from '@/lib/services/client-service';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Client } from '@/types/client';
 
 export default function ReceptionDashboardPage() {
@@ -67,7 +68,7 @@ export default function ReceptionDashboardPage() {
               : ['Documentos Pessoais e CNIS'],
           registrationProgress: c.cpf && c.street ? 80 : 35,
           assignedAttendant: c.lastAttendantName || currentUser.fullName,
-          benefitTypeNotes: c.benefitType || 'Benefício Previdenciário',
+          benefitTypeNotes: formatBenefitType(c.benefitType, 'pt-BR') || 'Benefício Previdenciário',
         };
       });
 

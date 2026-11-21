@@ -1,8 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, UploadCloud, FileText, CheckCircle2, ShieldCheck, FolderArchive } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  X,
+  UploadCloud,
+  FileText,
+  CheckCircle2,
+  ShieldCheck,
+  FolderArchive,
+  Layers,
+  Trash2,
+} from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useAuth } from '@/lib/auth/auth-context';
 import type { Contract, PhysicalDocumentAttachment } from '@/types/contract';
 
 interface UploadSignedModalProps {
@@ -19,11 +29,16 @@ export function UploadSignedModal({
   onUploadSuccess,
 }: UploadSignedModalProps) {
   const { t } = useI18n();
+  const { currentUser } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedDataUrl, setUploadedDataUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
   const [fileSizeFormatted, setFileSizeFormatted] = useState('');
   const [fileType, setFileType] = useState<'application/pdf' | 'image/jpeg' | 'image/png'>('application/pdf');
   const [cabinetLocation, setCabinetLocation] = useState('');
+  const [documentCategory, setDocumentCategory] = useState<'FEE_CONTRACT' | 'POWER_OF_ATTORNEY' | 'OTHER'>('FEE_CONTRACT');
   const [signerType, setSignerType] = useState<'CLIENT_SIGNATURE' | 'ROGO_WITNESSES' | 'LEGAL_REPRESENTATIVE'>(
     'CLIENT_SIGNATURE'
   );
@@ -48,10 +63,39 @@ export function UploadSignedModal({
 
   if (!isOpen || !contract) return null;
 
-  const handleSimulateFileSelect = (name: string, size: string, type: 'application/pdf' | 'image/jpeg') => {
-    setFileName(name);
-    setFileSizeFormatted(size);
-    setFileType(type);
+  const handleProcessFile = (file: File) => {
+    const isPdfExt = file.name.toLowerCase().endsWith('.pdf');
+    const isPdfMime = file.type === 'application/pdf' || file.type.includes('pdf');
+    if (!isPdfExt || (!isPdfMime && file.type !== '')) {
+      alert('Por favor, selecione apenas arquivos válidos no formato PDF.');
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      alert('O arquivo selecionado ultrapassa o limite máximo permitido de 15MB.');
+      return;
+    }
+
+    setUploadedFile(file);
+    setFileName(file.name);
+    setFileSizeFormatted(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+    setFileType('application/pdf');
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadedDataUrl(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveFile = () => {
+    setUploadedFile(null);
+    setUploadedDataUrl(null);
+    setFileName('');
+    setFileSizeFormatted('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -61,12 +105,17 @@ export function UploadSignedModal({
     const attachment: PhysicalDocumentAttachment = {
       id: `att-${Date.now()}`,
       fileName,
-      fileSizeFormatted: fileSizeFormatted || '2.1 MB',
+      fileSizeFormatted: fileSizeFormatted || '1.8 MB',
       fileType,
       uploadedAt: new Date().toISOString(),
-      uploadedBy: 'Dr. Alexandre Pontes',
-      physicalCabinetLocation: cabinetLocation,
+      uploadedBy: currentUser?.fullName || 'Dr. Alexandre Pontes',
+      physicalCabinetLocation: cabinetLocation || 'Armário Geral',
       signerType,
+      documentCategory,
+      isSigned: true,
+      fileDataUrl: uploadedDataUrl || undefined,
+      replacedAt: new Date().toISOString(),
+      replacedBy: currentUser?.fullName || 'Dr. Alexandre Pontes',
       notes: notes || undefined,
     };
 
@@ -98,7 +147,7 @@ export function UploadSignedModal({
           </div>
 
           <h2 id="upload-signed-title" className="text-lg font-bold tracking-tight">
-            Anexar Cópia Física: {contract.contractNumber}
+            Anexar Cópia Física Assinada: {contract.contractNumber}
           </h2>
 
           <p className="text-xs text-slate-300 mt-0.5">
@@ -108,6 +157,17 @@ export function UploadSignedModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleProcessFile(file);
+            }}
+          />
+
           {/* Drag & Drop Area */}
           <div
             onDragOver={(e) => {
@@ -119,11 +179,7 @@ export function UploadSignedModal({
               e.preventDefault();
               setIsDragging(false);
               const file = e.dataTransfer.files[0];
-              if (file) {
-                setFileName(file.name);
-                setFileSizeFormatted(`${(file.size / (1024 * 1024)).toFixed(1)} MB`);
-                setFileType(file.type.includes('pdf') ? 'application/pdf' : 'image/jpeg');
-              }
+              if (file) handleProcessFile(file);
             }}
             className={`border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${
               isDragging
@@ -134,32 +190,31 @@ export function UploadSignedModal({
             }`}
             onClick={() => {
               if (!fileName) {
-                handleSimulateFileSelect(
-                  `Contrato_Assinado_${contract.clientName.replace(/\s+/g, '_')}.pdf`,
-                  '2.4 MB',
-                  'application/pdf'
-                );
+                fileInputRef.current?.click();
               }
             }}
           >
             {fileName ? (
-              <div className="flex items-center justify-center gap-3 text-emerald-800">
-                <FileText className="w-8 h-8 text-emerald-600 shrink-0" />
-                <div className="text-left">
-                  <span className="block font-bold text-xs truncate max-w-xs">{fileName}</span>
-                  <span className="block text-[11px] text-slate-500">
-                    {fileSizeFormatted} • Arquivo pronto para vinculação
-                  </span>
+              <div className="flex items-center justify-between gap-3 text-emerald-800">
+                <div className="flex items-center gap-3 text-left">
+                  <FileText className="w-8 h-8 text-emerald-600 shrink-0" />
+                  <div>
+                    <span className="block font-bold text-xs truncate max-w-xs">{fileName}</span>
+                    <span className="block text-[11px] text-slate-500 font-mono">
+                      {fileSizeFormatted} • Arquivo PDF assinado pronto para vinculação
+                    </span>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setFileName('');
+                    handleRemoveFile();
                   }}
-                  className="ml-auto text-xs text-rose-600 hover:underline"
+                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                  title="Trocar arquivo"
                 >
-                  Trocar
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ) : (
@@ -169,12 +224,67 @@ export function UploadSignedModal({
                 <p className="text-[11px] text-slate-400">{t.contracts.dragDropSubtext}</p>
                 <button
                   type="button"
+                  onClick={() => fileInputRef.current?.click()}
                   className="mt-2 px-3 py-1 bg-white border border-slate-300 rounded-lg text-[11px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
                 >
-                  Selecionar do Computador
+                  Selecionar PDF Assinado
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Document Category Selection */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-[#082A52]" />
+              <span>Documento que está sendo anexado / substituído *</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setDocumentCategory('FEE_CONTRACT')}
+                className={`p-2.5 rounded-lg border text-left transition-all ${
+                  documentCategory === 'FEE_CONTRACT'
+                    ? 'border-[#082A52] bg-blue-50/60 ring-2 ring-[#082A52]/20 font-bold text-[#082A52]'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className="text-xs">Contrato de Honorários</div>
+                <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                  Substitui via de contrato
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDocumentCategory('POWER_OF_ATTORNEY')}
+                className={`p-2.5 rounded-lg border text-left transition-all ${
+                  documentCategory === 'POWER_OF_ATTORNEY'
+                    ? 'border-[#082A52] bg-blue-50/60 ring-2 ring-[#082A52]/20 font-bold text-[#082A52]'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className="text-xs">Procuração Ad Judicia</div>
+                <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                  Substitui procuração
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDocumentCategory('OTHER')}
+                className={`p-2.5 rounded-lg border text-left transition-all ${
+                  documentCategory === 'OTHER'
+                    ? 'border-[#082A52] bg-blue-50/60 ring-2 ring-[#082A52]/20 font-bold text-[#082A52]'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className="text-xs">Outro Documento</div>
+                <div className="text-[10px] text-slate-500 font-normal mt-0.5">
+                  Documentação advocatícia
+                </div>
+              </button>
+            </div>
           </div>
 
           {/* Form Fields */}
@@ -186,7 +296,6 @@ export function UploadSignedModal({
               </label>
               <input
                 type="text"
-                required
                 value={cabinetLocation}
                 onChange={(e) => setCabinetLocation(e.target.value)}
                 placeholder="ex: Armário B - Gaveta 03 - Pasta 2026-042"
@@ -234,11 +343,11 @@ export function UploadSignedModal({
             </div>
           </div>
 
-          {/* Compliance Alert */}
+          {/* Replacement and Compliance Alert */}
           <div className="bg-[#EEF6FD] border border-[#D8E5EF] rounded-xl p-3 flex items-start gap-2.5 text-xs text-[#082A52]">
             <ShieldCheck className="w-4 h-4 text-[#0B78D0] shrink-0 mt-0.5" />
             <p className="text-[11px] leading-relaxed">
-              O arquivo digitalizado ficará permanentemente indexado ao prontuário do cliente em conformidade com o Código de Ética da OAB e a LGPD.
+              Ao vincular este documento assinado, o status do contrato passará para <strong>Assinado / Arquivado</strong> e este PDF substituirá a minuta do sistema como o padrão oficial definitivo para consultas e impressões deste cliente.
             </p>
           </div>
 

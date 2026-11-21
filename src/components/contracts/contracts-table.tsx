@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { Contract } from '@/types/contract';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 
 export type ContractFilterTab = 'ALL' | 'ACTIVE' | 'INSTALLMENTS' | 'PENDING_SIGNATURE' | 'CONCLUDED';
 
@@ -321,7 +322,7 @@ export function ContractsTable({
                     <td className="py-3.5 px-4 align-top">
                       <div className="space-y-1">
                         <span className="font-medium text-slate-900 block leading-tight">
-                          {contract.benefitSpecies}
+                          {formatBenefitType(contract.benefitSpecies, 'pt-BR')}
                         </span>
                         {contract.templateTitle && (
                           <span className="text-[11px] text-slate-500 line-clamp-1">
@@ -441,14 +442,34 @@ export function ContractsTable({
                     {/* Signature Status & Physical File Location */}
                     <td className="py-3.5 px-4 align-top">
                       <div className="space-y-1.5">
-                        {isPhysicallySigned ? (
+                        {isPhysicallySigned || contract.physicalAttachment?.isSigned ? (
                           <div className="space-y-1">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
                               <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                              Físico no Arquivo
+                              ✓ Assinado (PDF Arquivado)
                             </span>
+                            {contract.physicalAttachment?.replacedBy && (
+                              <div className="text-[9px] text-emerald-700 font-medium truncate max-w-[150px]">
+                                Vinculado por: {contract.physicalAttachment.replacedBy}
+                              </div>
+                            )}
                             {contract.physicalFileLocation && (
                               <div className="text-[10px] text-slate-500 font-mono leading-tight truncate max-w-[150px]">
+                                {contract.physicalFileLocation}
+                              </div>
+                            )}
+                          </div>
+                        ) : (contract.customContractAttachment || contract.customPoaAttachment || (contract.physicalAttachment && !contract.physicalAttachment.isSigned)) ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                              <Clock className="w-3 h-3 text-amber-700" />
+                              Pendente Assinatura (Minuta Própria)
+                            </span>
+                            <div className="text-[10px] text-slate-500">
+                              PDF próprio enviado • Aguardando via assinada
+                            </div>
+                            {contract.physicalFileLocation && (
+                              <div className="text-[10px] text-slate-400 font-mono leading-tight truncate max-w-[150px]">
                                 {contract.physicalFileLocation}
                               </div>
                             )}

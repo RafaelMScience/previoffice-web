@@ -28,6 +28,7 @@ import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { maskCpf, maskPhone, maskCep, maskBenefitNumber } from '@/lib/utils/masks';
 import { compressAvatarPhoto } from '@/lib/utils/image-compressor';
 import { calculateAge, checkRuralRetirementAge } from '@/lib/domain/benefit-rules';
+import { formatBenefitType, getCanonicalBenefitKey } from '@/lib/utils/benefit-translations';
 import { decryptData } from '@/lib/security/encryption';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -313,7 +314,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           mobilePhone,
           phone: phone || undefined,
           email: email || undefined,
-          benefitType,
+          benefitType: formatBenefitType(benefitType, 'pt-BR'),
           hasActiveBenefit: false,
           benefitNumber: benefitNumber || undefined,
           specialCategories: [specialCategory],
@@ -975,13 +976,13 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                   {t.clientForm.desiredBenefitLabel}
                 </label>
                 <select
-                  value={benefitType}
+                  value={getCanonicalBenefitKey(benefitType)}
                   onChange={(e) => setBenefitType(e.target.value)}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-medium"
                 >
                   <option value="BPC/LOAS Elderly">BPC / LOAS - Idoso (≥ 65 anos)</option>
                   <option value="BPC/LOAS Disability">BPC / LOAS - Pessoa com Deficiência (PCD)</option>
-                  <option value="Rural Retirement">Aposentadoria Rural - Segurado Especial</option>
+                  <option value="Rural Special Retirement">Aposentadoria Rural - Segurado Especial</option>
                   <option value="Age Retirement Urban">Aposentadoria Urbana por Idade</option>
                   <option value="Temporary Disability">Benefício por Incapacidade Temporária (Auxílio-Doença)</option>
                   <option value="Permanent Disability">Aposentadoria por Incapacidade Permanente</option>

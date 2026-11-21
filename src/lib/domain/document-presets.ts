@@ -4,6 +4,8 @@
  * and provides shortcuts for attendants and lawyers to customize checklists on the fly.
  */
 
+import { getCanonicalBenefitKey } from '../utils/benefit-translations.ts';
+
 export interface DocumentChecklistItem {
   id: string;
   description: string;
@@ -86,11 +88,15 @@ export const COMMON_DOCUMENT_SHORTCUTS = [
 ];
 
 /**
- * Returns default checklist items for a chosen benefit type.
+ * Returns default checklist items for a chosen benefit type (accepts English or Portuguese).
  */
 export function getDefaultDocumentsForBenefit(benefit: string): DocumentChecklistItem[] {
+  const canonical = getCanonicalBenefitKey(benefit);
   const descriptions =
-    BENEFIT_DOCUMENT_PRESETS[benefit] || BENEFIT_DOCUMENT_PRESETS['General Query'] || [];
+    BENEFIT_DOCUMENT_PRESETS[benefit] ||
+    BENEFIT_DOCUMENT_PRESETS[canonical] ||
+    BENEFIT_DOCUMENT_PRESETS['General Query'] ||
+    [];
 
   return descriptions.map((desc, idx) => ({
     id: `preset-${idx + 1}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,

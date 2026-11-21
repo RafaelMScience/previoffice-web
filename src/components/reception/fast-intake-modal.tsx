@@ -28,6 +28,7 @@ import {
   COMMON_DOCUMENT_SHORTCUTS,
   type DocumentChecklistItem,
 } from '@/lib/domain/document-presets';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 
 export interface FastIntakeData {
   fullName: string;
@@ -266,7 +267,7 @@ export function FastIntakeModal({
         fullName: fullName.trim(),
         phone: phone.trim(),
         cpf: cleanCpf || '',
-        benefit,
+        benefit: formatBenefitType(benefit, 'pt-BR'),
         notes: notes.trim() || 'Entrada rápida de balcão registrada.',
         registeredBy: creator?.fullName || 'Recepção',
         assignedLawyerName: attendantName,
