@@ -492,7 +492,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
             <div className="flex items-center gap-4 p-3.5 bg-slate-50/80 rounded-xl border border-dashed border-slate-200">
               <div className="w-14 h-14 rounded-xl bg-slate-200 border border-slate-300 flex items-center justify-center overflow-hidden shrink-0">
                 {photoPreview ? (
-                  <img src={photoPreview} alt="Foto do cliente" className="w-full h-full object-cover" />
+                  <img src={photoPreview} alt="Foto do cliente" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                 ) : (
                   <User className="w-7 h-7 text-slate-400" />
                 )}

@@ -515,6 +515,8 @@ export function DocumentVault({ clientId, clientName }: DocumentVaultProps) {
                     src={viewBlobUrl || getDocumentViewUrl(viewingDoc.id)}
                     alt={viewingDoc.displayName}
                     className="max-h-[75vh] w-auto max-w-full rounded-lg shadow-md object-contain bg-white"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               ) : isPdfMime(viewingDoc.mimeType, viewingDoc.extension) ? (

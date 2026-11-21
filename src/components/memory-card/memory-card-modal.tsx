@@ -88,6 +88,8 @@ export function MemoryCardModal({
                   src={client.photoReference}
                   alt={client.fullName}
                   className="w-12 h-12 rounded-xl object-cover border border-white/20 shrink-0"
+                  loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="w-12 h-12 rounded-xl bg-white/10 text-[#C89543] font-bold text-sm flex items-center justify-center shrink-0 border border-white/10">

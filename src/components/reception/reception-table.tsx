@@ -189,6 +189,8 @@ export function ReceptionTable({
                           src={row.photoUrl}
                           alt={row.fullName}
                           className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 flex-shrink-0"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs flex-shrink-0">
