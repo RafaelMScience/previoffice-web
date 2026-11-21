@@ -19,10 +19,15 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { t } = useI18n();
-  const { currentUser, isAuthenticated, isLoading, canAccess, logout } = useAuth();
+  const { currentUser, isAuthenticated, isLoading, canAccess, logout, refreshUser } = useAuth();
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [navCounts, setNavCounts] = useState<{ clients: number; attendances: number }>({ clients: 0, attendances: 0 });
+
+  // Revalidate user profile on route changes to detect real-time deactivation immediately
+  useEffect(() => {
+    refreshUser();
+  }, [pathname, refreshUser]);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,11 +61,19 @@ export default function DashboardLayout({
     router.push('/login');
   };
 
-  // Security gate: If not authenticated or operator must change password, expel directly to /login
+  // Security gate: If not authenticated, operator must change password, or deactivated, expel directly to /login
   useEffect(() => {
     if (!isLoading) {
-      if (!currentUser) {
-        router.push('/login');
+      if (!currentUser || !currentUser.active) {
+        if (currentUser && !currentUser.active) {
+          logout().finally(() => {
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login';
+            }
+          });
+        } else {
+          router.push('/login');
+        }
       } else if (currentUser.mustChangePassword) {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem(FIRST_ACCESS_EMAIL_KEY, currentUser.email);
@@ -70,10 +83,10 @@ export default function DashboardLayout({
         router.push('/login');
       }
     }
-  }, [isLoading, isAuthenticated, currentUser, router]);
+  }, [isLoading, isAuthenticated, currentUser, logout, router]);
 
   // Block rendering until authenticated
-  if (isLoading || !isAuthenticated || !currentUser || currentUser.mustChangePassword) {
+  if (isLoading || !isAuthenticated || !currentUser || !currentUser.active || currentUser.mustChangePassword) {
     return (
       <div className="min-h-screen bg-[#0B192E] flex flex-col items-center justify-center gap-3">
         <div className="w-8 h-8 border-2 border-[#C89543] border-t-transparent rounded-full animate-spin" />
@@ -229,11 +242,13 @@ export default function DashboardLayout({
               </div>
               <div className="text-[10px] text-slate-400 truncate flex items-center gap-1">
                 <span>
-                  {currentUser.memberType === 'LAWYER'
-                    ? (currentUser.isAdminLawyer ? 'Sócio Admin' : currentUser.oabNumber || 'Advogado')
+                  {currentUser.isAdminLawyer
+                    ? 'Sócio Admin'
+                    : currentUser.memberType === 'LAWYER'
+                    ? currentUser.oabNumber || 'Advogado'
                     : currentUser.memberType === 'ASSISTANT'
-                      ? 'Recepção'
-                      : 'Estagiário'}
+                    ? 'Recepção'
+                    : 'Estagiário'}
                 </span>
                 <span>•</span>
                 <span className="text-emerald-400 font-medium">Online</span>

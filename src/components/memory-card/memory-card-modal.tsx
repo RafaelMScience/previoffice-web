@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { X, Clock, CheckSquare, Plus, FileSignature, FolderOpen, Smartphone } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Client } from '@/types/client';
 
 interface MemoryCardModalProps {
@@ -81,13 +82,26 @@ export function MemoryCardModal({
           </div>
 
           <div className="flex items-start justify-between pr-8">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">{client.fullName}</h2>
-              <p className="text-xs text-white/70 mt-0.5">
-                {t.memoryCard.subtitle}
-              </p>
+            <div className="flex items-center gap-3">
+              {client.photoReference ? (
+                <img
+                  src={client.photoReference}
+                  alt={client.fullName}
+                  className="w-12 h-12 rounded-xl object-cover border border-white/20 shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-white/10 text-[#C89543] font-bold text-sm flex items-center justify-center shrink-0 border border-white/10">
+                  {client.fullName.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-white">{client.fullName}</h2>
+                <p className="text-xs text-white/70 mt-0.5">
+                  {t.memoryCard.subtitle}
+                </p>
+              </div>
             </div>
-            <span className="bg-[#C89543] text-[#0B192E] text-xs font-bold px-3 py-1 rounded-full shadow-xs">
+            <span className="bg-[#C89543] text-[#0B192E] text-xs font-bold px-3 py-1 rounded-full shadow-xs shrink-0 self-center">
               {client.visitCount}ª {t.memoryCard.badgeVisit}
             </span>
           </div>
@@ -109,7 +123,7 @@ export function MemoryCardModal({
             </div>
             <div>
               <span className="text-slate-400 block font-medium">Alvo / Benefício:</span>
-              <span className="font-semibold text-slate-800">{client.benefitType || 'Geral'}</span>
+              <span className="font-semibold text-slate-800">{formatBenefitType(client.benefitType, 'pt-BR') || 'Geral'}</span>
             </div>
           </div>
 

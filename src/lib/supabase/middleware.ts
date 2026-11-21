@@ -31,11 +31,30 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/definir-senha');
+
   // Refresh auth session safely (never crash or block SSR if local Docker is offline)
+  let user: any = null;
   try {
-    await supabase.auth.getUser();
+    const { data } = await supabase.auth.getUser();
+    user = data?.user || null;
   } catch (e) {
     // Graceful fallback when database or auth service is temporarily offline
+  }
+
+  // If unauthenticated and trying to access protected routes, redirect to /login immediately
+  if (!user && !isAuthRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // If authenticated and trying to access /login, redirect to /
+  if (user && pathname === '/login') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

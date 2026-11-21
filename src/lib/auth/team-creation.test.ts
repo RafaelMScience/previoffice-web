@@ -21,7 +21,9 @@ describe('Team Creation & First Access Credentials', () => {
     assert.strictEqual(mapMemberTypeToDbRole('LAWYER', true), 'MANAGING_LAWYER');
     assert.strictEqual(mapMemberTypeToDbRole('LAWYER', false), 'ASSOCIATE_LAWYER');
     assert.strictEqual(mapMemberTypeToDbRole('ASSISTANT', false), 'ASSISTANT');
+    assert.strictEqual(mapMemberTypeToDbRole('ASSISTANT', true), 'MANAGING_LAWYER');
     assert.strictEqual(mapMemberTypeToDbRole('INTERN', false), 'INTERN');
+    assert.strictEqual(mapMemberTypeToDbRole('INTERN', true), 'MANAGING_LAWYER');
   });
 
   it('validates mandatory fields for creating team member using team-utils', () => {

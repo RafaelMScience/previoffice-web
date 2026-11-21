@@ -25,6 +25,7 @@ import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
 import { ClientFullForm } from '@/components/client-form/client-full-form';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Client, ClientStatus } from '@/types/client';
 import type { Attendance } from '@/types/attendance';
 import type { CaseUpdate } from '@/types/case-update';
@@ -42,7 +43,7 @@ export function ClientDetailsView({
   initialCaseUpdates = [],
 }: ClientDetailsViewProps) {
   const { t } = useI18n();
-  const { canAccess } = useAuth();
+  const { canAccess, currentUser } = useAuth();
 
   const [client, setClient] = useState<Client>(initialClient);
   const [attendances, setAttendances] = useState<Attendance[]>(initialAttendances);
@@ -137,18 +138,39 @@ export function ClientDetailsView({
     );
   };
 
-  const handleToggleDocumentDelivered = (attendanceId: string, docId: string) => {
-    setAttendances((prev) =>
-      prev.map((att) => {
-        if (att.id !== attendanceId || !att.pendingDocuments) return att;
-        return {
-          ...att,
-          pendingDocuments: att.pendingDocuments.map((doc) =>
-            doc.id === docId ? { ...doc, isDelivered: !doc.isDelivered } : doc
-          ),
-        };
-      })
+  const handleToggleDocumentDelivered = async (attendanceId: string, docId: string) => {
+    const targetAttendance = attendances.find((a) => a.id === attendanceId);
+    if (!targetAttendance || !targetAttendance.pendingDocuments) return;
+
+    const updatedDocs = targetAttendance.pendingDocuments.map((doc) =>
+      doc.id === docId
+        ? {
+            ...doc,
+            isDelivered: !doc.isDelivered,
+            deliveredAt: !doc.isDelivered ? new Date().toISOString() : undefined,
+          }
+        : doc
     );
+
+    // Optimistic UI update
+    setAttendances((prev) =>
+      prev.map((att) =>
+        att.id === attendanceId ? { ...att, pendingDocuments: updatedDocs } : att
+      )
+    );
+
+    try {
+      const { updateAttendancePendingDocumentsInDb } = await import('@/lib/services/client-service');
+      await updateAttendancePendingDocumentsInDb(attendanceId, updatedDocs);
+      showToast('Status do documento atualizado com sucesso no banco de dados!');
+    } catch (err: any) {
+      console.error(err);
+      // Rollback on error
+      setAttendances((prev) =>
+        prev.map((att) => (att.id === attendanceId ? targetAttendance : att))
+      );
+      showToast('Erro ao atualizar status dos documentos no banco de dados.');
+    }
   };
 
   const handleUpdateClientFromMemory = (updated: Client) => {
@@ -178,6 +200,8 @@ export function ClientDetailsView({
     email: client.email,
     benefitNumber: client.benefitNumber,
     benefitType: client.benefitType,
+    inssPassword: client.inssPassword || client.encryptedInssPassword,
+    photoReference: client.photoReference,
     physicalFileLocation: client.physicalFileLocation,
     notes: client.notes,
   };
@@ -347,31 +371,27 @@ export function ClientDetailsView({
         <ClientFullForm
           clientId={client.id}
           initialData={formInitialData}
-          onSave={async (data) => {
-            setClient((prev) => ({
-              ...prev,
-              fullName: data.fullName,
-              cpf: data.cpf,
-              rg: data.rg,
-              birthDate: data.birthDate,
-              maritalStatus: data.maritalStatus,
-              profession: data.profession,
-              motherName: data.motherName,
-              fatherName: data.fatherName,
-              postalCode: data.postalCode,
-              street: data.street,
-              streetNumber: data.streetNumber,
-              complement: data.complement,
-              neighborhood: data.neighborhood,
-              city: data.city,
-              state: data.state,
-              mobilePhone: data.mobilePhone,
-              phone: data.phone,
-              email: data.email,
-              benefitType: data.benefitType,
-              benefitNumber: data.benefitNumber,
-              notes: data.notes,
-            }));
+          onSave={async (data, photoFile) => {
+            const { createFullClientInDb, uploadClientPhotoToStorage } = await import('@/lib/services/client-service');
+
+            let photoUrl: string | null | undefined =
+              data.photoReference !== undefined ? data.photoReference : client.photoReference;
+            if (photoFile && client.tenantId) {
+              photoUrl = await uploadClientPhotoToStorage(photoFile, client.tenantId);
+            }
+
+            const updated = await createFullClientInDb(
+              data,
+              client.tenantId,
+              {
+                id: currentUser?.id || client.id,
+                name: currentUser?.fullName || 'Operador',
+              },
+              photoUrl,
+              client.id
+            );
+
+            setClient(updated);
             showToast('Dados cadastrais salvos com sucesso!');
           }}
         />
@@ -388,7 +408,7 @@ export function ClientDetailsView({
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
         clientId={client.id}
-        defaultObjective={client.benefitType || 'Aposentadoria Rural - Segurado Especial'}
+        defaultObjective={formatBenefitType(client.benefitType, 'pt-BR') || 'Aposentadoria Rural - Segurado Especial'}
         onSave={handleSaveAttendance}
       />
 

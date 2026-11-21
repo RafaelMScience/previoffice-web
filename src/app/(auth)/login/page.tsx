@@ -73,6 +73,19 @@ export default function LoginPage() {
       }
 
       if (data.session && data.user) {
+        // Fetch profile to verify if user is active
+        const { data: profile } = await (supabase.from('profiles') as any)
+          .select('is_active')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        if (profile && profile.is_active === false) {
+          await supabase.auth.signOut();
+          setErrorMessage('Seu usuário está desativado pelo administrador. Entre em contato com a banca.');
+          setLoading(false);
+          return;
+        }
+
         // Record last login in public.profiles
         try {
           await (supabase.from('profiles') as any)

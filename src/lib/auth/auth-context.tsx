@@ -68,12 +68,12 @@ function mapProfileToTeamMember(profile: ProfileRow, user?: User | null): TeamMe
 
   const userPerms = user?.user_metadata?.permissions as TeamPermissions | undefined;
   const permissions =
-    userPerms ||
-    (role === 'MANAGING_LAWYER'
+    role === 'MANAGING_LAWYER'
       ? ADMIN_PERMISSIONS
-      : role === 'ASSOCIATE_LAWYER'
-      ? LAWYER_PERMISSIONS
-      : RECEPTIONIST_PERMISSIONS);
+      : userPerms ||
+        (role === 'ASSOCIATE_LAWYER'
+          ? LAWYER_PERMISSIONS
+          : RECEPTIONIST_PERMISSIONS);
 
   const mustChangePassword =
     user?.user_metadata?.must_change_password === true;
@@ -238,7 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = async () => {
+  const logout = React.useCallback(async () => {
     const actorName = currentUser?.fullName || 'Operador';
     const actorId = currentUser?.id || 'unknown';
     const actorRole = currentUser?.memberType || 'LAWYER';
@@ -268,9 +268,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setCurrentUser(null);
     setAuthUser(null);
-  };
+  }, [currentUser, supabase]);
 
-  const refreshUser = async () => {
+  const refreshUser = React.useCallback(async () => {
     try {
       const {
         data: { user },
@@ -296,9 +296,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Failed to refresh user:', err);
     }
-  };
+  }, [supabase]);
 
-  const isAuthenticated = Boolean(currentUser && !currentUser.mustChangePassword);
+  const isAuthenticated = Boolean(currentUser && currentUser.active && !currentUser.mustChangePassword);
   const permissions = currentUser?.permissions || null;
   const isAdmin = Boolean(currentUser?.isAdminLawyer || permissions?.adminSettings);
 

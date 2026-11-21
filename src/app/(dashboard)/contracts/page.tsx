@@ -19,6 +19,7 @@ import { contractsStore } from '@/lib/data/mock-contracts';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
+import { createClient } from '@/lib/supabase/client';
 
 import { ContractsKpiCards } from '@/components/contracts/contracts-kpi-cards';
 import {
@@ -109,6 +110,71 @@ export default function ContractsPage() {
     }
   };
 
+  // Database audit and persistence helper
+  const persistContractAndAudit = async (
+    contract: Contract,
+    actionTitle: string,
+    actionDetail: string
+  ) => {
+    try {
+      const supabase = createClient();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        contract.clientId
+      );
+
+      // 1. Upsert into contracts table (only if client_id is valid UUID)
+      if (isUuid) {
+        await (supabase.from('contracts') as any).upsert(
+          {
+            tenant_id: contract.tenantId,
+            client_id: contract.clientId,
+            contract_number: contract.contractNumber,
+            template_id: contract.templateId,
+            template_title: contract.templateTitle,
+            benefit_species: contract.benefitSpecies,
+            status: contract.status,
+            fee_structure: {
+              ...contract.feeStructure,
+              physicalAttachment: contract.physicalAttachment
+                ? { ...contract.physicalAttachment, fileDataUrl: undefined } // Do not bloat jsonb
+                : undefined,
+              customContractAttachment: contract.customContractAttachment
+                ? { ...contract.customContractAttachment, fileDataUrl: undefined }
+                : undefined,
+              customPoaAttachment: contract.customPoaAttachment
+                ? { ...contract.customPoaAttachment, fileDataUrl: undefined }
+                : undefined,
+            },
+            lawyer_name: contract.lawyerName,
+            lawyer_oab: contract.lawyerOab,
+            office_name: contract.officeName,
+            physical_signed_status: contract.physicalSignedStatus,
+            physical_file_location: contract.physicalFileLocation,
+            is_custom_edited: contract.isCustomEdited || false,
+            custom_edited_by: contract.customEditedBy,
+            custom_edited_at: contract.customEditedAt,
+            custom_contract_body: contract.customContractBody,
+            custom_poa_body: contract.customPoaBody,
+            issued_at: contract.issuedAt,
+          },
+          { onConflict: 'tenant_id,contract_number' }
+        );
+
+        // 2. Audit log into attendances table
+        await (supabase.from('attendances') as any).insert({
+          tenant_id: contract.tenantId,
+          client_id: contract.clientId,
+          attendance_type: 'OTHER',
+          objective: `${actionTitle}: ${contract.contractNumber}`,
+          notes: actionDetail,
+          attended_at: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase persistence/audit skipped (using local mock store):', err);
+    }
+  };
+
   // Attach physical document handler
   const handleAttachSigned = (
     contractId: string,
@@ -118,6 +184,24 @@ export default function ContractsPage() {
     if (updated) {
       refreshData();
       triggerToast(t.contracts.uploadSuccessToast);
+
+      // Persist to Supabase and log audit
+      const categoryLabel =
+        attachment.documentCategory === 'FEE_CONTRACT'
+          ? 'Contrato de Honorários'
+          : attachment.documentCategory === 'POWER_OF_ATTORNEY'
+          ? 'Procuração Ad Judicia'
+          : 'Documento da Advocacia';
+
+      persistContractAndAudit(
+        updated,
+        'Documento Físico Assinado Vinculado',
+        `Arquivo "${attachment.fileName}" (${attachment.fileSizeFormatted}) anexado por ${
+          attachment.uploadedBy
+        }. Finalidade: ${categoryLabel}. Local: ${attachment.physicalCabinetLocation}. Assinado: ${
+          attachment.isSigned ? 'Sim' : 'Não'
+        }.`
+      );
     }
   };
 
@@ -128,6 +212,22 @@ export default function ContractsPage() {
     const created = contractsStore.createContract(contractData);
     refreshData();
     triggerToast(`Contrato ${created.contractNumber} formalizado com sucesso!`);
+
+    // Persist to Supabase and log audit
+    const hasCustomDoc = Boolean(created.physicalAttachment);
+    persistContractAndAudit(
+      created,
+      'Contrato Formalizado',
+      `Contrato ${created.contractNumber} para ${created.clientName} (${created.benefitSpecies}). Regime: ${
+        created.feeStructure.feeModel
+      }. ${
+        hasCustomDoc
+          ? `Minuta customizada enviada: "${created.physicalAttachment?.fileName}" (${
+              created.physicalAttachment?.isSigned ? 'Assinado' : 'Pendente de assinatura'
+            }) por ${created.physicalAttachment?.replacedBy}.`
+          : 'Minuta padrão do sistema vinculada.'
+      }`
+    );
   };
 
   // Add template handler

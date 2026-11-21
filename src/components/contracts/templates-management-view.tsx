@@ -89,14 +89,31 @@ export function TemplatesManagementView({
     setDefaultFeeModel('QUOTA_LITIS');
     setDefaultPercentage(30);
     setClausesCount(8);
-    setContentBody(`CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS PREVIDENCIÁRIOS
+    setContentBody(`INSTRUMENTO PARTICULAR DE CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS PROFISSIONAIS PREVIDENCIÁRIOS
 
-CONTRATANTE: {{NOME_CLIENTE}}, CPF: {{CPF}}, residente em {{ENDERECO}}.
-CONTRATADA: {{NOME_ADVOGADO}}, {{OAB_ADVOGADO}}.
+Pelo presente instrumento particular, regido pela Lei Federal nº 8.906/1994 (Estatuto da OAB), pelos artigos 593 e seguintes e 653 e seguintes da Lei Federal nº 10.406/2002 (Código Civil), pelo Código de Ética e Disciplina da OAB e pela Lei Federal nº 8.213/1991:
 
-CLÁUSULA 1ª — DO OBJETO: Prestação de serviços jurídicos para concessão de {{BENEFICIO}}.
-CLÁUSULA 2ª — DOS HONORÁRIOS: {{HONORARIOS}}.
-CLÁUSULA 3ª — DA RPV/PRECATÓRIO: Autorização expressa para retenção e destacamento de honorários contratuais diretamente na fonte pagadora (art. 22 § 4º da Lei 8.906/94).
+CONTRATANTE: {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente em {{ENDERECO}}, telefone/WhatsApp: {{TELEFONE}}.
+CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, representada pelo(a) advogado(a) Dr(a). {{NOME_ADVOGADO}}, {{OAB_ADVOGADO}}.
+
+CLÁUSULA 1ª — DO OBJETO: Prestação de serviços jurídicos e representação técnica profissional para requerimento, concessão e liquidação do benefício de {{BENEFICIO}} (Pasta: {{PASTA_FISICA}}), na via administrativa (INSS) e judicial (Justiça Federal/Estadual).
+Parágrafo Único — A atuação profissional constitui obrigação de meio e não de resultado (art. 14 do Código de Ética e Disciplina da OAB).
+
+CLÁUSULA 2ª — DOS HONORÁRIOS CONTRATUAIS: Pelos serviços prestados, com amparo no art. 22 da Lei nº 8.906/1994 e art. 50 do Código de Ética da OAB, o(a) CONTRATANTE pagará à CONTRATADA:
+{{HONORARIOS}}
+§ 1º — A base de cálculo incidirá sobre a totalidade das parcelas retroativas apuradas da DER até a efetiva concessão e liquidação.
+§ 2º — Em caso de indeferimento definitivo sem proveito econômico obtido, nenhum valor a título de honorários de êxito será devido.
+
+CLÁUSULA 3ª — DO DESTACAMENTO DE HONORÁRIOS EM RPV / PRECATÓRIO (ART. 22, § 4º DA LEI 8.906/94):
+Autorização expressa para requisição e destacamento prévio da verba honorária diretamente em favor da sociedade de advogados na fonte pagadora (Caixa Econômica Federal / Banco do Brasil), bem como levantamento de alvarás com imediata prestação de contas.
+
+CLÁUSULA 4ª — DOS HONORÁRIOS DE SUCUMBÊNCIA: Pertencem exclusivamente à CONTRATADA (art. 23 da Lei 8.906/94 e art. 85, § 14 do CPC).
+
+CLÁUSULA 5ª — DA RESCISÃO E ACORDO DIRETO: Aplicação dos arts. 22 da Lei 8.906/94 e 658 do Código Civil em caso de revogação sem justa causa ou transação direta à revelia dos patronos.
+
+CLÁUSULA 6ª — DA PROTEÇÃO DE DADOS (LGPD): Tratamento estrito nos moldes do art. 7º, V e VI da Lei Federal nº 13.709/2018.
+
+CLÁUSULA 7ª — DA EFICÁCIA EXECUTIVA E DO FORO: Título executivo extrajudicial (art. 784, III do CPC e art. 24 da Lei 8.906/94), elegendo-se o foro do domicílio do(a) CONTRATANTE.
 
 Localidade, {{DATA_EXTENSO}}.`);
     setLawyerName(LAWYER_OPTIONS[0].name);
@@ -343,6 +360,7 @@ Localidade, {{DATA_EXTENSO}}.`);
               <button
                 type="button"
                 onClick={() => setSelectedTemplateForPreview(null)}
+                aria-label="Fechar"
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200"
               >
                 <X className="w-5 h-5" />
@@ -392,6 +410,7 @@ Localidade, {{DATA_EXTENSO}}.`);
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Fechar"
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200"
               >
                 <X className="w-5 h-5" />

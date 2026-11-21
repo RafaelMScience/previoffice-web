@@ -26,6 +26,7 @@ import {
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { maskPhone, maskCpf } from '@/lib/utils/masks';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Client, ClientStatus } from '@/types/client';
 import type { CaseUpdate } from '@/types/case-update';
 
@@ -327,8 +328,16 @@ export function ClientDetailHeader({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         {/* Left: Avatar & Personal Info */}
         <div className="flex items-start gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-[#0B192E] text-[#C89543] font-bold text-xl flex items-center justify-center shadow-inner shrink-0 border border-slate-700">
-            {getInitials(client.fullName)}
+          <div className="w-16 h-16 rounded-2xl bg-[#0B192E] text-[#C89543] font-bold text-xl flex items-center justify-center shadow-inner shrink-0 border border-slate-700 overflow-hidden">
+            {client.photoReference ? (
+              <img
+                src={client.photoReference}
+                alt={client.fullName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              getInitials(client.fullName)
+            )}
           </div>
 
           <div className="space-y-1">
@@ -336,7 +345,7 @@ export function ClientDetailHeader({
               <h1 className="text-2xl font-bold text-slate-900">{client.fullName}</h1>
               {client.benefitType && (
                 <span className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                  {client.benefitType}
+                  {formatBenefitType(client.benefitType, 'pt-BR')}
                 </span>
               )}
             </div>

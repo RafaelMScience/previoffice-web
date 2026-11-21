@@ -184,9 +184,17 @@ export function ReceptionTable({
                   {/* Client Info */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs flex-shrink-0">
-                        {row.fullName.slice(0, 2).toUpperCase()}
-                      </div>
+                      {row.photoUrl ? (
+                        <img
+                          src={row.photoUrl}
+                          alt={row.fullName}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs flex-shrink-0">
+                          {row.fullName.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
                       <div>
                         <div className="font-semibold text-slate-900 group-hover:text-[#C89543] transition-colors flex items-center gap-2">
                           {row.fullName}

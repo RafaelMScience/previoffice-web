@@ -27,8 +27,8 @@ export default function NewClientIntakePage() {
   const { t } = useI18n();
   const { canAccess, currentUser } = useAuth();
 
-  const [mode, setMode] = useState<'FAST' | 'FULL'>('FAST');
-  const [isFastModalOpen, setIsFastModalOpen] = useState(true);
+  const [mode, setMode] = useState<'FAST' | 'FULL'>('FULL');
+  const [isFastModalOpen, setIsFastModalOpen] = useState(false);
 
   if (!canAccess('receptionDesk') && !canAccess('clientsManage')) {
     return (
@@ -53,7 +53,8 @@ export default function NewClientIntakePage() {
 
   const handleFullSave = async (
     data: ClientFullRegistrationInput,
-    photoFile?: File
+    photoFile?: File,
+    linkedClientId?: string
   ) => {
     if (!currentUser?.tenantId) {
       throw new Error('Sessão expirada ou escritório não identificado. Recarregue a página.');
@@ -71,7 +72,8 @@ export default function NewClientIntakePage() {
         id: currentUser.id,
         name: currentUser.fullName,
       },
-      photoUrl
+      photoUrl,
+      linkedClientId
     );
 
     router.push(`/clientes/${client.id}`);
