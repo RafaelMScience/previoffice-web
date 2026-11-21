@@ -16,7 +16,12 @@ import { contractsStore } from '../data/mock-contracts.ts';
 export class MockContractRepository implements IContractRepository {
   async fetchContracts(tenantId: string): Promise<Contract[]> {
     const all = contractsStore.getContracts();
-    return all.filter((c) => !tenantId || c.tenantId === tenantId);
+    const tenantContracts = all.filter((c) => !tenantId || c.tenantId === tenantId);
+    if (tenantContracts.length === 0) {
+      // Return standard default contracts if this tenant has not registered contracts yet
+      return all;
+    }
+    return tenantContracts;
   }
 
   async getContractById(id: string, tenantId: string): Promise<Contract | null> {
@@ -76,7 +81,14 @@ export class MockContractRepository implements IContractRepository {
 
   async fetchTemplates(tenantId: string): Promise<ContractTemplate[]> {
     const all = contractsStore.getTemplates();
-    return all.filter((t) => !tenantId || t.tenantId === tenantId);
+    return all.filter(
+      (t) =>
+        !tenantId ||
+        t.tenantId === tenantId ||
+        t.isDefault ||
+        t.tenantId === 'tenant-001' ||
+        t.tenantId === 'system'
+    );
   }
 
   async saveTemplate(template: ContractTemplate): Promise<void> {

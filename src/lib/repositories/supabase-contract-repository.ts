@@ -258,7 +258,15 @@ export class SupabaseContractRepository implements IContractRepository {
   async fetchTemplates(tenantId: string): Promise<ContractTemplate[]> {
     // Templates can be extended to a database table or combined with system presets
     const { contractsStore } = await import('@/lib/data/mock-contracts');
-    return contractsStore.getTemplates().filter((t) => !tenantId || t.tenantId === tenantId);
+    const all = contractsStore.getTemplates();
+    return all.filter(
+      (t) =>
+        !tenantId ||
+        t.tenantId === tenantId ||
+        t.isDefault ||
+        t.tenantId === 'tenant-001' ||
+        t.tenantId === 'system'
+    );
   }
 
   async saveTemplate(template: ContractTemplate): Promise<void> {
