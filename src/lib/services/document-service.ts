@@ -6,14 +6,21 @@ import { dedupeRequest, invalidateCache } from '../cache/request-cache.ts';
  * Client-facing service for managing end-to-end encrypted documents.
  */
 
-export async function fetchClientDocuments(clientId: string): Promise<LegalDocument[]> {
-  return dedupeRequest(`documents:list:${clientId}`, async () => {
-    const response = await fetch(`/api/documents?clientId=${encodeURIComponent(clientId)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+export async function fetchClientDocuments(
+  clientId: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<LegalDocument[]> {
+  return dedupeRequest(`documents:list:${clientId}:${page}:${limit}`, async () => {
+    const response = await fetch(
+      `/api/documents?clientId=${encodeURIComponent(clientId)}&page=${page}&limit=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

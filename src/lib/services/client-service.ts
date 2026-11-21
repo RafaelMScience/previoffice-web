@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { encryptData, decryptData, isEncrypted } from '@/lib/security/encryption';
 import { dedupeRequest, invalidateCache } from '../cache/request-cache.ts';
+import { sanitizePagination } from '../utils/pagination.ts';
 import type { Client, ClientStatus, MaritalStatus, SpecialCategory } from '@/types/client';
 import type { Attendance, AttendanceType, AttendanceWithClient, PendingPhysicalDocument } from '@/types/attendance';
 import type { ClientFullRegistrationInput } from '@/lib/schemas/client-schema';
@@ -11,15 +12,26 @@ import type { FastIntakeData } from '@/components/reception/fast-intake-modal';
  * Enforces multi-tenancy and Supabase Postgres best practices.
  */
 
-export async function fetchClientsFromDb(tenantId: string): Promise<Client[]> {
-  return dedupeRequest(`clients:list:${tenantId}`, async () => {
+export async function fetchClientsFromDb(
+  tenantId: string,
+  pagination?: { page?: number; limit?: number }
+): Promise<Client[]> {
+  const { page, limit, from, to } = sanitizePagination(
+    pagination?.page,
+    pagination?.limit,
+    50,
+    100
+  );
+
+  return dedupeRequest(`clients:list:${tenantId}:${page}:${limit}`, async () => {
     const supabase = createClient();
 
     const { data, error } = await (supabase.from('clients') as any)
       .select('*, attendances(id, pending_documents, attended_at)')
       .eq('tenant_id', tenantId)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
     if (error) {
       console.error('Error fetching clients from Supabase:', error);
@@ -394,13 +406,24 @@ export async function inactivateClientInDb(
   invalidateCache('nav-counts:');
 }
 
-export async function fetchAttendancesFromDb(tenantId: string): Promise<AttendanceWithClient[]> {
-  return dedupeRequest(`attendances:list:${tenantId}`, async () => {
+export async function fetchAttendancesFromDb(
+  tenantId: string,
+  pagination?: { page?: number; limit?: number }
+): Promise<AttendanceWithClient[]> {
+  const { page, limit, from, to } = sanitizePagination(
+    pagination?.page,
+    pagination?.limit,
+    50,
+    100
+  );
+
+  return dedupeRequest(`attendances:list:${tenantId}:${page}:${limit}`, async () => {
     const supabase = createClient();
     const { data, error } = await (supabase.from('attendances') as any)
       .select('*, client:clients(id, full_name, cpf, phone, mobile_phone, benefit_type)')
       .eq('tenant_id', tenantId)
-      .order('attended_at', { ascending: false });
+      .order('attended_at', { ascending: false })
+      .range(from, to);
 
     if (error) {
       console.error('Error fetching attendances from Supabase:', error);
