@@ -322,7 +322,7 @@ export function ProfileSecurityTab() {
                     type="text"
                     value={profile.oabNumber || ''}
                     onChange={(e) => setProfile({ ...profile, oabNumber: e.target.value })}
-                    placeholder="OAB/PB 18.234"
+                    placeholder="OAB/AM 55.858"
                     className="w-full pl-10 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] outline-hidden font-medium text-slate-800 transition-all"
                   />
                 </div>

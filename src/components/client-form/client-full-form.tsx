@@ -101,7 +101,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   const [complement, setComplement] = useState(initialData?.complement || '');
   const [neighborhood, setNeighborhood] = useState(initialData?.neighborhood || '');
   const [city, setCity] = useState(initialData?.city || '');
-  const [state, setState] = useState(initialData?.state || 'PB');
+  const [state, setState] = useState(initialData?.state || 'AM');
 
   // Contact
   const [mobilePhone, setMobilePhone] = useState(initialData?.mobilePhone ? maskPhone(initialData.mobilePhone) : '');

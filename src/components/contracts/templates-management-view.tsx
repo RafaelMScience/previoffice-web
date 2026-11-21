@@ -31,9 +31,9 @@ interface TemplatesManagementViewProps {
 }
 
 const LAWYER_OPTIONS = [
-  { name: 'Dr. Alexandre Pontes', oab: 'OAB/PB 18.234' },
-  { name: 'Dra. Camila Santos', oab: 'OAB/PB 22.100' },
-  { name: 'Dr. Marcos Oliveira', oab: 'OAB/PB 19.450' },
+  { name: 'Dr. Alexandre Pontes', oab: 'OAB/AM 55.858' },
+  { name: 'Dra. Camila Santos', oab: 'OAB/AM 22.100' },
+  { name: 'Dr. Marcos Oliveira', oab: 'OAB/AM 19.450' },
   { name: 'Geral do Escritório (Todos os Advogados)', oab: 'Sociedade de Advogados' },
 ];
 
@@ -255,7 +255,7 @@ Localidade, {{DATA_EXTENSO}}.`);
                   {tpl.lawyerName && (
                     <div className="text-[11px] text-[#0B78D0] font-semibold flex items-center gap-1 mt-0.5">
                       <Scale className="w-3 h-3 text-[#C89543]" />
-                      <span>{tpl.lawyerName} ({tpl.lawyerOab || 'OAB/PB'})</span>
+                      <span>{tpl.lawyerName} ({tpl.lawyerOab || 'OAB/AM'})</span>
                     </div>
                   )}
                   <p className="text-xs text-slate-500 mt-1 line-clamp-2">

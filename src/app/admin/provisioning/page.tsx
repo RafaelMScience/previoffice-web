@@ -30,7 +30,7 @@ export default function AdminProvisioningPage() {
   // Office form state
   const [officeName, setOfficeName] = useState('');
   const [oabNumber, setOabNumber] = useState('');
-  const [oabUf, setOabUf] = useState('PB');
+  const [oabUf, setOabUf] = useState('AM');
   const [taxId, setTaxId] = useState('');
   const [phone, setPhone] = useState('');
   const [officeEmail, setOfficeEmail] = useState('');

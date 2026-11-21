@@ -91,7 +91,7 @@ export function LegalContractModal({
 
   // Dynamic Office Name & OAB from tenant registration
   const [officeName, setOfficeName] = useState(() => settingsStore.getOfficeSettings().officeName || 'Alexandre Pontes Sociedade de Advogados');
-  const [officeOab, setOfficeOab] = useState(() => settingsStore.getOfficeSettings().oabSocietyNumber || 'OAB/PB');
+  const [officeOab, setOfficeOab] = useState(() => settingsStore.getOfficeSettings().oabSocietyNumber || 'OAB/AM');
 
   // Remuneration regime states (Regime de Remuneração e Honorários Advocatícios)
   const [feeModel, setFeeModel] = useState<FeeModel>('QUOTA_LITIS');
@@ -187,7 +187,7 @@ export function LegalContractModal({
       client.streetNumber ? `nº ${client.streetNumber}` : 'S/N',
       client.complement,
       client.neighborhood,
-      client.city ? `${client.city} - ${client.state || 'PB'}` : '',
+      client.city ? `${client.city} - ${client.state || 'AM'}` : '',
       client.postalCode ? `CEP: ${client.postalCode}` : '',
     ]
       .filter(Boolean)

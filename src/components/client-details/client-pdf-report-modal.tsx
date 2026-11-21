@@ -35,7 +35,7 @@ export function ClientPdfReportModal({
   isOpen,
   onClose,
   lawyerName = 'Dr. Alexandre Pontes',
-  lawyerOab = 'OAB/PB 18.234',
+  lawyerOab = 'OAB/AM 55.858',
   officeName = 'Alexandre Pontes Sociedade de Advogados',
 }: ClientPdfReportModalProps) {
   const { t, locale } = useI18n();
@@ -709,7 +709,7 @@ export function ClientPdfReportModal({
                     <div className="flex justify-between items-center py-0.5 border-b border-slate-100">
                       <span className="text-slate-500 shrink-0">{isEn ? 'City & State:' : 'Cidade e UF:'}</span>
                       <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                        {client.city ? `${client.city} - ${client.state || 'PB'}` : (isEn ? 'Not informed' : 'Não informado')}
+                        {client.city ? `${client.city} - ${client.state || 'AM'}` : (isEn ? 'Not informed' : 'Não informado')}
                       </span>
                     </div>
                     <div className="flex justify-between items-center py-0.5">

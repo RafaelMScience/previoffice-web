@@ -27,15 +27,15 @@ describe('Contracts Store and Robust Legal Templates', () => {
     const merged = mergeTemplatePlaceholders(ruralTpl.contentBody, {
       clientName: 'Sebastião Alves da Silva',
       clientCpf: '123.456.789-00',
-      clientRg: '1.234.567 SSP/PB',
+      clientRg: '1.234.567 SSP/AM',
       clientMaritalStatus: 'Casado(a)',
       clientProfession: 'Agricultor Familiar / Lavrador',
-      clientAddress: 'Sítio Riacho do Meio, Zona Rural, Guarabira - PB',
-      clientPhone: '(83) 98765-4321',
+      clientAddress: 'Sítio Riacho do Meio, Zona Rural, Manaus - AM',
+      clientPhone: '(92) 98765-4321',
       benefitSpecies: 'Aposentadoria por Idade Rural',
       feeDescription: '30% (trinta por cento) sobre a totalidade dos atrasados apurados',
       lawyerName: 'Dr. Alexandre Pontes',
-      lawyerOab: 'OAB/PB 18.234',
+      lawyerOab: 'OAB/AM 55.858',
       cabinetFolder: 'Armário Rural - Pasta 2026-R01',
       fullDate: '20 de Novembro de 2026',
     });
@@ -45,7 +45,7 @@ describe('Contracts Store and Robust Legal Templates', () => {
     assert.ok(merged.includes('Agricultor Familiar / Lavrador'));
     assert.ok(merged.includes('Sítio Riacho do Meio'));
     assert.ok(merged.includes('Dr. Alexandre Pontes'));
-    assert.ok(merged.includes('OAB/PB 18.234'));
+    assert.ok(merged.includes('OAB/AM 55.858'));
     assert.ok(merged.includes('30% (trinta por cento) sobre a totalidade dos atrasados'));
     assert.ok(!merged.includes('{{NOME_CLIENTE}}'));
     assert.ok(!merged.includes('{{CPF}}'));
@@ -77,7 +77,7 @@ describe('Contracts Store and Robust Legal Templates', () => {
       clausesCount: 8,
       isDefault: false,
       lawyerName: 'Dra. Camila Santos',
-      lawyerOab: 'OAB/PB 22.100',
+      lawyerOab: 'OAB/AM 22.100',
       contentBody: 'CONTRATO CUSTOMIZADO {{NOME_CLIENTE}} - {{BENEFICIO}}',
     });
 

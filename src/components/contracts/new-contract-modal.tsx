@@ -270,7 +270,7 @@ export function NewContractModal({
       customEditedBy: customAttachment?.replacedBy,
       customEditedAt: customAttachment?.replacedAt,
       lawyerName: tpl?.lawyerName || 'Dr. Alexandre Pontes',
-      lawyerOab: tpl?.lawyerOab || 'OAB/PB 18.234',
+      lawyerOab: tpl?.lawyerOab || 'OAB/AM 55.858',
       officeName: 'Alexandre Pontes Sociedade de Advogados',
       issuedAt: new Date().toISOString(),
       signedAt: isSignedDocument ? new Date().toISOString() : undefined,

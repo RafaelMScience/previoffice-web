@@ -16,18 +16,18 @@ export interface TemplatePlaceholder {
 export const TEMPLATE_PLACEHOLDERS: TemplatePlaceholder[] = [
   { tag: '{{NOME_CLIENTE}}', label: 'Nome do Cliente', description: 'Nome completo do segurado contratante', example: 'Maria Francisca da Silva' },
   { tag: '{{CPF}}', label: 'CPF', description: 'CPF formatado do segurado', example: '123.456.789-09' },
-  { tag: '{{RG}}', label: 'RG', description: 'Número do RG e órgão expedidor', example: '2.456.789 SSP/PB' },
+  { tag: '{{RG}}', label: 'RG', description: 'Número do RG e órgão expedidor', example: '2.456.789 SSP/AM' },
   { tag: '{{ESTADO_CIVIL}}', label: 'Estado Civil', description: 'Estado civil em português', example: 'Casada' },
   { tag: '{{PROFISSAO}}', label: 'Profissão', description: 'Profissão ou ocupação rural/urbana', example: 'Agricultora Familiar' },
-  { tag: '{{ENDERECO}}', label: 'Endereço Completo', description: 'Rua, número, bairro, cidade e CEP', example: 'Sítio Boa Vista, Zona Rural, Guarabira - PB' },
-  { tag: '{{TELEFONE}}', label: 'Telefone', description: 'WhatsApp ou telefone para contato', example: '(83) 98765-4321' },
+  { tag: '{{ENDERECO}}', label: 'Endereço Completo', description: 'Rua, número, bairro, cidade e CEP', example: 'Sítio Boa Vista, Zona Rural, Manaus - AM' },
+  { tag: '{{TELEFONE}}', label: 'Telefone', description: 'WhatsApp ou telefone para contato', example: '(92) 98765-4321' },
   { tag: '{{BENEFICIO}}', label: 'Espécie de Benefício', description: 'Benefício previdenciário objeto da ação', example: 'Aposentadoria por Idade Rural' },
   { tag: '{{HONORARIOS}}', label: 'Condição de Honorários', description: 'Descrição da Quota Litis ou parcelamento', example: '30% (trinta por cento) sobre os atrasados apurados' },
   { tag: '{{NOME_ADVOGADO}}', label: 'Nome do Advogado', description: 'Advogado titular responsável pelo contrato', example: 'Dr. Alexandre Pontes' },
-  { tag: '{{OAB_ADVOGADO}}', label: 'OAB do Advogado', description: 'Número de inscrição na OAB com seccional', example: 'OAB/PB 18.234' },
+  { tag: '{{OAB_ADVOGADO}}', label: 'OAB do Advogado', description: 'Número de inscrição na OAB com seccional', example: 'OAB/AM 55.858' },
   { tag: '{{PASTA_FISICA}}', label: 'Pasta no Arquivo', description: 'Etiqueta do armário e gaveta física', example: 'Armário B - Gaveta 03 - Pasta 2026-042' },
   { tag: '{{NOME_ESCRITORIO}}', label: 'Nome da Sociedade / Escritório', description: 'Razão social registrada do escritório de advocacia', example: 'Alexandre Pontes Sociedade de Advogados' },
-  { tag: '{{OAB_ESCRITORIO}}', label: 'OAB da Sociedade', description: 'Inscrição da sociedade de advogados na OAB', example: 'OAB/PB' },
+  { tag: '{{OAB_ESCRITORIO}}', label: 'OAB da Sociedade', description: 'Inscrição da sociedade de advogados na OAB', example: 'OAB/AM' },
   { tag: '{{DATA_EXTENSO}}', label: 'Data por Extenso', description: 'Data atual por extenso da assinatura', example: '17 de Novembro de 2026' },
 ];
 
@@ -193,7 +193,7 @@ export function mergeTemplatePlaceholders(
     }).format(new Date());
 
   const effectiveOfficeName = variables.officeName || 'Alexandre Pontes Sociedade de Advogados';
-  const effectiveOfficeOab = variables.officeOab || 'OAB/PB';
+  const effectiveOfficeOab = variables.officeOab || 'OAB/AM';
 
   const replacements: Record<string, string> = {
     '{{NOME_CLIENTE}}': variables.clientName || '__________________________________',
@@ -206,7 +206,7 @@ export function mergeTemplatePlaceholders(
     '{{BENEFICIO}}': formatBenefitType(variables.benefitSpecies, 'pt-BR') || 'Benefício Previdenciário',
     '{{HONORARIOS}}': variables.feeDescription || '30% (trinta por cento) sobre o proveito econômico',
     '{{NOME_ADVOGADO}}': variables.lawyerName || 'Dr. Alexandre Pontes',
-    '{{OAB_ADVOGADO}}': variables.lawyerOab || 'OAB/PB 18.234',
+    '{{OAB_ADVOGADO}}': variables.lawyerOab || 'OAB/AM 55.858',
     '{{NOME_ESCRITORIO}}': effectiveOfficeName,
     '{{OAB_ESCRITORIO}}': effectiveOfficeOab,
     '{{PASTA_FISICA}}': variables.cabinetFolder || 'Arquivo Geral do Escritório',

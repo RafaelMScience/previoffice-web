@@ -19,14 +19,14 @@ export const INITIAL_CONTRACT_TEMPLATES: ContractTemplate[] = [
     clausesCount: 8,
     isDefault: true,
     lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/PB 18.234',
+    lawyerOab: 'OAB/AM 55.858',
     contentBody: `INSTRUMENTO PARTICULAR DE CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS PROFISSIONAIS — APOSENTADORIA RURAL
 
 Pelo presente instrumento particular, regido pela Lei Federal nº 8.906/1994 (Estatuto da Advocacia e da OAB), pelos artigos 593 e seguintes e 653 e seguintes da Lei Federal nº 10.406/2002 (Código Civil Brasileiro), pelo Código de Ética e Disciplina da OAB e pela legislação previdenciária de regência (Lei nº 8.213/1991), têm entre si justo e acordado:
 
 CONTRATANTE: {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente e domiciliado(a) em {{ENDERECO}}, telefone/WhatsApp: {{TELEFONE}}.
 
-CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, inscrita na OAB/PB, representada neste ato pelo(a) advogado(a) Dr(a). {{NOME_ADVOGADO}}, inscrito(a) na OAB sob o nº {{OAB_ADVOGADO}}, com sede e domicílio profissional no escritório central.
+CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, inscrita na OAB/AM, representada neste ato pelo(a) advogado(a) Dr(a). {{NOME_ADVOGADO}}, inscrito(a) na OAB sob o nº {{OAB_ADVOGADO}}, com sede e domicílio profissional no escritório central.
 
 As partes ajustam o presente contrato mediante as seguintes cláusulas:
 
@@ -72,7 +72,7 @@ Localidade, {{DATA_EXTENSO}}.`,
     clausesCount: 8,
     isDefault: true,
     lawyerName: 'Dra. Camila Santos',
-    lawyerOab: 'OAB/PB 22.100',
+    lawyerOab: 'OAB/AM 22.100',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS PROFISSIONAIS — BENEFÍCIO DE PRESTAÇÃO CONTINUADA (BPC/LOAS)
 
 Pelo presente instrumento particular, regido pela Lei Federal nº 8.906/1994 (Estatuto da OAB), artigos 593 e seguintes e 653 e seguintes da Lei Federal nº 10.406/2002 (Código Civil) e Lei Federal nº 8.742/1993 (Lei Orgânica da Assistência Social - LOAS), celebram entre si:
@@ -105,7 +105,7 @@ Localidade, {{DATA_EXTENSO}}.`,
     clausesCount: 8,
     isDefault: true,
     lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/PB 18.234',
+    lawyerOab: 'OAB/AM 55.858',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS PREVIDENCIÁRIOS — APOSENTADORIA URBANA E REGRAS DE TRANSIÇÃO (EC 103/2019)
 
 Pelo presente instrumento, regido pela Lei Federal nº 8.906/1994, Lei Federal nº 10.406/2002 e Lei Federal nº 8.213/1991:
@@ -138,7 +138,7 @@ Localidade, {{DATA_EXTENSO}}.`,
     clausesCount: 7,
     isDefault: false,
     lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/PB 18.234',
+    lawyerOab: 'OAB/AM 55.858',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS JURÍDICOS E CONSULTORIA — PLANEJAMENTO PREVIDENCIÁRIO
 
 Pelo presente instrumento, regido pela Lei Federal nº 8.906/1994 e artigos 593 e seguintes da Lei Federal nº 10.406/2002:

@@ -28,7 +28,7 @@ describe('Contract Repository & Service Layer (Hexagonal Architecture)', () => {
       installments: [],
     },
     lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/PB 18.234',
+    lawyerOab: 'OAB/AM 55.858',
     officeName: 'Alexandre Pontes Sociedade de Advogados',
     issuedAt: '2026-11-20T10:00:00Z',
     physicalFileLocation: 'Armário A - Gaveta 01',

@@ -94,7 +94,7 @@ export interface ContractTemplate {
   clausesCount: number;
   isDefault: boolean;
   lawyerName?: string;                   // Optional: Advogado titular do modelo (ex: "Dr. Alexandre Pontes")
-  lawyerOab?: string;                    // e.g. "OAB/PB 18.234"
+  lawyerOab?: string;                    // e.g. "OAB/AM 55.858"
   contentBody: string;                   // Markdown or standard template text with dynamic placeholders
   createdAt: string;
   updatedAt: string;
@@ -121,7 +121,7 @@ export interface Contract {
   feeStructure: ContractFeeStructure;
   
   lawyerName: string;                    // e.g. "Dr. Alexandre Pontes"
-  lawyerOab: string;                     // e.g. "OAB/PB 18.234"
+  lawyerOab: string;                     // e.g. "OAB/AM 55.858"
   officeName: string;
   
   issuedAt: string;                      // ISO datetime

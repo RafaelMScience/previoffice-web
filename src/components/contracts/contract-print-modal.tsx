@@ -450,7 +450,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                         </p>
 
                         <p>
-                          <strong>CONTRATADA:</strong> <strong>{contract.officeName ? contract.officeName.toUpperCase() : 'ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS'}</strong>, pessoa jurídica de direito privado inscrita na OAB sob o registro competente, representada pelo advogado <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, inscrito na <strong>{contract.lawyerOab || 'OAB/PB 18.234'}</strong>, com sede e escritório profissional estabelecido nesta comarca, doravante denominada simplesmente <strong>CONTRATADA</strong>.
+                          <strong>CONTRATADA:</strong> <strong>{contract.officeName ? contract.officeName.toUpperCase() : 'ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS'}</strong>, pessoa jurídica de direito privado inscrita na OAB sob o registro competente, representada pelo advogado <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, inscrito na <strong>{contract.lawyerOab || 'OAB/AM 55.858'}</strong>, com sede e escritório profissional estabelecido nesta comarca, doravante denominada simplesmente <strong>CONTRATADA</strong>.
                         </p>
                       </div>
 
@@ -577,7 +577,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                     <div className="border-t border-slate-800 pt-1.5">
                       <strong className="block text-slate-900">{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>
                       <span className="text-[11px] text-slate-500">
-                        {contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/PB'} • {locale === 'en-US' ? 'LAW FIRM' : 'CONTRATADA'}
+                        {contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/AM'} • {locale === 'en-US' ? 'LAW FIRM' : 'CONTRATADA'}
                       </span>
                     </div>
                   </div>
@@ -635,7 +635,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                       </p>
 
                       <p>
-                        <strong>OUTORGADOS:</strong> <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, advogado inscrito na Ordem dos Advogados do Brasil sob a {contract.lawyerOab || 'OAB/PB nº 18.234'}, e os advogados associados integrantes da sociedade <strong>ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS</strong>, com escritório profissional onde recebem notificações, intimações e correspondências de estilo.
+                        <strong>OUTORGADOS:</strong> <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, advogado inscrito na Ordem dos Advogados do Brasil sob a {contract.lawyerOab || 'OAB/AM nº 55.858'}, e os advogados associados integrantes da sociedade <strong>ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS</strong>, com escritório profissional onde recebem notificações, intimações e correspondências de estilo.
                       </p>
 
                       <div>
@@ -802,7 +802,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                 {/* Footer */}
                 <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
                   <span>{locale === 'en-US' ? 'Filing Date:' : 'Data de Autuação:'} {getFullTodayDate()}</span>
-                  <span>{contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/PB'}</span>
+                  <span>{contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/AM'}</span>
                 </div>
               </div>
             )}
