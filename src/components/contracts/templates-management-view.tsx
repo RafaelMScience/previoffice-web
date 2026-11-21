@@ -22,6 +22,7 @@ import {
 import type { ContractTemplate, FeeModel } from '@/types/contract';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { TEMPLATE_PLACEHOLDERS } from '@/lib/utils/template-engine';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 
 interface TemplatesManagementViewProps {
   templates: ContractTemplate[];
@@ -237,7 +238,7 @@ Localidade, {{DATA_EXTENSO}}.`);
                 <div className="flex items-start justify-between gap-2">
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-200">
                     <Layers className="w-3 h-3 text-[#0B78D0]" />
-                    <span>{tpl.benefitSpecies}</span>
+                    <span>{formatBenefitType(tpl.benefitSpecies, 'pt-BR')}</span>
                   </div>
 
                   {tpl.isDefault && (
@@ -354,7 +355,7 @@ Localidade, {{DATA_EXTENSO}}.`);
                   {selectedTemplateForPreview.title}
                 </h4>
                 <p className="text-xs text-slate-500">
-                  {selectedTemplateForPreview.benefitSpecies} • {selectedTemplateForPreview.clausesCount} Cláusulas • {selectedTemplateForPreview.lawyerName || 'Geral'}
+                  {formatBenefitType(selectedTemplateForPreview.benefitSpecies, 'pt-BR')} • {selectedTemplateForPreview.clausesCount} Cláusulas • {selectedTemplateForPreview.lawyerName || 'Geral'}
                 </p>
               </div>
               <button

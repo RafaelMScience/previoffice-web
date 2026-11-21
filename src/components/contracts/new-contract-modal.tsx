@@ -29,6 +29,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { fetchClientsFromDb } from '@/lib/services/client-service';
 import { maskCpf } from '@/lib/utils/masks';
 import { generateFeeInstallments } from '@/lib/utils/template-engine';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 
 interface NewContractModalProps {
   isOpen: boolean;
@@ -40,11 +41,11 @@ interface NewContractModalProps {
 
 // Fallback clients if database query returns empty
 const FALLBACK_CLIENTS = [
-  { id: 'cli-001', name: 'Maria Francisca da Silva', cpf: '123.456.789-09', phone: '(83) 98765-4321', location: 'Armário B - Gaveta 03 - Pasta 2026-042', benefit: 'Aposentadoria Rural' },
-  { id: 'cli-002', name: 'José Carlos Pereira', cpf: '234.567.890-12', phone: '(83) 99123-4567', location: 'Armário A - Gaveta 01 - Pasta 2026-043', benefit: 'Auxílio por Incapacidade Temporária' },
-  { id: 'cli-003', name: 'Ana Lúcia dos Santos', cpf: '345.678.901-23', phone: '(83) 98877-6655', location: 'Armário B - Gaveta 02 - Pasta 2026-044', benefit: 'BPC/LOAS Idoso' },
-  { id: 'cli-004', name: 'Raimundo Nonato de Sousa', cpf: '456.789.012-34', phone: '(83) 99881-2233', location: 'Armário C - Gaveta 01 - Pasta 2026-045', benefit: 'Pensão por Morte Rural' },
-  { id: 'cli-005', name: 'Severina Maria da Conceição', cpf: '567.890.123-45', phone: '(83) 98711-3344', location: 'Armário A - Gaveta 03 - Pasta 2026-046', benefit: 'Aposentadoria Urbana (Idade)' },
+  { id: 'cli-001', name: 'Maria Francisca da Silva', cpf: '123.456.789-09', phone: '(92) 98765-4321', location: 'Armário B - Gaveta 03 - Pasta 2026-042', benefit: 'Aposentadoria Rural' },
+  { id: 'cli-002', name: 'José Carlos Pereira', cpf: '234.567.890-12', phone: '(92) 99123-4567', location: 'Armário A - Gaveta 01 - Pasta 2026-043', benefit: 'Auxílio por Incapacidade Temporária' },
+  { id: 'cli-003', name: 'Ana Lúcia dos Santos', cpf: '345.678.901-23', phone: '(92) 98877-6655', location: 'Armário B - Gaveta 02 - Pasta 2026-044', benefit: 'BPC/LOAS Idoso' },
+  { id: 'cli-004', name: 'Raimundo Nonato de Sousa', cpf: '456.789.012-34', phone: '(92) 99881-2233', location: 'Armário C - Gaveta 01 - Pasta 2026-045', benefit: 'Pensão por Morte Rural' },
+  { id: 'cli-005', name: 'Severina Maria da Conceição', cpf: '567.890.123-45', phone: '(92) 98711-3344', location: 'Armário A - Gaveta 03 - Pasta 2026-046', benefit: 'Aposentadoria Urbana (Idade)' },
 ];
 
 export function NewContractModal({
@@ -100,13 +101,13 @@ export function NewContractModal({
             cpf: c.cpf ? maskCpf(c.cpf) : 'Não informado',
             phone: c.phone || '',
             location: `Armário Geral - Pasta ${c.id.substring(0, 8)}`,
-            benefit: c.benefitType || 'Benefício Previdenciário',
+            benefit: c.benefitType ? formatBenefitType(c.benefitType, 'pt-BR') : 'Benefício Previdenciário',
           }));
           setClientOptions(mapped);
           setSelectedClientId(mapped[0].id);
           setCabinetLocation(mapped[0].location);
           if (mapped[0].benefit) {
-            setBenefitSpecies(mapped[0].benefit);
+            setBenefitSpecies(formatBenefitType(mapped[0].benefit, 'pt-BR'));
           }
         }
       } catch (err) {
@@ -126,7 +127,7 @@ export function NewContractModal({
   useEffect(() => {
     if (selectedTemplateFromLibrary && isOpen) {
       setTemplateId(selectedTemplateFromLibrary.id);
-      setBenefitSpecies(selectedTemplateFromLibrary.benefitSpecies);
+      setBenefitSpecies(formatBenefitType(selectedTemplateFromLibrary.benefitSpecies, 'pt-BR'));
       setFeeModel(selectedTemplateFromLibrary.defaultFeeModel);
       if (selectedTemplateFromLibrary.defaultQuotaLitisPercentage) {
         setQuotaLitisPercentage(selectedTemplateFromLibrary.defaultQuotaLitisPercentage);
@@ -144,7 +145,7 @@ export function NewContractModal({
     if (client) {
       setCabinetLocation(client.location);
       if (client.benefit) {
-        setBenefitSpecies(client.benefit);
+        setBenefitSpecies(formatBenefitType(client.benefit, 'pt-BR'));
       }
     }
   };
@@ -153,7 +154,7 @@ export function NewContractModal({
     setTemplateId(tplId);
     const tpl = templates.find((t) => t.id === tplId);
     if (tpl) {
-      setBenefitSpecies(tpl.benefitSpecies);
+      setBenefitSpecies(formatBenefitType(tpl.benefitSpecies, 'pt-BR'));
       setFeeModel(tpl.defaultFeeModel);
       if (tpl.defaultQuotaLitisPercentage) {
         setQuotaLitisPercentage(tpl.defaultQuotaLitisPercentage);
@@ -323,7 +324,7 @@ export function NewContractModal({
             >
               {clientOptions.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} • CPF: {c.cpf} {c.benefit ? `(${c.benefit})` : ''}
+                  {c.name} • CPF: {c.cpf} {c.benefit ? `(${formatBenefitType(c.benefit, 'pt-BR')})` : ''}
                 </option>
               ))}
             </select>

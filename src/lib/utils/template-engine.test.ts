@@ -6,6 +6,7 @@ import {
   mergeTemplatePlaceholders,
   formatMoneyBRL,
   formatDatePtBR,
+  formatPaymentMethod,
 } from './template-engine.ts';
 
 describe('Legal Template Engine & Remuneration Regimes', () => {
@@ -114,6 +115,18 @@ describe('Legal Template Engine & Remuneration Regimes', () => {
     it('formatDatePtBR formats ISO dates to DD/MM/AAAA', () => {
       assert.strictEqual(formatDatePtBR('2026-12-05'), '05/12/2026');
       assert.strictEqual(formatDatePtBR('2026-12-05T12:00:00Z'), '05/12/2026');
+    });
+
+    it('formatPaymentMethod translates English payment enum keys to Portuguese labels', () => {
+      assert.strictEqual(formatPaymentMethod('PIX'), 'PIX');
+      assert.strictEqual(formatPaymentMethod('CREDIT_CARD'), 'Cartão de Crédito');
+      assert.strictEqual(formatPaymentMethod('BOLETO'), 'Boleto Bancário');
+      assert.strictEqual(formatPaymentMethod('BANK_SLIP'), 'Boleto Bancário');
+      assert.strictEqual(formatPaymentMethod('CASH'), 'Dinheiro em Espécie');
+      assert.strictEqual(formatPaymentMethod('BANK_TRANSFER'), 'Transferência Bancária');
+      assert.strictEqual(formatPaymentMethod('RPV_PRECATORIO_RETENTION'), 'Retenção de RPV / Precatório');
+      assert.strictEqual(formatPaymentMethod(undefined), 'PIX');
+      assert.strictEqual(formatPaymentMethod('OUTRO_METODO'), 'OUTRO_METODO');
     });
   });
 });

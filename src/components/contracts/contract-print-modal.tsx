@@ -275,24 +275,24 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
         </div>
 
         {/* Document Selection Tabs */}
-        <div className="px-5 pt-3 border-b border-slate-200 bg-white flex items-center justify-between overflow-x-auto gap-4">
-          <div className="flex items-center gap-2">
+        <div className="px-6 pt-2 border-b border-slate-200 bg-white flex items-center justify-between overflow-x-auto gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => {
                 setDocType('CONTRACT');
                 setViewCustomPdf(true);
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 border-b-2 text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2.5 px-4 sm:px-5 py-3 sm:py-3.5 border-b-[3px] text-sm sm:text-base font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'CONTRACT'
-                  ? 'border-[#082A52] text-[#082A52]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[#082A52] text-[#082A52] bg-slate-50/80 rounded-t-lg shadow-2xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-slate-50/40 rounded-t-lg'
               }`}
             >
-              <FileText className="w-4 h-4 text-[#C89543]" />
+              <FileText className="w-5 h-5 text-[#C89543] shrink-0" />
               <span>1. Contrato de Honorários OAB</span>
               {customContractDoc?.fileDataUrl && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                   PDF Vinculado
                 </span>
               )}
@@ -304,16 +304,16 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                 setDocType('POA');
                 setViewCustomPdf(true);
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 border-b-2 text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2.5 px-4 sm:px-5 py-3 sm:py-3.5 border-b-[3px] text-sm sm:text-base font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'POA'
-                  ? 'border-[#082A52] text-[#082A52]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[#082A52] text-[#082A52] bg-slate-50/80 rounded-t-lg shadow-2xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-slate-50/40 rounded-t-lg'
               }`}
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
               <span>2. Procuração Ad Judicia et Extra</span>
               {customPoaDoc?.fileDataUrl && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                   PDF Vinculado
                 </span>
               )}
@@ -322,13 +322,13 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
             <button
               type="button"
               onClick={() => setDocType('FOLDER_COVER')}
-              className={`flex items-center gap-2 px-3.5 py-2 border-b-2 text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2.5 px-4 sm:px-5 py-3 sm:py-3.5 border-b-[3px] text-sm sm:text-base font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'FOLDER_COVER'
-                  ? 'border-[#082A52] text-[#082A52]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[#082A52] text-[#082A52] bg-slate-50/80 rounded-t-lg shadow-2xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-slate-50/40 rounded-t-lg'
               }`}
             >
-              <FolderLock className="w-4 h-4 text-amber-600" />
+              <FolderLock className="w-5 h-5 text-amber-600 shrink-0" />
               <span>3. Capa de Pasta Física (Arquivo)</span>
             </button>
           </div>
@@ -338,9 +338,9 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
             <button
               type="button"
               onClick={() => setViewCustomPdf(!viewCustomPdf)}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold border border-slate-300 text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors shrink-0 mb-1"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors shrink-0 mb-1 shadow-2xs"
             >
-              <Eye className="w-3.5 h-3.5 text-[#0B78D0]" />
+              <Eye className="w-4 h-4 text-[#0B78D0]" />
               <span>
                 {viewCustomPdf ? 'Visualizar Minuta Padrão do Sistema' : 'Visualizar PDF do Escritório'}
               </span>

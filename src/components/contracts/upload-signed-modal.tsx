@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Contract, PhysicalDocumentAttachment } from '@/types/contract';
 
 interface UploadSignedModalProps {
@@ -151,7 +152,7 @@ export function UploadSignedModal({
           </h2>
 
           <p className="text-xs text-slate-300 mt-0.5">
-            Cliente: <strong>{contract.clientName}</strong> • {contract.benefitSpecies}
+            Cliente: <strong>{contract.clientName}</strong> • {formatBenefitType(contract.benefitSpecies, 'pt-BR')}
           </p>
         </div>
 

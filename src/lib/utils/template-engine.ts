@@ -235,3 +235,18 @@ export function mergeTemplatePlaceholders(
 
   return merged;
 }
+
+export const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  PIX: 'PIX',
+  BOLETO: 'Boleto Bancário',
+  BANK_SLIP: 'Boleto Bancário',
+  CASH: 'Dinheiro em Espécie',
+  CREDIT_CARD: 'Cartão de Crédito',
+  BANK_TRANSFER: 'Transferência Bancária',
+  RPV_PRECATORIO_RETENTION: 'Retenção de RPV / Precatório',
+};
+
+export function formatPaymentMethod(method?: string): string {
+  if (!method) return 'PIX';
+  return PAYMENT_METHOD_LABELS[method] || method;
+}

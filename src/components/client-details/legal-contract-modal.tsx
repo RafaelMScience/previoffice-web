@@ -965,39 +965,39 @@ export function LegalContractModal({
                 <button
                   type="button"
                   onClick={() => setSelectedDoc('contrato')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                     selectedDoc === 'contrato'
                       ? 'bg-[#082A52] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <FileText className="w-3.5 h-3.5 text-[#C89543]" />
+                  <FileText className="w-4 h-4 text-[#C89543]" />
                   <span>1. Contrato de Honorários</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSelectedDoc('procuracao')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                     selectedDoc === 'procuracao'
                       ? 'bg-[#082A52] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#C89543]" />
+                  <ShieldCheck className="w-4 h-4 text-[#C89543]" />
                   <span>2. Procuração Ad Judicia</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSelectedDoc('capa')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                     selectedDoc === 'capa'
                       ? 'bg-[#082A52] text-white shadow-xs'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <FolderLock className="w-3.5 h-3.5 text-[#C89543]" />
+                  <FolderLock className="w-4 h-4 text-[#C89543]" />
                   <span>3. Capa de Pasta</span>
                 </button>
               </div>

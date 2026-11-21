@@ -15,6 +15,8 @@ import {
   Check,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
+import { formatPaymentMethod } from '@/lib/utils/template-engine';
 import type {
   Contract,
   FeeInstallment,
@@ -144,7 +146,7 @@ export function InstallmentsDrawerModal({
             </span>
             <span>•</span>
             <span>
-              <strong>Objeto:</strong> {contract.benefitSpecies}
+              <strong>Objeto:</strong> {formatBenefitType(contract.benefitSpecies, 'pt-BR')}
             </span>
             <span>•</span>
             <span>
@@ -322,12 +324,19 @@ export function InstallmentsDrawerModal({
                           </td>
                           <td className="px-3 py-2.5 text-[11px] text-slate-600">
                             {isPaid ? (
-                              <span>
-                                {formatDate(inst.paidAt)} •{' '}
-                                <strong className="text-[#082A52]">{inst.paymentMethod || 'PIX'}</strong>
-                              </span>
+                              <div className="space-y-0.5">
+                                <div>
+                                  {formatDate(inst.paidAt)} •{' '}
+                                  <strong className="text-[#082A52]">{formatPaymentMethod(inst.paymentMethod)}</strong>
+                                </div>
+                                {inst.receiptReference && (
+                                  <div className="text-[10px] text-slate-500 font-mono">
+                                    Doc: {inst.receiptReference}
+                                  </div>
+                                )}
+                              </div>
                             ) : (
-                              <span className="text-slate-400">Aguardando</span>
+                              <span className="text-slate-400">Aguardando Pagamento</span>
                             )}
                           </td>
                           <td className="px-3 py-2.5 text-right">
