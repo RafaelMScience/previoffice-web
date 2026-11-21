@@ -70,3 +70,48 @@ export async function decompressPayload(
   }
   return buffer;
 }
+
+export const MIN_COMPRESSION_SIZE_BYTES = 1024; // 1 KB threshold
+
+/**
+ * Creates an HTTP Response with Gzip compression for large JSON payloads (> 1 KB) (Item 27).
+ * Small responses (< 1 KB) and images are not compressed to avoid CPU overhead.
+ */
+export async function createCompressedJsonResponse(
+  data: unknown,
+  request?: { headers: { get: (header: string) => string | null } },
+  options: { minSizeBytes?: number; status?: number } = {}
+): Promise<Response> {
+  const jsonString = typeof data === 'string' ? data : JSON.stringify(data);
+  const buffer = Buffer.from(jsonString, 'utf-8');
+  const minSize = options.minSizeBytes ?? MIN_COMPRESSION_SIZE_BYTES;
+  const status = options.status || 200;
+
+  const acceptEncoding = request?.headers?.get('accept-encoding') || '';
+  const clientSupportsGzip = acceptEncoding.toLowerCase().includes('gzip');
+
+  // Do not compress if under 1 KB threshold or client doesn't support gzip
+  if (buffer.length < minSize || !clientSupportsGzip) {
+    return new Response(new Uint8Array(buffer), {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': String(buffer.length),
+      },
+    });
+  }
+
+  // Compress with gzip
+  const { data: compressedData } = await compressPayload(buffer, 'gzip');
+
+  return new Response(new Uint8Array(compressedData), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Encoding': 'gzip',
+      'Content-Length': String(compressedData.length),
+      'Vary': 'Accept-Encoding',
+    },
+  });
+}
+

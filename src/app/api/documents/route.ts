@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClientServer } from '@/lib/supabase/server';
+import { createCompressedJsonResponse } from '@/lib/utils/compression';
 import {
   sanitizePagination,
   buildPaginationMeta,
@@ -105,7 +106,7 @@ export async function GET(request: NextRequest) {
       paginationParams.limit
     );
 
-    return NextResponse.json({ documents, pagination });
+    return createCompressedJsonResponse({ documents, pagination }, request);
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Erro interno.' }, { status: 500 });
   }
