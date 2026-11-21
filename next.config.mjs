@@ -4,6 +4,7 @@ const cdnHost = process.env.NEXT_PUBLIC_CDN_URL ? ` ${process.env.NEXT_PUBLIC_CD
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  compress: true, // Enables Gzip & Brotli compression on server responses
   output: 'standalone',
   assetPrefix: process.env.NEXT_PUBLIC_CDN_URL || undefined,
   images: {
