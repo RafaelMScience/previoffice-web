@@ -24,27 +24,27 @@ import { formatBenefitType } from '@/lib/utils/benefit-translations';
 
 // Dynamic code splitting for client detail modals (Item 22)
 const NewAttendanceModal = dynamic(
-  () => import('./new-attendance-modal').then((mod) => mod.NewAttendanceModal),
+  () => import('./new-attendance-modal').then((mod) => ({ default: mod.NewAttendanceModal })),
   { ssr: false }
 );
 const LegalContractModal = dynamic(
-  () => import('./legal-contract-modal').then((mod) => mod.LegalContractModal),
+  () => import('./legal-contract-modal').then((mod) => ({ default: mod.LegalContractModal })),
   { ssr: false }
 );
 const ClientPdfReportModal = dynamic(
-  () => import('./client-pdf-report-modal').then((mod) => mod.ClientPdfReportModal),
+  () => import('./client-pdf-report-modal').then((mod) => ({ default: mod.ClientPdfReportModal })),
   { ssr: false }
 );
 const InactivateClientModal = dynamic(
-  () => import('./inactivate-client-modal').then((mod) => mod.InactivateClientModal),
+  () => import('./inactivate-client-modal').then((mod) => ({ default: mod.InactivateClientModal })),
   { ssr: false }
 );
 const NewCaseUpdateModal = dynamic(
-  () => import('./new-case-update-modal').then((mod) => mod.NewCaseUpdateModal),
+  () => import('./new-case-update-modal').then((mod) => ({ default: mod.NewCaseUpdateModal })),
   { ssr: false }
 );
 const MemoryCardModal = dynamic(
-  () => import('@/components/memory-card/memory-card-modal').then((mod) => mod.MemoryCardModal),
+  () => import('@/components/memory-card/memory-card-modal').then((mod) => ({ default: mod.MemoryCardModal })),
   { ssr: false }
 );
 import type { Client, ClientStatus } from '@/types/client';

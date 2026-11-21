@@ -21,11 +21,11 @@ import type { FastIntakeData } from '@/components/reception/fast-intake-modal';
 
 // Dynamic code splitting for modals (Item 22)
 const MemoryCardModal = dynamic(
-  () => import('@/components/memory-card/memory-card-modal').then((mod) => mod.MemoryCardModal),
+  () => import('@/components/memory-card/memory-card-modal').then((mod) => ({ default: mod.MemoryCardModal })),
   { ssr: false }
 );
 const FastIntakeModal = dynamic(
-  () => import('@/components/reception/fast-intake-modal').then((mod) => mod.FastIntakeModal),
+  () => import('@/components/reception/fast-intake-modal').then((mod) => ({ default: mod.FastIntakeModal })),
   { ssr: false }
 );
 import { useI18n } from '@/lib/i18n/i18n-context';

@@ -42,23 +42,23 @@ import {
 
 // Dynamic code splitting for heavy modals and sub-views (Item 22)
 const InstallmentsDrawerModal = dynamic(
-  () => import('@/components/contracts/installments-drawer-modal').then((mod) => mod.InstallmentsDrawerModal),
+  () => import('@/components/contracts/installments-drawer-modal').then((mod) => ({ default: mod.InstallmentsDrawerModal })),
   { ssr: false }
 );
 const UploadSignedModal = dynamic(
-  () => import('@/components/contracts/upload-signed-modal').then((mod) => mod.UploadSignedModal),
+  () => import('@/components/contracts/upload-signed-modal').then((mod) => ({ default: mod.UploadSignedModal })),
   { ssr: false }
 );
 const ContractPrintModal = dynamic(
-  () => import('@/components/contracts/contract-print-modal').then((mod) => mod.ContractPrintModal),
+  () => import('@/components/contracts/contract-print-modal').then((mod) => ({ default: mod.ContractPrintModal })),
   { ssr: false }
 );
 const TemplatesManagementView = dynamic(
-  () => import('@/components/contracts/templates-management-view').then((mod) => mod.TemplatesManagementView),
+  () => import('@/components/contracts/templates-management-view').then((mod) => ({ default: mod.TemplatesManagementView })),
   { ssr: false }
 );
 const NewContractModal = dynamic(
-  () => import('@/components/contracts/new-contract-modal').then((mod) => mod.NewContractModal),
+  () => import('@/components/contracts/new-contract-modal').then((mod) => ({ default: mod.NewContractModal })),
   { ssr: false }
 );
 
@@ -378,45 +378,53 @@ export default function ContractsPage() {
       )}
 
       {/* Modals & Drawers */}
-      <InstallmentsDrawerModal
-        contract={selectedContractForInstallments}
-        isOpen={isInstallmentsOpen}
-        onClose={() => {
-          setIsInstallmentsOpen(false);
-          setSelectedContractForInstallments(null);
-        }}
-        onSettleInstallment={handleSettleInstallment}
-      />
+      {isInstallmentsOpen && selectedContractForInstallments && (
+        <InstallmentsDrawerModal
+          contract={selectedContractForInstallments}
+          isOpen={isInstallmentsOpen}
+          onClose={() => {
+            setIsInstallmentsOpen(false);
+            setSelectedContractForInstallments(null);
+          }}
+          onSettleInstallment={handleSettleInstallment}
+        />
+      )}
 
-      <UploadSignedModal
-        contract={selectedContractForUpload}
-        isOpen={isUploadOpen}
-        onClose={() => {
-          setIsUploadOpen(false);
-          setSelectedContractForUpload(null);
-        }}
-        onUploadSuccess={handleAttachSigned}
-      />
+      {isUploadOpen && selectedContractForUpload && (
+        <UploadSignedModal
+          contract={selectedContractForUpload}
+          isOpen={isUploadOpen}
+          onClose={() => {
+            setIsUploadOpen(false);
+            setSelectedContractForUpload(null);
+          }}
+          onUploadSuccess={handleAttachSigned}
+        />
+      )}
 
-      <ContractPrintModal
-        contract={selectedContractForPrint}
-        isOpen={isPrintOpen}
-        onClose={() => {
-          setIsPrintOpen(false);
-          setSelectedContractForPrint(null);
-        }}
-      />
+      {isPrintOpen && selectedContractForPrint && (
+        <ContractPrintModal
+          contract={selectedContractForPrint}
+          isOpen={isPrintOpen}
+          onClose={() => {
+            setIsPrintOpen(false);
+            setSelectedContractForPrint(null);
+          }}
+        />
+      )}
 
-      <NewContractModal
-        isOpen={isNewContractOpen}
-        onClose={() => {
-          setIsNewContractOpen(false);
-          setSelectedTemplateForNewContract(null);
-        }}
-        templates={templates}
-        selectedTemplateFromLibrary={selectedTemplateForNewContract}
-        onContractCreated={handleCreateContract}
-      />
+      {isNewContractOpen && (
+        <NewContractModal
+          isOpen={isNewContractOpen}
+          onClose={() => {
+            setIsNewContractOpen(false);
+            setSelectedTemplateForNewContract(null);
+          }}
+          templates={templates}
+          selectedTemplateFromLibrary={selectedTemplateForNewContract}
+          onContractCreated={handleCreateContract}
+        />
+      )}
     </div>
   );
 }
