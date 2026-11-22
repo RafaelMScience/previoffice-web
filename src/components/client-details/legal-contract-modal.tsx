@@ -783,19 +783,20 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-1 sm:p-3 md:p-4">
-      <div className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-[99vw] 2xl:max-w-[1540px] h-[96vh] max-h-[96vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Top Status Bar (Discreto com controle de visualização do modelo temporário) */}
-        <div className="bg-[#081322] text-white px-3 sm:px-4 py-2 border-b border-white/10 flex items-center justify-between shrink-0 text-xs">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 text-[#C89543] font-bold uppercase tracking-wider text-[11px]">
-              <FileSignature className="w-4 h-4 shrink-0" />
-              <span className="hidden sm:inline">Emissão Oficial de Procuração e Contrato OAB</span>
-              <span className="sm:hidden">Contrato OAB</span>
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 md:p-4">
+      <div className="bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 w-[98vw] max-w-[1850px] h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        {/* Top Status Bar (Discreto com controle de visualização do modelo 1) */}
+        <div className="bg-[#081322] text-white px-4 py-2.5 border-b border-white/10 flex items-center justify-between shrink-0 text-xs">
+          <div className="flex items-center gap-2.5">
+            <FileSignature className="w-5 h-5 text-[#C89543] shrink-0" />
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-white leading-tight">
+                Emissão de Procuração, Contrato e Documentos da Minuta
+              </h2>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                <strong className="text-slate-200">{client.fullName}</strong> • CPF: {maskCpf(client.cpf)}
+              </p>
             </div>
-            <span className="hidden md:inline text-slate-500">•</span>
-            <span className="hidden md:inline font-bold text-slate-200">{client.fullName}</span>
-            <span className="hidden lg:inline text-slate-400 font-mono text-[11px]">(CPF: {maskCpf(client.cpf)})</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -803,7 +804,7 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
             <button
               type="button"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                 isSidebarOpen
                   ? 'bg-white/10 hover:bg-white/20 text-white border-white/15'
                   : 'bg-[#C89543]/20 hover:bg-[#C89543]/30 text-[#C89543] border-[#C89543]/40'
@@ -827,7 +828,7 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
             <button
               type="button"
               onClick={() => setIsDocsPanelOpen(!isDocsPanelOpen)}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                 isDocsPanelOpen
                   ? 'bg-white/10 hover:bg-white/20 text-white border-white/15'
                   : 'bg-[#C89543]/20 hover:bg-[#C89543]/30 text-[#C89543] border-[#C89543]/40'
@@ -841,7 +842,7 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
             <button
               onClick={onClose}
               aria-label="Fechar"
-              className="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+              className="text-white/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer ml-1"
             >
               <X className="w-5 h-5" />
             </button>
@@ -849,12 +850,12 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
         </div>
 
         {/* Main Content Area (3 Colunas Ocultáveis de Forma Independente) */}
-        <div className="flex-1 min-h-0 flex flex-row overflow-x-auto overflow-y-hidden">
+        <div className="flex-1 min-h-0 flex flex-row overflow-x-auto overflow-y-hidden bg-slate-200">
           {/* ========================================================================= */}
           {/* COLUNA 1: Painel Lateral de Configurações & Parâmetros (Aba 1)             */}
           {/* ========================================================================= */}
           {isSidebarOpen && (
-            <aside className="w-72 sm:w-80 lg:w-88 shrink-0 bg-[#0B192E] border-r border-white/10 flex flex-col h-full overflow-hidden transition-all duration-200">
+            <aside className="w-80 lg:w-88 shrink-0 bg-[#0B192E] border-r border-white/10 flex flex-col h-full overflow-hidden transition-all duration-200">
               {/* Header do Cliente */}
               <div className="p-4 border-b border-white/10 bg-slate-900/60 shrink-0">
                 <span className="text-[10px] font-bold text-[#C89543] uppercase tracking-wider block mb-1">
@@ -1067,7 +1068,7 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
           {/* COLUNA 2: Documentos Vinculados à Minuta (Aba 2 - Arquivo)                 */}
           {/* ========================================================================= */}
           {isDocsPanelOpen && (
-            <aside className="w-72 sm:w-84 lg:w-96 shrink-0 bg-slate-900 border-r border-slate-700 flex flex-col h-full overflow-hidden transition-all duration-200">
+            <aside className="w-84 lg:w-96 shrink-0 bg-slate-900 border-r border-slate-700 flex flex-col h-full overflow-hidden transition-all duration-200">
               <div className="p-3 bg-slate-800/80 border-b border-slate-700 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2 text-xs font-bold text-white">
                   <Layers className="w-4 h-4 text-[#C89543]" />
