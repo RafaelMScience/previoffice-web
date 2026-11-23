@@ -228,7 +228,7 @@ Localidade, {{DATA_EXTENSO}}.`);
       }
     } else {
       onAddNewTemplate({
-        tenantId: currentUser?.tenantId || 'tenant-001',
+        tenantId: currentUser?.tenantId || '',
         title,
         documentCategory,
         customCategoryName: documentCategory === 'OTHER' ? customCategoryName.trim() : undefined,

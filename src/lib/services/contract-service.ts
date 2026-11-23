@@ -52,23 +52,17 @@ export function setContractRepository(repo: IContractRepository) {
 
 /**
  * Fetch contracts for a given tenant.
- * Falls back to local storage if database yields 0 or fails.
  */
 export async function fetchContractsFromDb(tenantId: string): Promise<Contract[]> {
+  if (!tenantId) return [];
   return dedupeRequest(`contracts:list:${tenantId}`, async () => {
     const repo = getContractRepository();
     try {
-      const dbContracts = await repo.fetchContracts(tenantId);
-      if (dbContracts.length > 0) {
-        return dbContracts;
-      }
+      return await repo.fetchContracts(tenantId);
     } catch (err) {
-      console.warn('Database fetch failed, falling back to local store:', err);
+      console.warn('Contract fetch from repository failed:', err);
+      return [];
     }
-
-    // Graceful fallback to local mock store
-    const mockRepo = new MockContractRepository();
-    return mockRepo.fetchContracts(tenantId);
   }, { ttlMs: 10000 });
 }
 

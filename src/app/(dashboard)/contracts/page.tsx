@@ -99,7 +99,13 @@ export default function ContractsPage() {
   const refreshData = async () => {
     setIsLoading(true);
     try {
-      const tenantId = currentUser?.tenantId || 'tenant-001';
+      const tenantId = currentUser?.tenantId;
+      if (!tenantId) {
+        setContracts([]);
+        setTemplates([]);
+        setKpis(calculateContractKpis([]));
+        return;
+      }
       // Dispatch independent queries in parallel to eliminate waterfall latency
       const [contractsResult, templatesResult] = await Promise.allSettled([
         fetchContractsFromDb(tenantId),
@@ -150,7 +156,8 @@ export default function ContractsPage() {
     receiptReference?: string,
     notes?: string
   ) => {
-    const tenantId = currentUser?.tenantId || 'tenant-001';
+    const tenantId = currentUser?.tenantId;
+    if (!tenantId) return;
     const previousContracts = [...contracts];
     const previousSelected = selectedContractForInstallments;
 
@@ -214,7 +221,8 @@ export default function ContractsPage() {
     contractId: string,
     attachment: PhysicalDocumentAttachment
   ) => {
-    const tenantId = currentUser?.tenantId || 'tenant-001';
+    const tenantId = currentUser?.tenantId;
+    if (!tenantId) return;
     await updateContractSignedStatusInDb(contractId, tenantId, 'ATTACHED', attachment);
     await refreshData();
     triggerToast(t.contracts.uploadSuccessToast);
@@ -234,7 +242,8 @@ export default function ContractsPage() {
   const handleAddTemplate = (
     templateData: Omit<ContractTemplate, 'id' | 'createdAt' | 'updatedAt'>
   ) => {
-    const tenantId = currentUser?.tenantId || 'tenant-001';
+    const tenantId = currentUser?.tenantId;
+    if (!tenantId) return;
     const newTpl = contractsStore.addTemplate({
       ...templateData,
       tenantId,
@@ -246,7 +255,8 @@ export default function ContractsPage() {
 
   // Update template handler
   const handleUpdateTemplate = (templateData: ContractTemplate) => {
-    const tenantId = currentUser?.tenantId || templateData.tenantId || 'tenant-001';
+    const tenantId = currentUser?.tenantId || templateData.tenantId;
+    if (!tenantId) return;
     const updated = contractsStore.updateTemplate({
       ...templateData,
       tenantId,

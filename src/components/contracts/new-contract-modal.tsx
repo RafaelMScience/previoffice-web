@@ -39,14 +39,14 @@ interface NewContractModalProps {
   onContractCreated: (contractData: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
-// Fallback clients if database query returns empty
-const FALLBACK_CLIENTS = [
-  { id: 'cli-001', name: 'Maria Francisca da Silva', cpf: '123.456.789-09', phone: '(92) 98765-4321', location: 'Armário B - Gaveta 03 - Pasta 2026-042', benefit: 'Aposentadoria Rural' },
-  { id: 'cli-002', name: 'José Carlos Pereira', cpf: '234.567.890-12', phone: '(92) 99123-4567', location: 'Armário A - Gaveta 01 - Pasta 2026-043', benefit: 'Auxílio por Incapacidade Temporária' },
-  { id: 'cli-003', name: 'Ana Lúcia dos Santos', cpf: '345.678.901-23', phone: '(92) 98877-6655', location: 'Armário B - Gaveta 02 - Pasta 2026-044', benefit: 'BPC/LOAS Idoso' },
-  { id: 'cli-004', name: 'Raimundo Nonato de Sousa', cpf: '456.789.012-34', phone: '(92) 99881-2233', location: 'Armário C - Gaveta 01 - Pasta 2026-045', benefit: 'Pensão por Morte Rural' },
-  { id: 'cli-005', name: 'Severina Maria da Conceição', cpf: '567.890.123-45', phone: '(92) 98711-3344', location: 'Armário A - Gaveta 03 - Pasta 2026-046', benefit: 'Aposentadoria Urbana (Idade)' },
-];
+interface ClientOption {
+  id: string;
+  name: string;
+  cpf: string;
+  phone: string;
+  location: string;
+  benefit: string;
+}
 
 export function NewContractModal({
   isOpen,
@@ -60,8 +60,8 @@ export function NewContractModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Clients state
-  const [clientOptions, setClientOptions] = useState(FALLBACK_CLIENTS);
-  const [selectedClientId, setSelectedClientId] = useState(FALLBACK_CLIENTS[0].id);
+  const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState('');
 
   // Contract form state
   const [templateId, setTemplateId] = useState(
@@ -76,7 +76,7 @@ export function NewContractModal({
   const [firstDueDate, setFirstDueDate] = useState(
     new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
-  const [cabinetLocation, setCabinetLocation] = useState(FALLBACK_CLIENTS[0].location);
+  const [cabinetLocation, setCabinetLocation] = useState('Armário Geral - Pasta 2026');
 
   // Custom PDF replacement state
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -94,43 +94,52 @@ export function NewContractModal({
       if (!currentUser?.tenantId) return;
       try {
         const dbClients = await fetchClientsFromDb(currentUser.tenantId);
-        if (isMounted && dbClients && dbClients.length > 0) {
-          const mapped = dbClients.map((c) => ({
-            id: c.id,
-            name: c.fullName || 'Cliente Sem Nome',
-            cpf: c.cpf ? maskCpf(c.cpf) : 'Não informado',
-            phone: c.phone || '',
-            location: `Armário Geral - Pasta ${c.id.substring(0, 8)}`,
-            benefit: c.benefitType ? formatBenefitType(c.benefitType, 'pt-BR') : 'Benefício Previdenciário',
-          }));
-          setClientOptions(mapped);
-          setSelectedClientId(mapped[0].id);
-          setCabinetLocation(mapped[0].location);
-          if (mapped[0].benefit) {
-            const formatted = formatBenefitType(mapped[0].benefit, 'pt-BR');
-            setBenefitSpecies(formatted);
-            const matched = templates.find(
-              (t) =>
-                (formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit) &&
-                t.isDefault &&
-                (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory)
-            ) || templates.find(
-              (t) => (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory) && t.isDefault
-            ) || templates.find(
-              (t) => formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit
-            ) || templates[0];
+        if (isMounted) {
+          if (dbClients && dbClients.length > 0) {
+            const mapped = dbClients.map((c) => ({
+              id: c.id,
+              name: c.fullName || 'Cliente Sem Nome',
+              cpf: c.cpf ? maskCpf(c.cpf) : 'Não informado',
+              phone: c.phone || '',
+              location: `Armário Geral - Pasta ${c.id.substring(0, 8)}`,
+              benefit: c.benefitType ? formatBenefitType(c.benefitType, 'pt-BR') : 'Benefício Previdenciário',
+            }));
+            setClientOptions(mapped);
+            setSelectedClientId(mapped[0].id);
+            setCabinetLocation(mapped[0].location);
+            if (mapped[0].benefit) {
+              const formatted = formatBenefitType(mapped[0].benefit, 'pt-BR');
+              setBenefitSpecies(formatted);
+              const matched = templates.find(
+                (t) =>
+                  (formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit) &&
+                  t.isDefault &&
+                  (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory)
+              ) || templates.find(
+                (t) => (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory) && t.isDefault
+              ) || templates.find(
+                (t) => formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit
+              ) || templates[0];
 
-            if (matched) {
-              setTemplateId(matched.id);
-              setFeeModel(matched.defaultFeeModel);
-              if (matched.defaultQuotaLitisPercentage) {
-                setQuotaLitisPercentage(matched.defaultQuotaLitisPercentage);
+              if (matched) {
+                setTemplateId(matched.id);
+                setFeeModel(matched.defaultFeeModel);
+                if (matched.defaultQuotaLitisPercentage) {
+                  setQuotaLitisPercentage(matched.defaultQuotaLitisPercentage);
+                }
               }
             }
+          } else {
+            setClientOptions([]);
+            setSelectedClientId('');
           }
         }
       } catch (err) {
-        console.warn('Could not load clients from DB, using fallback list:', err);
+        console.warn('Could not load clients from DB:', err);
+        if (isMounted) {
+          setClientOptions([]);
+          setSelectedClientId('');
+        }
       }
     }
 
@@ -242,6 +251,11 @@ export function NewContractModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!currentClient || clientOptions.length === 0) {
+      alert('Nenhum cliente selecionado. Cadastre um cliente no sistema antes de formalizar um contrato.');
+      return;
+    }
+
     const contractNumber = `CTR-2026-${String(Math.floor(Math.random() * 900) + 100)}`;
     const projectedSuccessFee =
       feeModel !== 'FIXED_INSTALLMENT'
@@ -283,7 +297,7 @@ export function NewContractModal({
     const finalContractStatus = isSignedDocument ? 'ACTIVE' : 'PENDING_SIGNATURE';
 
     onContractCreated({
-      tenantId: currentUser?.tenantId || 'tenant-001',
+      tenantId: currentUser?.tenantId || '',
       clientId: currentClient.id,
       clientName: currentClient.name,
       clientCpf: currentClient.cpf,
@@ -360,17 +374,23 @@ export function NewContractModal({
               <UserCheck className="w-3.5 h-3.5 text-[#0B78D0]" />
               <span>1. Selecionar Cliente da Banca *</span>
             </label>
-            <select
-              value={selectedClientId}
-              onChange={(e) => handleClientChange(e.target.value)}
-              className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30 font-medium"
-            >
-              {clientOptions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} • CPF: {c.cpf} {c.benefit ? `(${formatBenefitType(c.benefit, 'pt-BR')})` : ''}
-                </option>
-              ))}
-            </select>
+            {clientOptions.length === 0 ? (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                Nenhum cliente cadastrado neste escritório. Cadastre um cliente antes de formalizar um contrato.
+              </div>
+            ) : (
+              <select
+                value={selectedClientId}
+                onChange={(e) => handleClientChange(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30 font-medium"
+              >
+                {clientOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} • CPF: {c.cpf} {c.benefit ? `(${formatBenefitType(c.benefit, 'pt-BR')})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Template & Benefit */}
@@ -779,7 +799,12 @@ export function NewContractModal({
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#082A52] text-white hover:bg-[#0c396d] text-xs font-bold shadow-md transition-all"
+              disabled={clientOptions.length === 0}
+              className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-bold shadow-md transition-all ${
+                clientOptions.length === 0
+                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                  : 'bg-[#082A52] text-white hover:bg-[#0c396d]'
+              }`}
             >
               <CheckCircle2 className="w-4 h-4 text-[#C89543]" />
               <span>Formalizar e Gerar Contrato</span>

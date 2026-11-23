@@ -15,13 +15,9 @@ import { contractsStore } from '../data/mock-contracts.ts';
 
 export class MockContractRepository implements IContractRepository {
   async fetchContracts(tenantId: string): Promise<Contract[]> {
+    if (!tenantId) return [];
     const all = contractsStore.getContracts();
-    const tenantContracts = all.filter((c) => !tenantId || c.tenantId === tenantId);
-    if (tenantContracts.length === 0) {
-      // Return standard default contracts if this tenant has not registered contracts yet
-      return all;
-    }
-    return tenantContracts;
+    return all.filter((c) => c.tenantId === tenantId);
   }
 
   async getContractById(id: string, tenantId: string): Promise<Contract | null> {

@@ -544,7 +544,7 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
 
     try {
       contractsStore.createContract({
-        tenantId: currentUser?.tenantId || 'tenant-001',
+        tenantId: currentUser?.tenantId || '',
         clientId: client.id,
         clientName: client.fullName,
         clientCpf: client.cpf ? maskCpf(client.cpf) : 'Não informado',
@@ -576,7 +576,7 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
       // Persistência no Supabase
       const supabase = createClient();
       await (supabase.from('contracts') as any).insert({
-        tenant_id: currentUser?.tenantId || 'tenant-001',
+        tenant_id: currentUser?.tenantId || '',
         client_id: client.id,
         contract_number: contractNumber,
         template_id: feeTpl?.id,
