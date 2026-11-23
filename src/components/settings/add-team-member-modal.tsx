@@ -21,6 +21,7 @@ import {
 import { useI18n } from '@/lib/i18n/i18n-context';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
 import { generateRandomPassword } from '@/lib/auth/password-generator';
+import { maskPhone } from '@/lib/utils/masks';
 
 export { generateRandomPassword };
 
@@ -89,7 +90,7 @@ export function AddTeamMemberModal({
     if (memberToEdit) {
       setFullName(memberToEdit.fullName);
       setEmail(memberToEdit.email);
-      setPhone(memberToEdit.phone || '');
+      setPhone(memberToEdit.phone ? maskPhone(memberToEdit.phone) : '');
       setMemberType(memberToEdit.memberType);
       setOabNumber(memberToEdit.oabNumber || '');
       setIsAdminLawyer(memberToEdit.isAdminLawyer || false);
@@ -318,8 +319,9 @@ export function AddTeamMemberModal({
                 <input
                   type="text"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(maskPhone(e.target.value))}
                   placeholder="(83) 98888-0000"
+                  maxLength={15}
                   className="w-full pl-10 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] outline-hidden font-medium text-slate-800 transition-all"
                 />
               </div>

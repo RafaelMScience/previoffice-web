@@ -481,8 +481,8 @@ export function TeamManagementTab() {
 
                   {/* Classification Type */}
                   <td className="py-3.5 px-4">
-                    {member.memberType === 'LAWYER' ? (
-                      <div className="flex flex-col gap-1 items-start">
+                    <div className="flex flex-col gap-1 items-start">
+                      {member.memberType === 'LAWYER' ? (
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#082A52]/10 text-[#082A52] border border-[#082A52]/20">
                           <Scale className="w-3.5 h-3.5 text-[#C89543]" />
                           <span>{t.settings.lawyer}</span>
@@ -490,24 +490,25 @@ export function TeamManagementTab() {
                             <span className="text-[10px] font-mono text-slate-600">({member.oabNumber})</span>
                           )}
                         </div>
-                        {member.isAdminLawyer && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                            <Shield className="w-3 h-3 text-amber-700" />
-                            <span>Sócio Admin</span>
-                          </span>
-                        )}
-                      </div>
-                    ) : member.memberType === 'ASSISTANT' ? (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                        <User className="w-3.5 h-3.5 text-amber-600" />
-                        <span>{t.settings.assistant}</span>
-                      </div>
-                    ) : (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                        <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
-                        <span>{t.settings.intern}</span>
-                      </div>
-                    )}
+                      ) : member.memberType === 'ASSISTANT' ? (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                          <User className="w-3.5 h-3.5 text-amber-600" />
+                          <span>{t.settings.assistant}</span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                          <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
+                          <span>{t.settings.intern}</span>
+                        </div>
+                      )}
+
+                      {member.isAdminLawyer && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                          <Shield className="w-3 h-3 text-amber-700" />
+                          <span>Sócio Admin</span>
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Permissions tags */}

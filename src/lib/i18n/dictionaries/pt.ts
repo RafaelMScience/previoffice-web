@@ -606,7 +606,7 @@ export const ptTranslations: Translations = {
     permAdminDesc: 'Acesso irrestrito para gerenciar usuários, permissões e configurações da banca.',
     permSecurityAudit: 'Auditoria & Segurança Forense (LGPD)',
     permSecurityAuditDesc: 'Permite visualizar trilhas de auditoria, acessos a senhas do Meu INSS, sessões ativas e termos de consentimento LGPD.',
-    lblAdminLawyer: 'Advogado Administrador (Sócio / Diretor)',
+    lblAdminLawyer: 'Sócio / Administrador (Gestor)',
     lblAdminLawyerDesc: 'Atribui papel de sócio gestor com privilégios administrativos e supervisão da equipe.',
     btnSaveMember: 'Salvar Membro & Permissões',
   },
