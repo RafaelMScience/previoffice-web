@@ -437,6 +437,13 @@ export function ClientDetailsView({
         client={client}
         isOpen={isContractModalOpen}
         onClose={() => setIsContractModalOpen(false)}
+        onContractIssued={(contractNumber) => {
+          setClient((prev) => ({
+            ...prev,
+            status: 'CLOSED',
+          }));
+          showToast(`Contrato OAB nº ${contractNumber} formalizado e vinculado com sucesso!`);
+        }}
       />
 
       <ClientPdfReportModal

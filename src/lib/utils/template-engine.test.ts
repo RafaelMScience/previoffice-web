@@ -96,6 +96,17 @@ describe('Legal Template Engine & Remuneration Regimes', () => {
       assert.strictEqual(total, 2400);
     });
 
+    it('should respect recurringDueDay for subsequent installments when specified', () => {
+      // 1ª parcela no dia 25/11/2026, demais parcelas todo dia 10
+      const installments = generateFeeInstallments(2400, 4, '2026-11-25', 'CTR-TEST-003', 10);
+
+      assert.strictEqual(installments.length, 4);
+      assert.strictEqual(installments[0].dueDate, '2026-11-25'); // 1ª parcela na data de entrada
+      assert.strictEqual(installments[1].dueDate, '2026-12-10'); // 2ª parcela no dia fixo 10
+      assert.strictEqual(installments[2].dueDate, '2027-01-10'); // 3ª parcela no dia fixo 10
+      assert.strictEqual(installments[3].dueDate, '2027-02-10'); // 4ª parcela no dia fixo 10
+    });
+
     it('should clamp due dates correctly when month has fewer days (e.g. Jan 31 -> Feb 28)', () => {
       const installments = generateFeeInstallments(3000, 3, '2026-01-31', 'CTR-TEST-002');
 

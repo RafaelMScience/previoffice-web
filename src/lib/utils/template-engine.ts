@@ -38,6 +38,7 @@ export interface LawyerFeeClauseOptions {
   fixedTotalAmount?: number;
   installmentCount?: number;
   firstDueDate?: string;
+  recurringDueDay?: number;
   installments?: FeeInstallment[];
 }
 
@@ -64,7 +65,8 @@ export function generateFeeInstallments(
   fixedAmount: number,
   installmentsCount: number,
   firstDueDate: string,
-  contractNumber?: string
+  contractNumber?: string,
+  recurringDueDay?: number
 ): FeeInstallment[] {
   const count = Math.max(1, installmentsCount || 1);
   const total = fixedAmount || 0;
@@ -77,21 +79,32 @@ export function generateFeeInstallments(
   const baseMonth = dateParts[1] || (new Date().getMonth() + 1);
   const baseDay = dateParts[2] || new Date().getDate();
 
+  const subsequentDay = recurringDueDay && recurringDueDay >= 1 && recurringDueDay <= 31
+    ? recurringDueDay
+    : baseDay;
+
   const installments: FeeInstallment[] = [];
 
   for (let i = 1; i <= count; i++) {
-    // 0-indexed month offset:
-    const targetMonthIndex = (baseMonth - 1) + (i - 1);
-    const targetYear = baseYear + Math.floor(targetMonthIndex / 12);
-    const targetMonth = (targetMonthIndex % 12) + 1; // 1 to 12
+    let dueDate: string;
 
-    // Clamp day to max days in target month (e.g., 31 Jan -> 28 Feb)
-    const maxDaysInMonth = new Date(targetYear, targetMonth, 0).getDate();
-    const clampedDay = Math.min(baseDay, maxDaysInMonth);
+    if (i === 1) {
+      const formattedMonth = String(baseMonth).padStart(2, '0');
+      const formattedDay = String(baseDay).padStart(2, '0');
+      dueDate = `${baseYear}-${formattedMonth}-${formattedDay}`;
+    } else {
+      const targetMonthIndex = (baseMonth - 1) + (i - 1);
+      const targetYear = baseYear + Math.floor(targetMonthIndex / 12);
+      const targetMonth = (targetMonthIndex % 12) + 1; // 1 to 12
 
-    const formattedMonth = String(targetMonth).padStart(2, '0');
-    const formattedDay = String(clampedDay).padStart(2, '0');
-    const dueDate = `${targetYear}-${formattedMonth}-${formattedDay}`;
+      // Clamp day to max days in target month (e.g. 31 Jan -> 28 Feb)
+      const maxDaysInMonth = new Date(targetYear, targetMonth, 0).getDate();
+      const clampedDay = Math.min(subsequentDay, maxDaysInMonth);
+
+      const formattedMonth = String(targetMonth).padStart(2, '0');
+      const formattedDay = String(clampedDay).padStart(2, '0');
+      dueDate = `${targetYear}-${formattedMonth}-${formattedDay}`;
+    }
 
     installments.push({
       id: `inst-${Date.now()}-${i}`,
@@ -121,7 +134,7 @@ export function generateLawyerFeeClause(options: LawyerFeeClauseOptions): string
   const installmentsList =
     options.installments && options.installments.length > 0
       ? options.installments
-      : generateFeeInstallments(fixedTotal, count, firstDate);
+      : generateFeeInstallments(fixedTotal, count, firstDate, undefined, options.recurringDueDay);
 
   if (model === 'QUOTA_LITIS') {
     return `${percentage}% (${percentage} por cento) sobre a totalidade do proveito econômico obtido pelo(a) CONTRATANTE na presente demanda, correspondente à integralidade dos valores retroativos apurados desde a Data de Entrada do Requerimento Administrativo (DER) até a efetiva implantação do benefício previdenciário concedido pelo INSS ou em sede judicial.\n` +
