@@ -17,13 +17,20 @@ const GuidedTourContext = createContext<ExtendedTourContextState | null>(null);
 export function GuidedTourProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { currentUser } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
 
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
 
   const autoStartedRef = useRef(false);
+
+  // If user is not authenticated, tour MUST NEVER be active
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser?.id) {
+      setIsTourActive(false);
+    }
+  }, [isAuthenticated, currentUser?.id]);
 
   // Synchronize router location with active tour step
   const syncRouteForStep = useCallback(
@@ -45,15 +52,23 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     [pathname, router]
   );
 
-  // Auto-launch on first login or via ?tour=true query parameter
+  // Auto-launch on first login or via ?tour=true query parameter (ONLY when authenticated in dashboard)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!isAuthenticated || !currentUser?.id) return;
 
     // 1. Force tour if ?tour=true or ?tour=1 is in URL
     const searchParams = new URLSearchParams(window.location.search);
     const forceTour = searchParams.get('tour') === 'true' || searchParams.get('tour') === '1';
 
     if (forceTour) {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('tour');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      } catch {
+        // Ignore
+      }
       setIsTourActive(true);
       setCurrentStepIndex(0);
       syncRouteForStep(0);
@@ -61,7 +76,7 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     }
 
     // 2. Auto-launch for user if tour was never completed
-    if (!currentUser?.id || autoStartedRef.current) return;
+    if (autoStartedRef.current) return;
 
     const tourKey = `previoffice_tour_completed_${currentUser.id}`;
     const hasCompleted = localStorage.getItem(tourKey);
@@ -77,11 +92,11 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
       return () => clearTimeout(timer);
     }
-  }, [currentUser?.id, syncRouteForStep]);
+  }, [isAuthenticated, currentUser?.id, syncRouteForStep]);
 
-  // Global browser console helper for debugging and testing
+  // Global browser console helper for debugging and testing (ONLY available when authenticated)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && isAuthenticated && currentUser?.id) {
       (window as any).startPreviOfficeTour = () => {
         console.log('🚀 Iniciando PreviOffice Guided Tour...');
         try {
@@ -98,10 +113,15 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
         syncRouteForStep(0);
         return 'Tour iniciado com sucesso!';
       };
+
+      return () => {
+        delete (window as any).startPreviOfficeTour;
+      };
     }
-  }, [syncRouteForStep]);
+  }, [isAuthenticated, currentUser?.id, syncRouteForStep]);
 
   const startTour = () => {
+    if (!isAuthenticated || !currentUser?.id) return;
     setCurrentStepIndex(0);
     syncRouteForStep(0);
     setIsTourActive(true);
@@ -185,7 +205,20 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 export function useTour() {
   const context = useContext(GuidedTourContext);
   if (!context) {
-    throw new Error('useTour must be used within a GuidedTourProvider');
+    return {
+      isTourActive: false,
+      currentStepIndex: 0,
+      currentStep: TOUR_STEPS[0],
+      totalSteps: TOUR_STEPS.length,
+      isFirstLogin: false,
+      demoClient: null,
+      startTour: () => {},
+      nextStep: () => {},
+      prevStep: () => {},
+      goToStep: () => {},
+      skipTour: () => {},
+      completeTour: () => {},
+    };
   }
   return context;
 }

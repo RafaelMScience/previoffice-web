@@ -18,7 +18,7 @@ import { formatCpf } from '@/lib/domain/cpf-validator';
 
 const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
 
-export default function DashboardLayout({
+function DashboardContent({
   children,
 }: {
   children: React.ReactNode;
@@ -222,8 +222,7 @@ export default function DashboardLayout({
   const isSettings = pathname.startsWith('/settings');
 
   return (
-    <GuidedTourProvider>
-      <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex min-h-screen bg-[#F8FAFC]">
       {/* Fixed Sticky Sidebar */}
       <aside className="w-64 bg-[#0B192E] text-white flex flex-col flex-shrink-0 sticky top-0 h-screen z-40 border-r border-white/10">
         {/* Brand Header */}
@@ -520,9 +519,20 @@ export default function DashboardLayout({
         </main>
       </div>
 
-      {/* Guided Tour Interactive Overlay */}
+      {/* Guided Tour Interactive Overlay (exclusively for authenticated dashboard) */}
       <GuidedTourOverlay />
     </div>
-  </GuidedTourProvider>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <GuidedTourProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </GuidedTourProvider>
   );
 }

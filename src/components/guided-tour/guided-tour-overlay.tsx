@@ -11,8 +11,10 @@ import {
   Info,
 } from 'lucide-react';
 import { useTour } from './guided-tour-context';
+import { useAuth } from '@/lib/auth/auth-context';
 
 export function GuidedTourOverlay() {
+  const { isAuthenticated, currentUser } = useAuth();
   const {
     isTourActive,
     currentStep,
@@ -27,9 +29,12 @@ export function GuidedTourOverlay() {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Strictly ensure overlay never renders if unauthenticated or tour inactive
+  const isDisplayable = isAuthenticated && currentUser && isTourActive;
+
   // Position calculation and scroll to target
   useEffect(() => {
-    if (!isTourActive) {
+    if (!isDisplayable) {
       setTargetRect(null);
       return;
     }
@@ -74,7 +79,7 @@ export function GuidedTourOverlay() {
     };
   }, [isTourActive, currentStep]);
 
-  if (!isTourActive) return null;
+  if (!isDisplayable) return null;
 
   const isLastStep = currentStepIndex === totalSteps - 1;
 

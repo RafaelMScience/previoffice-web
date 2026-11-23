@@ -39,41 +39,10 @@ export default function LoginPage() {
         }
         router.push('/definir-senha');
       } else if (isAuthenticated) {
-        const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const hasTour = searchParams?.get('tour') === 'true' || searchParams?.get('tour') === '1';
-        router.push(hasTour ? '/?tour=true' : '/');
+        router.push('/');
       }
     }
   }, [isAuthenticated, currentUser, router]);
-
-  // Global console helper when on login screen (Development / QA only)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-      (window as any).startPreviOfficeTour = () => {
-        try {
-          Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('previoffice_tour_completed')) {
-              localStorage.removeItem(key);
-            }
-          });
-          const url = new URL(window.location.href);
-          url.searchParams.set('tour', 'true');
-          window.history.replaceState({}, '', url.toString());
-        } catch {
-          // Ignore
-        }
-        alert(
-          'Para acessar o Tour Guiado do PreviOffice, realize o login primeiro no sistema.\n\n' +
-          'O parâmetro ?tour=true foi ativado. Assim que você entrar, o tour iniciará automaticamente!'
-        );
-        return 'Modo tour ativado! Faça login para começar.';
-      };
-
-      return () => {
-        delete (window as any).startPreviOfficeTour;
-      };
-    }
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,9 +108,7 @@ export default function LoginPage() {
           return;
         }
 
-        const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-        const hasTour = searchParams?.get('tour') === 'true' || searchParams?.get('tour') === '1';
-        window.location.href = hasTour ? '/?tour=true' : '/';
+        window.location.href = '/';
       }
     } catch (err: any) {
       setErrorMessage(err?.message || t.login.errorInvalidCredentials);
