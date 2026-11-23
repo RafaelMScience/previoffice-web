@@ -23,6 +23,7 @@ describe('Guided Tour & Interactive Spotlight Walkthrough', () => {
     assert.strictEqual(step2.stepNumber, 2);
     assert.strictEqual(step2.requiresDemoData, true);
     assert.strictEqual(step2.targetSelector, '#tour-demo-client-row');
+    assert.strictEqual(step2.placement, 'top');
     assert.ok(step2.highlights.some((h) => h.includes('Localizador de Pasta Física')));
   });
 
@@ -58,6 +59,7 @@ describe('Guided Tour & Interactive Spotlight Walkthrough', () => {
     const step6 = TOUR_STEPS[5];
     assert.strictEqual(step6.stepNumber, 6);
     assert.strictEqual(step6.targetSelector, '#tour-vade-mecum-btn');
+    assert.strictEqual(step6.placement, 'right');
     assert.ok(step6.highlights.some((h) => h.includes('IN 128')));
   });
 
@@ -65,6 +67,7 @@ describe('Guided Tour & Interactive Spotlight Walkthrough', () => {
     const step7 = TOUR_STEPS[6];
     assert.strictEqual(step7.stepNumber, 7);
     assert.strictEqual(step7.targetSelector, '#tour-settings-nav-link');
+    assert.strictEqual(step7.placement, 'right');
     assert.ok(step7.highlights.some((h) => h.includes('Dados da Banca')));
     assert.ok(step7.highlights.some((h) => h.includes('Auditoria Forense (LGPD)')));
   });

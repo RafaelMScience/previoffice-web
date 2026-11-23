@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   Compass,
   Sparkles,
@@ -14,6 +15,7 @@ import { useTour } from './guided-tour-context';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export function GuidedTourOverlay() {
+  const pathname = usePathname();
   const { isAuthenticated, currentUser } = useAuth();
   const {
     isTourActive,
@@ -32,58 +34,96 @@ export function GuidedTourOverlay() {
   // Strictly ensure overlay never renders if unauthenticated or tour inactive
   const isDisplayable = isAuthenticated && currentUser && isTourActive;
 
-  // Position calculation and scroll to target
+  // Accurate position calculation and viewport tracking with DOMRect memoization
+  const updatePosition = useCallback((shouldScroll = false) => {
+    if (!currentStep.targetSelector) {
+      setTargetRect(null);
+      return;
+    }
+
+    let el = document.querySelector(currentStep.targetSelector);
+    // Robust fallback for Step 7 in case settings link is restricted or within sidebar nav
+    if (!el && currentStep.id === 'step-settings-and-audit') {
+      el = document.querySelector('#tour-settings-nav-link, aside nav, aside');
+    }
+
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      setTargetRect((prev) => {
+        if (
+          prev &&
+          prev.top === rect.top &&
+          prev.left === rect.left &&
+          prev.width === rect.width &&
+          prev.height === rect.height
+        ) {
+          return prev;
+        }
+        return rect;
+      });
+
+      // Smoothly scroll element into viewport on step transition (never during user scroll)
+      if (shouldScroll) {
+        if (el.closest('aside')) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else if (currentStep.placement === 'top') {
+          // Keep element comfortably in lower half of screen so card has top half completely clear
+          el.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        } else if (currentStep.placement === 'bottom') {
+          // Keep element near top so card has bottom half completely clear
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    } else {
+      setTargetRect(null);
+    }
+  }, [currentStep.targetSelector, currentStep.placement, currentStep.id]);
+
+  // Position calculation and scroll to target with route & DOM mutation awareness
   useEffect(() => {
     if (!isDisplayable) {
       setTargetRect(null);
       return;
     }
 
-    const updatePosition = () => {
-      if (!currentStep.targetSelector) {
-        setTargetRect(null);
-        return;
-      }
+    updatePosition(true);
+    const handleScrollOrResize = () => updatePosition(false);
+    window.addEventListener('resize', handleScrollOrResize);
+    window.addEventListener('scroll', handleScrollOrResize, true);
 
-      const el = document.querySelector(currentStep.targetSelector);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        setTargetRect(rect);
-        // Smoothly scroll element into viewport if outside
-        if (rect.top < 80 || rect.bottom > window.innerHeight - 80) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      } else {
-        setTargetRect(null);
-      }
-    };
+    // Watch for DOM changes (such as client-side page transitions or asynchronous data loading)
+    let observer: MutationObserver | null = null;
+    if (typeof MutationObserver !== 'undefined') {
+      observer = new MutationObserver(() => {
+        updatePosition(false);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
 
-    updatePosition();
-    const handleResize = () => updatePosition();
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleResize, true);
-
-    // Staggered checks for dynamic page transitions & data renders
-    const t1 = setTimeout(updatePosition, 80);
-    const t2 = setTimeout(updatePosition, 250);
-    const t3 = setTimeout(updatePosition, 550);
-    const t4 = setTimeout(updatePosition, 950);
+    // Staggered timers to catch animations, transitions, and route mounts
+    const timers = [
+      setTimeout(() => updatePosition(true), 50),
+      setTimeout(() => updatePosition(false), 150),
+      setTimeout(() => updatePosition(false), 350),
+      setTimeout(() => updatePosition(false), 700),
+      setTimeout(() => updatePosition(false), 1200),
+    ];
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleResize, true);
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      observer?.disconnect();
+      timers.forEach((t) => clearTimeout(t));
     };
-  }, [isTourActive, currentStep]);
+  }, [isDisplayable, currentStep, pathname, updatePosition]);
 
   if (!isDisplayable) return null;
 
   const isLastStep = currentStepIndex === totalSteps - 1;
 
-  // Compute exact inline style to prevent any Tailwind translate collision
+  // Compute exact inline style to prevent any Tailwind translate collision and guarantee unblocked view
   let cardStyle: React.CSSProperties = {
     position: 'fixed',
     left: '50%',
@@ -91,47 +131,69 @@ export function GuidedTourOverlay() {
     transform: 'translate(-50%, -50%)',
     width: '92vw',
     maxWidth: '32rem',
+    maxHeight: 'min(82vh, 480px)',
     zIndex: 10000,
   };
 
   if (targetRect) {
-    if (currentStep.placement === 'bottom') {
-      const topPos = Math.min(targetRect.bottom + 16, window.innerHeight - 400);
+    if (currentStep.placement === 'top') {
+      // Step 2 & Top placement: Anchor near top of screen leaving element completely visible below!
+      const maxAllowedHeight = Math.max(200, targetRect.top - 24);
       cardStyle = {
         position: 'fixed',
         left: '50%',
-        top: `${Math.max(16, topPos)}px`,
+        top: '16px',
         transform: 'translateX(-50%)',
         width: '92vw',
-        maxWidth: '32rem',
+        maxWidth: '34rem',
+        maxHeight: `${Math.min(maxAllowedHeight, window.innerHeight * 0.44)}px`,
         zIndex: 10000,
       };
-    } else if (currentStep.placement === 'top') {
-      const bottomPos = Math.max(16, window.innerHeight - targetRect.top + 16);
+    } else if (currentStep.placement === 'bottom') {
+      // Steps 1, 3, 4, 5: Placed below the element with guaranteed bottom clearance
+      const topPos = targetRect.bottom + 14;
+      const maxAllowedHeight = Math.max(200, window.innerHeight - topPos - 24);
       cardStyle = {
         position: 'fixed',
         left: '50%',
-        bottom: `${bottomPos}px`,
+        top: `${Math.min(topPos, window.innerHeight - 260)}px`,
         transform: 'translateX(-50%)',
         width: '92vw',
         maxWidth: '32rem',
+        maxHeight: `${Math.min(maxAllowedHeight, 460)}px`,
         zIndex: 10000,
       };
     } else if (currentStep.placement === 'right') {
-      const topPos = Math.min(Math.max(16, targetRect.top), window.innerHeight - 400);
-      cardStyle = {
-        position: 'fixed',
-        left: `${Math.min(targetRect.right + 20, window.innerWidth - 480)}px`,
-        top: `${topPos}px`,
-        width: '92vw',
-        maxWidth: '28rem',
-        zIndex: 10000,
-      };
+      // Steps 6 & 7 (Sidebar items): On mobile / narrow screens (< 768px), fallback to centered placement
+      const isNarrowViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+      if (isNarrowViewport) {
+        cardStyle = {
+          position: 'fixed',
+          left: '50%',
+          top: `${Math.max(16, Math.min(targetRect.bottom + 14, window.innerHeight - 360))}px`,
+          transform: 'translateX(-50%)',
+          width: '92vw',
+          maxWidth: '32rem',
+          maxHeight: 'min(76vh, 420px)',
+          zIndex: 10000,
+        };
+      } else {
+        const cardTop = Math.max(16, Math.min(targetRect.top - 20, window.innerHeight - 440));
+        cardStyle = {
+          position: 'fixed',
+          left: `${Math.max(16, Math.min(targetRect.right + 20, window.innerWidth - 460))}px`,
+          top: `${cardTop}px`,
+          width: 'min(90vw - 280px, 28rem)',
+          maxWidth: '28rem',
+          maxHeight: 'min(82vh, 460px)',
+          zIndex: 10000,
+        };
+      }
     }
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] pointer-events-auto overflow-hidden animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden animate-in fade-in duration-200">
       {/* Dark Spotlight Backdrop */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none transition-all duration-300"
@@ -155,13 +217,13 @@ export function GuidedTourOverlay() {
             )}
           </mask>
         </defs>
-        {/* Shaded backdrop with mask */}
+        {/* Shaded backdrop with mask (0.48 opacity lets background remain clearly visible) */}
         <rect
           x="0"
           y="0"
           width="100%"
           height="100%"
-          fill="rgba(8, 26, 50, 0.78)"
+          fill="rgba(8, 26, 50, 0.48)"
           mask="url(#tour-spotlight-mask)"
         />
       </svg>
@@ -181,15 +243,15 @@ export function GuidedTourOverlay() {
         />
       )}
 
-      {/* Luxury Tour Card */}
+      {/* Luxury Tour Card (Always Interactive with Guaranteed Visible Footer) */}
       <div
         ref={cardRef}
         style={cardStyle}
-        className="transition-all duration-200 animate-in fade-in zoom-in-95"
+        className="pointer-events-auto transition-all duration-200 animate-in fade-in zoom-in-95 flex flex-col"
       >
-        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[inherit]">
           {/* Header */}
-          <div className="px-5 py-4 bg-gradient-to-r from-[#082A52] to-[#0D3663] text-white flex items-center justify-between">
+          <div className="px-5 py-3.5 bg-gradient-to-r from-[#082A52] to-[#0D3663] text-white flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-[#C89543] text-[#082A52] flex items-center justify-center font-bold shadow-xs">
                 <Compass className="w-4 h-4 text-white" />
@@ -221,8 +283,8 @@ export function GuidedTourOverlay() {
             </button>
           </div>
 
-          {/* Body */}
-          <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+          {/* Body with guaranteed scrollbar if needed */}
+          <div className="p-4 sm:p-5 space-y-3 flex-1 overflow-y-auto min-h-0">
             <div className="text-xs font-semibold text-[#082A52]">
               {currentStep.subtitle}
             </div>
@@ -233,7 +295,7 @@ export function GuidedTourOverlay() {
 
             {/* Highlights bullets */}
             {currentStep.highlights && currentStep.highlights.length > 0 && (
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                 {currentStep.highlights.map((highlight, idx) => (
                   <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#C89543] shrink-0 mt-0.5" />
@@ -251,8 +313,8 @@ export function GuidedTourOverlay() {
             )}
           </div>
 
-          {/* Footer Controls */}
-          <div className="px-5 py-3.5 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between gap-3">
+          {/* Footer Controls (Always Pinned and Visible) */}
+          <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
             <button
               type="button"
               onClick={skipTour}
