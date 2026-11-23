@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
         {
           error: isUniqueViolation
             ? `O e-mail "${cleanLawyerEmail}" já está em uso por outro perfil no sistema.`
-            : 'Erro ao vincular perfil do advogado administrador.',
+            : `Erro ao vincular perfil do advogado administrador: ${profileError.message}`,
         },
         { status: isUniqueViolation ? 409 : 500 }
       );
