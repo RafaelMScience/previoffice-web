@@ -34,14 +34,12 @@ import { useFetchWithAbort } from '@/hooks/use-fetch-with-abort';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { fetchClientsFromDb, createFastIntakeInDb } from '@/lib/services/client-service';
 import { formatBenefitType } from '@/lib/utils/benefit-translations';
-import { useTour } from '@/components/guided-tour/guided-tour-context';
 import type { Client } from '@/types/client';
 
 export default function ReceptionDashboardPage() {
   const { t } = useI18n();
   const { canAccess, currentUser } = useAuth();
   const { getSignal } = useFetchWithAbort();
-  const { demoClient } = useTour();
 
   // Reception table state
   const [receptionRows, setReceptionRows] = useState<ReceptionTableRow[]>([]);
@@ -133,11 +131,6 @@ export default function ReceptionDashboardPage() {
   };
 
   const handleOpenMemoryCard = (row: ReceptionTableRow) => {
-    if (demoClient && row.id === demoClient.id) {
-      setSelectedClientForMemoryCard(demoClient);
-      setIsMemoryCardOpen(true);
-      return;
-    }
     const found = clientsCache.find((c) => c.id === row.id);
     if (found) {
       setSelectedClientForMemoryCard(found);
@@ -145,24 +138,7 @@ export default function ReceptionDashboardPage() {
     }
   };
 
-  const demoRow: ReceptionTableRow | null = demoClient
-    ? {
-        id: demoClient.id,
-        tenantId: demoClient.tenantId,
-        fullName: demoClient.fullName,
-        cpf: demoClient.cpf || '123.456.789-00',
-        photoUrl: null,
-        attendanceType: 'RETURN',
-        lastVisitAt: 'Hoje (Exemplo Guiado)',
-        totalVisits: 2,
-        pendingDocuments: ['Autodeclaração Rural assinada'],
-        registrationProgress: 85,
-        assignedAttendant: 'Dr. Advogado Titular',
-        benefitTypeNotes: demoClient.benefitType,
-      }
-    : null;
-
-  const displayRows = demoRow ? [demoRow, ...receptionRows] : receptionRows;
+  const displayRows = receptionRows;
 
   return (
     <div className="space-y-6">

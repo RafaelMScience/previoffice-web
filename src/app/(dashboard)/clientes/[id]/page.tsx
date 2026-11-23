@@ -15,20 +15,6 @@ interface ClientPageProps {
 export default async function ClientDetailPage({ params }: ClientPageProps) {
   const { id } = await params;
 
-  // Handle Guided Tour demo client sandbox route
-  if (id === 'demo-client-tour-001') {
-    const { DEMO_CLIENT, DEMO_ATTENDANCES } = await import('@/lib/guided-tour/demo-data');
-    return (
-      <div className="py-2">
-        <ClientDetailsView
-          initialClient={DEMO_CLIENT}
-          initialAttendances={DEMO_ATTENDANCES}
-          initialCaseUpdates={[]}
-        />
-      </div>
-    );
-  }
-
   const supabase = await createClientServer();
 
   // 1. Single-query nested join to eliminate sequential network hops during SSR
