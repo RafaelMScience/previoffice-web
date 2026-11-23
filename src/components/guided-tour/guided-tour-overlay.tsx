@@ -9,7 +9,6 @@ import {
   X,
   CheckCircle2,
   Info,
-  HelpCircle,
 } from 'lucide-react';
 import { useTour } from './guided-tour-context';
 
@@ -59,12 +58,19 @@ export function GuidedTourOverlay() {
     window.addEventListener('resize', handleResize);
     window.addEventListener('scroll', handleResize, true);
 
-    const timer = setTimeout(updatePosition, 300);
+    // Staggered checks for dynamic page transitions & data renders
+    const t1 = setTimeout(updatePosition, 80);
+    const t2 = setTimeout(updatePosition, 250);
+    const t3 = setTimeout(updatePosition, 550);
+    const t4 = setTimeout(updatePosition, 950);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleResize, true);
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
     };
   }, [isTourActive, currentStep]);
 
@@ -72,16 +78,50 @@ export function GuidedTourOverlay() {
 
   const isLastStep = currentStepIndex === totalSteps - 1;
 
-  // Determine card style position relative to target element or center
-  let cardPositionClasses = 'fixed inset-x-4 top-1/2 -translate-y-1/2 md:max-w-lg md:mx-auto';
+  // Compute exact inline style to prevent any Tailwind translate collision
+  let cardStyle: React.CSSProperties = {
+    position: 'fixed',
+    left: '50%',
+    top: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '92vw',
+    maxWidth: '32rem',
+    zIndex: 10000,
+  };
 
   if (targetRect) {
     if (currentStep.placement === 'bottom') {
-      const topPos = Math.min(targetRect.bottom + 16, window.innerHeight - 340);
-      cardPositionClasses = `fixed left-1/2 -translate-x-1/2 md:max-w-lg w-[92vw]`;
+      const topPos = Math.min(targetRect.bottom + 16, window.innerHeight - 400);
+      cardStyle = {
+        position: 'fixed',
+        left: '50%',
+        top: `${Math.max(16, topPos)}px`,
+        transform: 'translateX(-50%)',
+        width: '92vw',
+        maxWidth: '32rem',
+        zIndex: 10000,
+      };
     } else if (currentStep.placement === 'top') {
       const bottomPos = Math.max(16, window.innerHeight - targetRect.top + 16);
-      cardPositionClasses = `fixed left-1/2 -translate-x-1/2 md:max-w-lg w-[92vw]`;
+      cardStyle = {
+        position: 'fixed',
+        left: '50%',
+        bottom: `${bottomPos}px`,
+        transform: 'translateX(-50%)',
+        width: '92vw',
+        maxWidth: '32rem',
+        zIndex: 10000,
+      };
+    } else if (currentStep.placement === 'right') {
+      const topPos = Math.min(Math.max(16, targetRect.top), window.innerHeight - 400);
+      cardStyle = {
+        position: 'fixed',
+        left: `${Math.min(targetRect.right + 20, window.innerWidth - 480)}px`,
+        top: `${topPos}px`,
+        width: '92vw',
+        maxWidth: '28rem',
+        zIndex: 10000,
+      };
     }
   }
 
@@ -139,14 +179,8 @@ export function GuidedTourOverlay() {
       {/* Luxury Tour Card */}
       <div
         ref={cardRef}
-        className={`${cardPositionClasses} z-10 transition-all duration-300`}
-        style={
-          targetRect
-            ? currentStep.placement === 'top'
-              ? { bottom: Math.max(20, window.innerHeight - targetRect.top + 16) }
-              : { top: Math.min(targetRect.bottom + 16, window.innerHeight - 420) }
-            : { top: '50%', transform: 'translateY(-50%)' }
-        }
+        style={cardStyle}
+        className="transition-all duration-200 animate-in fade-in zoom-in-95"
       >
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
           {/* Header */}
@@ -166,59 +200,60 @@ export function GuidedTourOverlay() {
                     </span>
                   )}
                 </div>
-                <h3 className="text-sm font-bold text-white mt-0.5 tracking-tight">
+                <h3 className="text-sm font-bold text-white mt-0.5 leading-snug">
                   {currentStep.title}
                 </h3>
               </div>
             </div>
+
             <button
+              type="button"
               onClick={skipTour}
-              className="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors"
-              title="Encerrar tour guiado"
+              className="text-white/60 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+              title="Fechar tour e limpar dados temporários"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Body Content */}
+          {/* Body */}
           <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
-            {currentStep.subtitle && (
-              <p className="text-xs font-semibold text-[#082A52] border-l-2 border-[#C89543] pl-2.5 py-0.5">
-                {currentStep.subtitle}
-              </p>
-            )}
+            <div className="text-xs font-semibold text-[#082A52]">
+              {currentStep.subtitle}
+            </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
               {currentStep.description}
             </p>
 
-            {/* Structured Highlights */}
+            {/* Highlights bullets */}
             {currentStep.highlights && currentStep.highlights.length > 0 && (
-              <div className="space-y-2 bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs text-slate-700">
-                {currentStep.highlights.map((h, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#C89543] flex-shrink-0 mt-0.5" />
-                    <span className="leading-tight">{h}</span>
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                {currentStep.highlights.map((highlight, idx) => (
+                  <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#C89543] shrink-0 mt-0.5" />
+                    <span className="leading-tight">{highlight}</span>
                   </div>
                 ))}
               </div>
             )}
 
             {currentStep.actionHint && (
-              <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500 bg-blue-50/60 p-2.5 rounded-lg border border-blue-100/60">
-                <Info className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+              <div className="flex items-center gap-2 text-[11px] font-medium text-amber-800 bg-amber-50/80 border border-amber-200/70 p-2.5 rounded-lg">
+                <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span>{currentStep.actionHint}</span>
               </div>
             )}
           </div>
 
           {/* Footer Controls */}
-          <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <div className="px-5 py-3.5 bg-slate-50/90 border-t border-slate-100 flex items-center justify-between gap-3">
             <button
+              type="button"
               onClick={skipTour}
-              className="text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors"
+              className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
             >
-              Pular Tutorial
+              Pular tour
             </button>
 
             {/* Progress Dots */}
@@ -226,9 +261,11 @@ export function GuidedTourOverlay() {
               {Array.from({ length: totalSteps }).map((_, idx) => (
                 <div
                   key={idx}
-                  className={`h-1.5 rounded-full transition-all ${
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
                     idx === currentStepIndex
                       ? 'w-5 bg-[#C89543]'
+                      : idx < currentStepIndex
+                      ? 'w-1.5 bg-[#082A52]'
                       : 'w-1.5 bg-slate-200'
                   }`}
                 />
@@ -238,8 +275,9 @@ export function GuidedTourOverlay() {
             <div className="flex items-center gap-2">
               {currentStepIndex > 0 && (
                 <button
+                  type="button"
                   onClick={prevStep}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-200 transition-all"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
                   <span>Anterior</span>
@@ -247,11 +285,21 @@ export function GuidedTourOverlay() {
               )}
 
               <button
+                type="button"
                 onClick={isLastStep ? completeTour : nextStep}
-                className="inline-flex items-center gap-1 px-4 py-1.5 rounded-xl text-xs font-bold bg-[#082A52] text-white hover:bg-[#0B3A70] transition-all shadow-xs"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-[#082A52] hover:bg-[#0B3A70] rounded-xl transition-all shadow-xs cursor-pointer"
               >
-                <span>{isLastStep ? 'Concluir Tour' : 'Próximo'}</span>
-                {!isLastStep && <ChevronRight className="w-3.5 h-3.5 text-[#C89543]" />}
+                {isLastStep ? (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5 text-[#C89543]" />
+                    <span>Concluir</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Próximo</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </>
+                )}
               </button>
             </div>
           </div>

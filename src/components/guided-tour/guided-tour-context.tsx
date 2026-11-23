@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { TOUR_STEPS } from './tour-steps';
 import { DEMO_CLIENT } from '@/lib/guided-tour/demo-data';
@@ -14,35 +15,95 @@ interface ExtendedTourContextState extends TourContextState {
 const GuidedTourContext = createContext<ExtendedTourContextState | null>(null);
 
 export function GuidedTourProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { currentUser } = useAuth();
+
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
 
-  // Auto-launch on first login
+  const autoStartedRef = useRef(false);
+
+  // Synchronize router location with active tour step
+  const syncRouteForStep = useCallback(
+    (stepIndex: number) => {
+      if (stepIndex === 0 || stepIndex === 1) {
+        if (pathname !== '/') {
+          router.push('/');
+        }
+      } else if (stepIndex === 2 || stepIndex === 3 || stepIndex === 4) {
+        if (pathname !== '/clientes/demo-client-tour-001') {
+          router.push('/clientes/demo-client-tour-001');
+        }
+      } else if (stepIndex === 5 || stepIndex === 6) {
+        if (pathname !== '/') {
+          router.push('/');
+        }
+      }
+    },
+    [pathname, router]
+  );
+
+  // Auto-launch on first login or via ?tour=true query parameter
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (typeof window === 'undefined') return;
+
+    // 1. Force tour if ?tour=true or ?tour=1 is in URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const forceTour = searchParams.get('tour') === 'true' || searchParams.get('tour') === '1';
+
+    if (forceTour) {
+      setIsTourActive(true);
+      setCurrentStepIndex(0);
+      syncRouteForStep(0);
+      return;
+    }
+
+    // 2. Auto-launch for user if tour was never completed
+    if (!currentUser?.id || autoStartedRef.current) return;
+
     const tourKey = `previoffice_tour_completed_${currentUser.id}`;
     const hasCompleted = localStorage.getItem(tourKey);
 
     if (!hasCompleted) {
+      autoStartedRef.current = true;
       setIsFirstLogin(true);
       const timer = setTimeout(() => {
         setIsTourActive(true);
         setCurrentStepIndex(0);
-      }, 1200);
+        syncRouteForStep(0);
+      }, 700);
+
       return () => clearTimeout(timer);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, syncRouteForStep]);
+
+  // Global browser console helper for debugging and testing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).startPreviOfficeTour = () => {
+        if (currentUser?.id) {
+          localStorage.removeItem(`previoffice_tour_completed_${currentUser.id}`);
+        }
+        setCurrentStepIndex(0);
+        syncRouteForStep(0);
+        setIsTourActive(true);
+      };
+    }
+  }, [currentUser?.id, syncRouteForStep]);
 
   const startTour = () => {
     setCurrentStepIndex(0);
+    syncRouteForStep(0);
     setIsTourActive(true);
   };
 
   const nextStep = () => {
     if (currentStepIndex < TOUR_STEPS.length - 1) {
-      setCurrentStepIndex((prev) => prev + 1);
+      const nextIdx = currentStepIndex + 1;
+      setCurrentStepIndex(nextIdx);
+      syncRouteForStep(nextIdx);
     } else {
       completeTour();
     }
@@ -50,13 +111,16 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
 
   const prevStep = () => {
     if (currentStepIndex > 0) {
-      setCurrentStepIndex((prev) => prev - 1);
+      const prevIdx = currentStepIndex - 1;
+      setCurrentStepIndex(prevIdx);
+      syncRouteForStep(prevIdx);
     }
   };
 
   const goToStep = (index: number) => {
     if (index >= 0 && index < TOUR_STEPS.length) {
       setCurrentStepIndex(index);
+      syncRouteForStep(index);
     }
   };
 
@@ -66,6 +130,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     if (currentUser?.id) {
       localStorage.setItem(`previoffice_tour_completed_${currentUser.id}`, 'true');
     }
+    if (pathname === '/clientes/demo-client-tour-001') {
+      router.push('/');
+    }
   };
 
   // Immediate purge of all sandbox state on dismissal
@@ -73,6 +140,9 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
     setIsTourActive(false);
     if (currentUser?.id) {
       localStorage.setItem(`previoffice_tour_completed_${currentUser.id}`, 'true');
+    }
+    if (pathname === '/clientes/demo-client-tour-001') {
+      router.push('/');
     }
   };
 
