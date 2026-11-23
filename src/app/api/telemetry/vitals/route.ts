@@ -9,7 +9,19 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as MetricPayload;
+    let body: MetricPayload | null = null;
+    try {
+      body = (await req.json()) as MetricPayload;
+    } catch {
+      try {
+        const rawText = await req.text();
+        if (rawText) {
+          body = JSON.parse(rawText) as MetricPayload;
+        }
+      } catch {
+        body = null;
+      }
+    }
 
     if (
       !body ||
@@ -34,7 +46,8 @@ export async function POST(req: NextRequest) {
       p75: summary.p75,
       alertTriggered: summary.alertTriggered,
     });
-  } catch {
+  } catch (err) {
+    console.error('[Telemetry Vitals API Error]:', err);
     return NextResponse.json({ error: 'Failed to process web vital metric' }, { status: 500 });
   }
 }
