@@ -246,6 +246,7 @@ export async function createFastIntakeInDb(
     .single();
 
   if (clientErr || !clientRow) {
+    console.error('Error inserting client in createFastIntakeInDb:', clientErr);
     if (
       clientErr?.code === '23505' ||
       clientErr?.message?.includes('idx_clients_unique_cpf_per_tenant') ||
@@ -253,7 +254,7 @@ export async function createFastIntakeInDb(
     ) {
       throw new Error('Já existe um cliente cadastrado com este CPF neste escritório.');
     }
-    throw new Error('Falha ao cadastrar cliente no banco de dados. Tente novamente.');
+    throw new Error(clientErr?.message || 'Falha ao cadastrar cliente no banco de dados. Tente novamente.');
   }
 
   // 2. Insert Initial Attendance
@@ -264,7 +265,7 @@ export async function createFastIntakeInDb(
 
   const nowIso = new Date().toISOString();
 
-  await (supabase.from('attendances') as any).insert({
+  const { error: attErr } = await (supabase.from('attendances') as any).insert({
     tenant_id: tenantId,
     client_id: clientRow.id,
     attendance_type: 'FIRST_VISIT',
@@ -275,6 +276,10 @@ export async function createFastIntakeInDb(
     attended_at: nowIso,
     pending_documents: pendingDocs,
   });
+
+  if (attErr) {
+    console.warn('Warning inserting initial attendance:', attErr);
+  }
 
   invalidateCache('clients:');
   invalidateCache('nav-counts:');
