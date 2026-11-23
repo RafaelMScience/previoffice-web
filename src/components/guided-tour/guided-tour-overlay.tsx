@@ -10,6 +10,8 @@ import {
   X,
   CheckCircle2,
   Info,
+  GripHorizontal,
+  RotateCcw,
 } from 'lucide-react';
 import { useTour } from './guided-tour-context';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -30,6 +32,76 @@ export function GuidedTourOverlay() {
 
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Draggable positioning state: Defaults to top-right corner ('canto superior')
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ mouseX: number; mouseY: number; startX: number; startY: number } | null>(null);
+
+  // Drag start handler for header
+  const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    // Only drag with left mouse button (0) on desktop
+    if ('button' in e && e.button !== 0) return;
+    // Prevent dragging when clicking interactive buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+
+    dragStartRef.current = {
+      mouseX: clientX,
+      mouseY: clientY,
+      startX: rect.left,
+      startY: rect.top,
+    };
+    setIsDragging(true);
+  }, []);
+
+  // Global mousemove / mouseup handlers
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      if (!dragStartRef.current) return;
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+      const deltaX = clientX - dragStartRef.current.mouseX;
+      const deltaY = clientY - dragStartRef.current.mouseY;
+
+      const cardWidth = cardRef.current?.offsetWidth || 380;
+      const cardHeight = cardRef.current?.offsetHeight || 300;
+
+      const newX = Math.max(10, Math.min(dragStartRef.current.startX + deltaX, window.innerWidth - cardWidth - 10));
+      const newY = Math.max(10, Math.min(dragStartRef.current.startY + deltaY, window.innerHeight - cardHeight - 10));
+
+      setPosition({ x: newX, y: newY });
+    };
+
+    const handleEnd = () => {
+      setIsDragging(false);
+      dragStartRef.current = null;
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+    window.addEventListener('touchcancel', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+      window.removeEventListener('touchcancel', handleEnd);
+    };
+  }, [isDragging]);
 
   // Strictly ensure overlay never renders if unauthenticated or tour inactive
   const isDisplayable = isAuthenticated && currentUser && isTourActive;
@@ -123,78 +195,23 @@ export function GuidedTourOverlay() {
 
   const isLastStep = currentStepIndex === totalSteps - 1;
 
-  // Compute exact inline style to prevent any Tailwind translate collision and guarantee unblocked view
-  let cardStyle: React.CSSProperties = {
+  // Fixed top-right corner placement by default ('canto superior'), or freely dragged coordinates
+  const isNarrowScreen = typeof window !== 'undefined' && window.innerWidth < 640;
+  const cardStyle: React.CSSProperties = {
     position: 'fixed',
-    left: '50%',
-    top: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '92vw',
-    maxWidth: '32rem',
-    maxHeight: 'min(82vh, 480px)',
+    top: position ? `${position.y}px` : '18px',
+    right: position ? 'auto' : isNarrowScreen ? '12px' : '24px',
+    left: position ? `${position.x}px` : isNarrowScreen ? '12px' : 'auto',
+    width: isNarrowScreen && !position ? 'calc(100vw - 24px)' : 'min(92vw, 26rem)',
+    maxWidth: '28rem',
+    maxHeight: 'min(86vh, 540px)',
     zIndex: 10000,
+    cursor: isDragging ? 'grabbing' : 'default',
   };
-
-  if (targetRect) {
-    if (currentStep.placement === 'top') {
-      // Step 2 & Top placement: Anchor near top of screen leaving element completely visible below!
-      const maxAllowedHeight = Math.max(200, targetRect.top - 24);
-      cardStyle = {
-        position: 'fixed',
-        left: '50%',
-        top: '16px',
-        transform: 'translateX(-50%)',
-        width: '92vw',
-        maxWidth: '34rem',
-        maxHeight: `${Math.min(maxAllowedHeight, window.innerHeight * 0.44)}px`,
-        zIndex: 10000,
-      };
-    } else if (currentStep.placement === 'bottom') {
-      // Steps 1, 3, 4, 5: Placed below the element with guaranteed bottom clearance
-      const topPos = targetRect.bottom + 14;
-      const maxAllowedHeight = Math.max(200, window.innerHeight - topPos - 24);
-      cardStyle = {
-        position: 'fixed',
-        left: '50%',
-        top: `${Math.min(topPos, window.innerHeight - 260)}px`,
-        transform: 'translateX(-50%)',
-        width: '92vw',
-        maxWidth: '32rem',
-        maxHeight: `${Math.min(maxAllowedHeight, 460)}px`,
-        zIndex: 10000,
-      };
-    } else if (currentStep.placement === 'right') {
-      // Steps 6 & 7 (Sidebar items): On mobile / narrow screens (< 768px), fallback to centered placement
-      const isNarrowViewport = typeof window !== 'undefined' && window.innerWidth < 768;
-      if (isNarrowViewport) {
-        cardStyle = {
-          position: 'fixed',
-          left: '50%',
-          top: `${Math.max(16, Math.min(targetRect.bottom + 14, window.innerHeight - 360))}px`,
-          transform: 'translateX(-50%)',
-          width: '92vw',
-          maxWidth: '32rem',
-          maxHeight: 'min(76vh, 420px)',
-          zIndex: 10000,
-        };
-      } else {
-        const cardTop = Math.max(16, Math.min(targetRect.top - 20, window.innerHeight - 440));
-        cardStyle = {
-          position: 'fixed',
-          left: `${Math.max(16, Math.min(targetRect.right + 20, window.innerWidth - 460))}px`,
-          top: `${cardTop}px`,
-          width: 'min(90vw - 280px, 28rem)',
-          maxWidth: '28rem',
-          maxHeight: 'min(82vh, 460px)',
-          zIndex: 10000,
-        };
-      }
-    }
-  }
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden animate-in fade-in duration-200">
-      {/* Dark Spotlight Backdrop */}
+      {/* Dark Spotlight Backdrop (Gentle 0.35 scrim keeps whole screen crisp and clearly visible) */}
       <svg
         className="absolute inset-0 w-full h-full pointer-events-none transition-all duration-300"
         xmlns="http://www.w3.org/2000/svg"
@@ -217,13 +234,13 @@ export function GuidedTourOverlay() {
             )}
           </mask>
         </defs>
-        {/* Shaded backdrop with mask (0.48 opacity lets background remain clearly visible) */}
+        {/* Shaded backdrop with mask (0.35 opacity lets background remain clearly visible) */}
         <rect
           x="0"
           y="0"
           width="100%"
           height="100%"
-          fill="rgba(8, 26, 50, 0.48)"
+          fill="rgba(8, 26, 50, 0.35)"
           mask="url(#tour-spotlight-mask)"
         />
       </svg>
@@ -243,44 +260,68 @@ export function GuidedTourOverlay() {
         />
       )}
 
-      {/* Luxury Tour Card (Always Interactive with Guaranteed Visible Footer) */}
+      {/* Draggable Tour Card (Docked in upper corner by default, freely movable by user) */}
       <div
         ref={cardRef}
         style={cardStyle}
-        className="pointer-events-auto transition-all duration-200 animate-in fade-in zoom-in-95 flex flex-col"
+        className="pointer-events-auto transition-shadow duration-200 animate-in fade-in zoom-in-95 flex flex-col"
       >
-        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[inherit]">
-          {/* Header */}
-          <div className="px-5 py-3.5 bg-gradient-to-r from-[#082A52] to-[#0D3663] text-white flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#C89543] text-[#082A52] flex items-center justify-center font-bold shadow-xs">
+        <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-[inherit]">
+          {/* Header - Drag Handle Area */}
+          <div
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
+            className="px-4 py-3 bg-gradient-to-r from-[#082A52] to-[#0D3663] text-white flex items-center justify-between shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+            title="Clique e arraste para reposicionar o quadro livremente"
+          >
+            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+              <div className="w-7 h-7 rounded-lg bg-[#C89543] text-[#082A52] flex items-center justify-center font-bold shadow-xs shrink-0">
                 <Compass className="w-4 h-4 text-white" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[10px] font-bold uppercase tracking-wider bg-white/15 px-2 py-0.5 rounded-full text-[#F3E5AB]">
                     Passo {currentStepIndex + 1} de {totalSteps}
                   </span>
                   {currentStep.requiresDemoData && (
-                    <span className="text-[9px] font-bold bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded">
-                      Modo Exemplo
+                    <span className="text-[9px] font-bold bg-amber-400 text-slate-900 px-1.5 py-0.5 rounded font-mono">
+                      Exemplo
                     </span>
                   )}
+                  <span className="text-[10px] text-white/70 inline-flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full">
+                    <GripHorizontal className="w-3 h-3 text-[#F3E5AB]" />
+                    <span>Mover</span>
+                  </span>
                 </div>
-                <h3 className="text-sm font-bold text-white mt-0.5 leading-snug">
+                <h3 className="text-xs sm:text-sm font-bold text-white mt-0.5 leading-snug truncate">
                   {currentStep.title}
                 </h3>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={skipTour}
-              className="text-white/60 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors cursor-pointer"
-              title="Fechar tour e limpar dados temporários"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1 shrink-0">
+              {position && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPosition(null);
+                  }}
+                  className="text-white/70 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                  title="Restaurar para o canto superior direito"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={skipTour}
+                className="text-white/60 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+                title="Fechar tour e limpar dados temporários"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Body with guaranteed scrollbar if needed */}
