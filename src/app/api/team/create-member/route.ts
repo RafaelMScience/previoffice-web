@@ -3,6 +3,7 @@ import { checkRateLimit } from '@/lib/security/admin-guard';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClientServer } from '@/lib/supabase/server';
 import { mapMemberTypeToDbRole, validateTeamMemberInput } from '@/lib/auth/team-utils';
+import { generateIntegritySeal } from '@/lib/services/audit-service';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
 
 export async function POST(request: NextRequest) {
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     // 3. Caller Authorization: verify MANAGING_LAWYER
     const { data: callerProfile } = await adminClient
       .from('profiles')
-      .select('tenant_id, role')
+      .select('tenant_id, role, full_name')
       .eq('id', callerUser.id)
       .maybeSingle();
 
@@ -201,6 +202,30 @@ export async function POST(request: NextRequest) {
       createdAt: profileData.created_at,
       updatedAt: profileData.updated_at,
     };
+
+    // Record forensic audit log
+    try {
+      const nowIso = new Date().toISOString();
+      const payload = `${effectiveTenantId}:${callerUser.id}:UPDATE_PERMISSIONS:Membro: ${cleanEmail}:${nowIso}`;
+      const hash = generateIntegritySeal(payload);
+
+      await adminClient.from('audit_logs').insert({
+        tenant_id: effectiveTenantId,
+        actor_id: callerUser.id,
+        actor_name: callerProfile.full_name || 'Advogado Titular',
+        actor_role: 'Advogado Sócio Titular',
+        action: 'UPDATE_PERMISSIONS',
+        action_description: `Cadastrou colaborador(a): ${fullName.trim()} (${memberType}${isAdminLawyer ? ' - Sócio Admin' : ''})`,
+        target_resource: `Membro: ${cleanEmail}`,
+        ip_address: ip,
+        user_agent: request.headers.get('user-agent') || 'Chrome 122 (Windows 11)',
+        severity: 'INFO',
+        integrity_hash: hash,
+        created_at: nowIso,
+      });
+    } catch (auditErr) {
+      console.warn('Audit log write non-blocking failure:', auditErr);
+    }
 
     return NextResponse.json(
       {

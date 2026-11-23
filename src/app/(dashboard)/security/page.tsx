@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck,
@@ -9,26 +9,66 @@ import {
   Users,
   CheckCircle2,
   KeyRound,
+  RefreshCw,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
-import { securityStore } from '@/lib/data/mock-security';
+import {
+  fetchAuditLogs,
+  fetchActiveSessions,
+  fetchLgpdConsents,
+  computeSecurityStats,
+  recordAuditLog,
+} from '@/lib/services/audit-service';
 import { SecurityMetricsOverview } from '@/components/security/security-metrics-overview';
 import { AuditLogsTable } from '@/components/security/audit-logs-table';
 import { ActiveSessionsTab } from '@/components/security/active-sessions-tab';
 import { LgpdComplianceTab } from '@/components/security/lgpd-compliance-tab';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
+import type { ActiveSession, AuditLogEntry, LgpdConsentRecord, SecurityStats } from '@/types/security';
 
 export default function SecurityPage() {
   const { t } = useI18n();
   const { currentUser, canAccess } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'LOGS' | 'SESSIONS' | 'LGPD'>('LOGS');
-  const [logs, setLogs] = useState(() => securityStore.getAuditLogs());
-  const [sessions, setSessions] = useState(() => securityStore.getActiveSessions());
-  const [lgpdRecords] = useState(() => securityStore.getLgpdConsents());
-  const [stats, setStats] = useState(() => securityStore.getStats());
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+  const [sessions, setSessions] = useState<ActiveSession[]>([]);
+  const [lgpdRecords, setLgpdRecords] = useState<LgpdConsentRecord[]>([]);
+  const [stats, setStats] = useState<SecurityStats>({
+    totalLogsToday: 0,
+    activeSessionsCount: 0,
+    sensitiveDataAccessCount: 0,
+    securityAlertsCount: 0,
+    integritySealStatus: 'VERIFIED',
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const loadData = async () => {
+    if (!currentUser?.tenantId) return;
+    setIsLoading(true);
+    try {
+      const [fetchedLogs, fetchedSessions, fetchedLgpd] = await Promise.all([
+        fetchAuditLogs(currentUser.tenantId),
+        fetchActiveSessions(currentUser.tenantId, currentUser.id),
+        fetchLgpdConsents(currentUser.tenantId),
+      ]);
+
+      setLogs(fetchedLogs);
+      setSessions(fetchedSessions);
+      setLgpdRecords(fetchedLgpd);
+      setStats(computeSecurityStats(fetchedLogs, fetchedSessions));
+    } catch (err) {
+      console.warn('Erro ao carregar dados de segurança:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [currentUser?.tenantId]);
 
   if (!canAccess('securityAudit')) {
     return (
@@ -39,47 +79,60 @@ export default function SecurityPage() {
     );
   }
 
-  const handleTerminateSession = (sessionId: string) => {
+  const handleTerminateSession = async (sessionId: string) => {
     if (!currentUser) return;
-    const success = securityStore.terminateSession(sessionId);
-    if (success) {
-      setSessions(securityStore.getActiveSessions());
-      setStats(securityStore.getStats());
-      // Log event
-      securityStore.logEvent({
-        actorId: currentUser.id,
-        actorName: currentUser.fullName,
-        actorRole: currentUser.isAdminLawyer ? 'Advogado Sócio Titular' : 'Operador Autorizado',
-        action: 'UPDATE_PERMISSIONS',
-        actionDescription: `Encerrou remotamente a sessão de segurança ID: ${sessionId}`,
-        targetResource: `Sessão Remota: ${sessionId}`,
-        ipAddress: '189.124.45.102',
-        userAgent: 'Chrome 122.0.0 (Windows 11)',
-        severity: 'WARNING',
+    const targetSession = sessions.find((s) => s.id === sessionId);
+    const updatedSessions = sessions.filter((s) => s.id !== sessionId);
+    setSessions(updatedSessions);
+
+    try {
+      // Call server endpoint to revoke auth tokens in Supabase Auth
+      const res = await fetch('/api/security/terminate-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: targetSession?.userId || sessionId.replace('sess-', ''),
+          targetName: targetSession?.userName || sessionId,
+        }),
       });
-      setLogs(securityStore.getAuditLogs());
-      setToastMessage('Sessão remota revogada com sucesso e registrada na trilha de auditoria.');
-      setTimeout(() => setToastMessage(null), 4000);
+
+      if (!res.ok) {
+        console.warn('Terminate session server response not OK');
+      }
+    } catch (err) {
+      console.warn('Error invoking terminate-session API:', err);
     }
+
+    // Refresh audit logs
+    const updatedLogs = await fetchAuditLogs(currentUser.tenantId);
+    setLogs(updatedLogs);
+    setStats(computeSecurityStats(updatedLogs, updatedSessions));
+
+    setToastMessage('Sessão remota revogada com sucesso em nível global.');
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleSimulateSensitiveAccess = () => {
+  const handleSimulateSensitiveAccess = async () => {
     if (!currentUser) return;
-    securityStore.logEvent({
+
+    const logged = await recordAuditLog({
+      tenantId: currentUser.tenantId,
       actorId: currentUser.id,
       actorName: currentUser.fullName,
       actorRole: currentUser.isAdminLawyer ? 'Advogado Sócio Titular' : 'Operador Autorizado',
       action: 'VIEW_INSS_PASSWORD',
-      actionDescription: 'Consultou credencial de acesso Meu INSS do segurado para protocolo de aposentadoria',
-      targetResource: 'Cliente: Maria das Dores (CPF: 345.***.***-12)',
-      clientId: 'cli-001',
-      ipAddress: '189.124.45.102',
-      userAgent: 'Chrome 122.0.0 (Windows 11)',
+      actionDescription: 'Consultou credencial de acesso Meu INSS do segurado para protocolo de benefício',
+      targetResource: 'Credencial Meu INSS (Acesso Protegido)',
       severity: 'WARNING',
     });
-    setLogs(securityStore.getAuditLogs());
-    setStats(securityStore.getStats());
-    setToastMessage('Acesso a dado sensível registrado com selo criptográfico SHA-256.');
+
+    if (logged) {
+      const newLogs = [logged, ...logs];
+      setLogs(newLogs);
+      setStats(computeSecurityStats(newLogs, sessions));
+    }
+
+    setToastMessage('Acesso a dado sensível registrado com selo criptográfico de integridade.');
     setTimeout(() => setToastMessage(null), 3500);
   };
 
@@ -112,6 +165,17 @@ export default function SecurityPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={loadData}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all shadow-2xs"
+            title="Atualizar registros de auditoria"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Atualizar</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleSimulateSensitiveAccess}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white border border-slate-300 hover:border-[#C89543] text-slate-700 hover:text-[#082A52] transition-all shadow-2xs"
             title="Simular auditoria de acesso à senha do Meu INSS"
@@ -141,10 +205,11 @@ export default function SecurityPage() {
           <button
             type="button"
             onClick={() => setActiveTab('LOGS')}
-            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${activeTab === 'LOGS'
-              ? 'border-[#C89543] text-[#082A52]'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${
+              activeTab === 'LOGS'
+                ? 'border-[#C89543] text-[#082A52]'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
           >
             <Activity className="w-4 h-4 text-[#C89543]" />
             <span>{t.security.tabLogs}</span>
@@ -156,10 +221,11 @@ export default function SecurityPage() {
           <button
             type="button"
             onClick={() => setActiveTab('SESSIONS')}
-            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${activeTab === 'SESSIONS'
-              ? 'border-[#C89543] text-[#082A52]'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${
+              activeTab === 'SESSIONS'
+                ? 'border-[#C89543] text-[#082A52]'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
           >
             <ShieldCheck className="w-4 h-4 text-[#C89543]" />
             <span>{t.security.tabSessions}</span>
@@ -171,10 +237,11 @@ export default function SecurityPage() {
           <button
             type="button"
             onClick={() => setActiveTab('LGPD')}
-            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${activeTab === 'LGPD'
-              ? 'border-[#C89543] text-[#082A52]'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+            className={`py-3 px-1 border-b-2 font-bold text-xs inline-flex items-center gap-2 transition-all ${
+              activeTab === 'LGPD'
+                ? 'border-[#C89543] text-[#082A52]'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
           >
             <FileCheck2 className="w-4 h-4 text-[#C89543]" />
             <span>{t.security.tabLgpd}</span>

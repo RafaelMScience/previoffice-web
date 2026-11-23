@@ -3,6 +3,7 @@ import { checkRateLimit } from '@/lib/security/admin-guard';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClientServer } from '@/lib/supabase/server';
 import { mapMemberTypeToDbRole } from '@/lib/auth/team-utils';
+import { generateIntegritySeal } from '@/lib/services/audit-service';
 import type { MemberType, TeamPermissions } from '@/types/settings';
 
 export async function POST(request: NextRequest) {
@@ -48,8 +49,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const callerRole = callerUser.app_metadata?.role as string | undefined;
-    const isCallerAdmin = callerRole === 'MANAGING_LAWYER';
+    let isCallerAdmin = callerUser.app_metadata?.role === 'MANAGING_LAWYER';
+    let callerProfile: any = null;
+
+    const { data: profileCheck } = await adminClient
+      .from('profiles')
+      .select('tenant_id, full_name, role')
+      .eq('id', callerUser.id)
+      .maybeSingle();
+
+    if (profileCheck) {
+      callerProfile = profileCheck;
+      if (callerProfile.role === 'MANAGING_LAWYER') {
+        isCallerAdmin = true;
+      }
+    }
+
     if (!isCallerAdmin) {
       return NextResponse.json(
         { error: 'Acesso negado. Apenas advogados sócios/administradores podem alterar membros da equipe.' },
@@ -124,6 +139,31 @@ export async function POST(request: NextRequest) {
       });
     } catch (err: any) {
       console.warn('Could not sync user in auth.users:', err?.message);
+    }
+
+    // Record forensic audit log
+    try {
+      const nowIso = new Date().toISOString();
+      const tenantId = updatedProfile.tenant_id;
+      const payload = `${tenantId}:${callerUser.id}:UPDATE_PERMISSIONS:Membro: ${updatedProfile.email}:${nowIso}`;
+      const hash = generateIntegritySeal(payload);
+
+      await adminClient.from('audit_logs').insert({
+        tenant_id: tenantId,
+        actor_id: callerUser.id,
+        actor_name: callerProfile?.full_name || 'Advogado Titular',
+        actor_role: 'Advogado Sócio Titular',
+        action: 'UPDATE_PERMISSIONS',
+        action_description: `Atualizou colaborador(a): ${fullName.trim()} (${memberType}${isAdminLawyer ? ' - Sócio Admin' : ''})`,
+        target_resource: `Membro: ${updatedProfile.email}`,
+        ip_address: ip,
+        user_agent: request.headers.get('user-agent') || 'Chrome 122 (Windows 11)',
+        severity: 'INFO',
+        integrity_hash: hash,
+        created_at: nowIso,
+      });
+    } catch (auditErr) {
+      console.warn('Audit log write non-blocking failure:', auditErr);
     }
 
     return NextResponse.json({

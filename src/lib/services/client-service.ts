@@ -2,6 +2,7 @@ import { createClient } from '../supabase/client.ts';
 import { encryptData, decryptData, isEncrypted } from '../security/encryption.ts';
 import { dedupeRequest, invalidateCache } from '../cache/request-cache.ts';
 import { sanitizePagination } from '../utils/pagination.ts';
+import { recordAuditLog } from './audit-service.ts';
 import type { Client, ClientStatus, MaritalStatus, SpecialCategory } from '../../types/client.ts';
 import type { Attendance, AttendanceType, AttendanceWithClient, PendingPhysicalDocument } from '../../types/attendance.ts';
 import type { ClientFullRegistrationInput } from '../schemas/client-schema.ts';
@@ -284,6 +285,19 @@ export async function createFastIntakeInDb(
   invalidateCache('clients:');
   invalidateCache('nav-counts:');
 
+  // Asynchronous audit logging
+  recordAuditLog({
+    tenantId,
+    actorId: attendant.id,
+    actorName: assignedName,
+    actorRole: 'Atendente / Recepção',
+    action: 'CREATE_CLIENT',
+    actionDescription: `Cadastrou segurado(a) via Entrada Rápida de Balcão: ${clientRow.full_name}`,
+    targetResource: `Cliente: ${clientRow.full_name}`,
+    clientId: clientRow.id,
+    severity: 'INFO',
+  }).catch(() => {});
+
   return mapDbRowToClient({
     ...clientRow,
     attendances: [
@@ -454,6 +468,21 @@ export async function createFullClientInDb(
 
   invalidateCache('clients:');
   invalidateCache('nav-counts:');
+
+  // Asynchronous audit logging
+  recordAuditLog({
+    tenantId,
+    actorId: attendant.id,
+    actorName: attendant.name,
+    actorRole: 'Advogado(a) / Operador',
+    action: existingClientId ? 'EDIT_CLIENT' : 'CREATE_CLIENT',
+    actionDescription: existingClientId
+      ? `Atualizou prontuário cadastral completo: ${clientRow.full_name}`
+      : `Cadastrou prontuário cadastral completo: ${clientRow.full_name}`,
+    targetResource: `Cliente: ${clientRow.full_name}`,
+    clientId: clientRow.id,
+    severity: 'INFO',
+  }).catch(() => {});
 
   return mapDbRowToClient(clientRow);
 }

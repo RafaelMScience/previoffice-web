@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          id: string
+          tenant_id: string
+          actor_id: string | null
+          actor_name: string
+          actor_role: string
+          action: string
+          action_description: string
+          target_resource: string
+          client_id: string | null
+          ip_address: string
+          user_agent: string
+          severity: string
+          integrity_hash: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          actor_id?: string | null
+          actor_name: string
+          actor_role: string
+          action: string
+          action_description: string
+          target_resource: string
+          client_id?: string | null
+          ip_address?: string
+          user_agent?: string
+          severity?: string
+          integrity_hash: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          actor_id?: string | null
+          actor_name?: string
+          actor_role?: string
+          action?: string
+          action_description?: string
+          target_resource?: string
+          client_id?: string | null
+          ip_address?: string
+          user_agent?: string
+          severity?: string
+          integrity_hash?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendances: {
         Row: {
           attendance_type: string
