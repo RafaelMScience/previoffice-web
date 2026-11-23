@@ -14,6 +14,12 @@ import { createClient } from '@/lib/supabase/client';
 import { dedupeRequest } from '@/lib/cache/request-cache';
 import { useDebounce } from '@/hooks/use-debounce';
 import { formatCpf } from '@/lib/domain/cpf-validator';
+import { useWelcomeModal } from '@/components/welcome-modal/welcome-modal-context';
+import { TermsConsentModal } from '@/components/terms/terms-consent-modal';
+import { InactivityLockScreen } from '@/components/lock-screen/inactivity-lock-screen';
+import { useInactivityTracker } from '@/components/lock-screen/inactivity-tracker';
+import { CURRENT_TERMS_VERSION } from '@/components/terms/terms-content';
+import { recordAuditLog } from '@/lib/services/audit-service';
 
 const FIRST_ACCESS_EMAIL_KEY = 'previoffice_first_access_email';
 
@@ -28,6 +34,66 @@ function DashboardContent({
   const pathname = usePathname();
   const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
   const [navCounts, setNavCounts] = useState<{ clients: number; attendances: number }>({ clients: 0, attendances: 0 });
+
+  // Welcome tour & LGPD terms sequencing
+  const { isWelcomeOpen } = useWelcomeModal();
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // Check if current operator has accepted LGPD terms
+  useEffect(() => {
+    if (!currentUser?.id || isWelcomeOpen) return;
+
+    let hasAccepted = false;
+    try {
+      const stored = localStorage.getItem(`previoffice_terms_accepted_${currentUser.id}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.version === CURRENT_TERMS_VERSION) {
+          hasAccepted = true;
+        }
+      }
+    } catch {
+      // Ignored
+    }
+
+    if (!hasAccepted) {
+      setShowTermsModal(true);
+    }
+  }, [currentUser?.id, isWelcomeOpen]);
+
+  // Inactivity tracker (45 min) with zero data loss lock screen
+  const { isLocked, unlock } = useInactivityTracker({
+    timeoutMs: 45 * 60 * 1000,
+    enabled: isAuthenticated && !isLoading,
+    onLock: () => {
+      if (currentUser?.tenantId) {
+        recordAuditLog({
+          tenantId: currentUser.tenantId,
+          actorId: currentUser.id,
+          actorName: currentUser.fullName || 'Operador',
+          actorRole: currentUser.memberType || 'Operador',
+          action: 'SESSION_LOCKED_INACTIVITY',
+          actionDescription: 'Tela bloqueada automaticamente após 45 minutos de inatividade.',
+          targetResource: `SESSION:${currentUser.id}`,
+          severity: 'INFO',
+        }).catch(() => {});
+      }
+    },
+    onUnlock: () => {
+      if (currentUser?.tenantId) {
+        recordAuditLog({
+          tenantId: currentUser.tenantId,
+          actorId: currentUser.id,
+          actorName: currentUser.fullName || 'Operador',
+          actorRole: currentUser.memberType || 'Operador',
+          action: 'SESSION_UNLOCKED',
+          actionDescription: 'Sessão desbloqueada pelo operador.',
+          targetResource: `SESSION:${currentUser.id}`,
+          severity: 'INFO',
+        }).catch(() => {});
+      }
+    },
+  });
 
   // Debounced global search state with request cancellation
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
@@ -513,6 +579,23 @@ function DashboardContent({
         <main className="p-8 max-w-7xl mx-auto w-full">
           {children}
         </main>
+
+        {/* LGPD Terms & Responsibility Consent Modal (After tour) */}
+        <TermsConsentModal
+          isOpen={showTermsModal}
+          onAccepted={() => {
+            setShowTermsModal(false);
+            refreshUser?.();
+          }}
+        />
+
+        {/* 45-Minute Inactivity Lock Screen (Preserves form data) */}
+        <InactivityLockScreen
+          isLocked={isLocked}
+          onUnlock={unlock}
+          onSignOut={handleLogout}
+          user={currentUser ? { fullName: currentUser.fullName, role: currentUser.memberType } : null}
+        />
       </div>
     </div>
   );
