@@ -83,15 +83,23 @@ export function GuidedTourProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).startPreviOfficeTour = () => {
-        if (currentUser?.id) {
-          localStorage.removeItem(`previoffice_tour_completed_${currentUser.id}`);
+        console.log('🚀 Iniciando PreviOffice Guided Tour...');
+        try {
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('previoffice_tour_completed')) {
+              localStorage.removeItem(key);
+            }
+          });
+        } catch {
+          // Ignore
         }
         setCurrentStepIndex(0);
-        syncRouteForStep(0);
         setIsTourActive(true);
+        syncRouteForStep(0);
+        return 'Tour iniciado com sucesso!';
       };
     }
-  }, [currentUser?.id, syncRouteForStep]);
+  }, [syncRouteForStep]);
 
   const startTour = () => {
     setCurrentStepIndex(0);

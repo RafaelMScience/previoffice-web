@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { I18nProvider } from '@/lib/i18n/i18n-context';
 import { AuthProvider } from '@/lib/auth/auth-context';
+import { GuidedTourProvider } from '@/components/guided-tour/guided-tour-context';
+import { GuidedTourOverlay } from '@/components/guided-tour/guided-tour-overlay';
 import { WebVitalsReporter } from '@/components/telemetry/web-vitals';
 
 export const metadata: Metadata = {
@@ -20,7 +22,10 @@ export default function RootLayout({
         <WebVitalsReporter />
         <I18nProvider>
           <AuthProvider>
-            {children}
+            <GuidedTourProvider>
+              {children}
+              <GuidedTourOverlay />
+            </GuidedTourProvider>
           </AuthProvider>
         </I18nProvider>
       </body>
