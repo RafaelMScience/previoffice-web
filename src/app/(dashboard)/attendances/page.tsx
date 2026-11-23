@@ -506,7 +506,7 @@ export default function AttendancesPage() {
                         <td className="px-5 py-4">
                           <span className="text-xs text-slate-600 flex items-center gap-1">
                             <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                            {att.attendantName || 'Dr. Alexandre Pontes'}
+                            {att.attendantName || 'Advogado Responsável'}
                           </span>
                         </td>
 
@@ -724,7 +724,7 @@ export default function AttendancesPage() {
                       <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200/60">
                         <span className="flex items-center gap-1.5">
                           <UserCheck className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Atendente: {att.attendantName || 'Dr. Alexandre Pontes'}</span>
+                          <span>Atendente: {att.attendantName || 'Advogado Responsável'}</span>
                         </span>
 
                         <Link

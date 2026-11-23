@@ -21,6 +21,7 @@ import {
 import type { Client } from '@/types/client';
 import type { ContractTemplate, FeeModel, DocumentCategory } from '@/types/contract';
 import { contractsStore } from '@/lib/data/mock-contracts';
+import { settingsStore } from '@/lib/data/mock-settings';
 import { useAuth } from '@/lib/auth/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -65,15 +66,24 @@ export function LegalContractModal({
   const lawyerOptions = useMemo(() => {
     const list = [];
     if (currentUser?.fullName) {
-      list.push({ name: currentUser.fullName, oab: currentUser.oabNumber || 'OAB/AM 55.858' });
+      list.push({ name: currentUser.fullName, oab: currentUser.oabNumber || 'OAB/AM' });
     }
-    list.push({ name: 'Dr. Alexandre Pontes', oab: 'OAB/AM 55.858' });
+    const team = settingsStore.getTeamMembers().filter((m) => m.memberType === 'LAWYER');
+    for (const member of team) {
+      if (!list.some((l) => l.name === member.fullName)) {
+        list.push({ name: member.fullName, oab: member.oabNumber || 'OAB/AM' });
+      }
+    }
+    if (list.length === 0) {
+      list.push({ name: 'Advogado Titular', oab: 'OAB/AM' });
+    }
     return list;
   }, [currentUser]);
 
   const [selectedLawyer, setSelectedLawyer] = useState(lawyerOptions[0]);
-  const officeName = 'Alexandre Pontes Sociedade de Advogados';
-  const officeOab = 'OAB/AM 12.345';
+  const officeSettings = settingsStore.getOfficeSettings();
+  const officeName = officeSettings?.officeName || 'Sociedade de Advogados';
+  const officeOab = officeSettings?.oabSocietyNumber || 'OAB/AM';
   const cabinetLocation = client.physicalFileLocation || 'Armário B - Gaveta 03 - Pasta 2026-042';
 
   // Carrega minutas

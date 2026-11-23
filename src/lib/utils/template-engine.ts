@@ -23,10 +23,10 @@ export const TEMPLATE_PLACEHOLDERS: TemplatePlaceholder[] = [
   { tag: '{{TELEFONE}}', label: 'Telefone', description: 'WhatsApp ou telefone para contato', example: '(92) 98765-4321' },
   { tag: '{{BENEFICIO}}', label: 'Espécie de Benefício', description: 'Benefício previdenciário objeto da ação', example: 'Aposentadoria por Idade Rural' },
   { tag: '{{HONORARIOS}}', label: 'Condição de Honorários', description: 'Descrição da Quota Litis ou parcelamento', example: '30% (trinta por cento) sobre os atrasados apurados' },
-  { tag: '{{NOME_ADVOGADO}}', label: 'Nome do Advogado', description: 'Advogado titular responsável pelo contrato', example: 'Dr. Alexandre Pontes' },
-  { tag: '{{OAB_ADVOGADO}}', label: 'OAB do Advogado', description: 'Número de inscrição na OAB com seccional', example: 'OAB/AM 55.858' },
+  { tag: '{{NOME_ADVOGADO}}', label: 'Nome do Advogado', description: 'Advogado titular responsável pelo contrato', example: 'Dr. Carlos Eduardo Silva' },
+  { tag: '{{OAB_ADVOGADO}}', label: 'OAB do Advogado', description: 'Número de inscrição na OAB com seccional', example: 'OAB/AM 12.345' },
   { tag: '{{PASTA_FISICA}}', label: 'Pasta no Arquivo', description: 'Etiqueta do armário e gaveta física', example: 'Armário B - Gaveta 03 - Pasta 2026-042' },
-  { tag: '{{NOME_ESCRITORIO}}', label: 'Nome da Sociedade / Escritório', description: 'Razão social registrada do escritório de advocacia', example: 'Alexandre Pontes Sociedade de Advogados' },
+  { tag: '{{NOME_ESCRITORIO}}', label: 'Nome da Sociedade / Escritório', description: 'Razão social registrada do escritório de advocacia', example: 'Silva & Oliveira Sociedade de Advogados' },
   { tag: '{{OAB_ESCRITORIO}}', label: 'OAB da Sociedade', description: 'Inscrição da sociedade de advogados na OAB', example: 'OAB/AM' },
   { tag: '{{DATA_EXTENSO}}', label: 'Data por Extenso', description: 'Data atual por extenso da assinatura', example: '17 de Novembro de 2026' },
 ];
@@ -205,7 +205,7 @@ export function mergeTemplatePlaceholders(
       year: 'numeric',
     }).format(new Date());
 
-  const effectiveOfficeName = variables.officeName || 'Alexandre Pontes Sociedade de Advogados';
+  const effectiveOfficeName = variables.officeName || 'Sociedade de Advogados';
   const effectiveOfficeOab = variables.officeOab || 'OAB/AM';
 
   const replacements: Record<string, string> = {
@@ -218,10 +218,10 @@ export function mergeTemplatePlaceholders(
     '{{TELEFONE}}': variables.clientPhone || 'Não informado',
     '{{BENEFICIO}}': formatBenefitType(variables.benefitSpecies, 'pt-BR') || 'Benefício Previdenciário',
     '{{HONORARIOS}}': variables.feeDescription || '30% (trinta por cento) sobre o proveito econômico',
-    '{{NOME_ADVOGADO}}': variables.lawyerName || 'Dr. Alexandre Pontes',
-    '{{ADVOGADO}}': variables.lawyerName || 'Dr. Alexandre Pontes',
-    '{{OAB_ADVOGADO}}': variables.lawyerOab || 'OAB/AM 55.858',
-    '{{OAB}}': variables.lawyerOab || 'OAB/AM 55.858',
+    '{{NOME_ADVOGADO}}': variables.lawyerName || 'Advogado Titular',
+    '{{ADVOGADO}}': variables.lawyerName || 'Advogado Titular',
+    '{{OAB_ADVOGADO}}': variables.lawyerOab || 'OAB/AM',
+    '{{OAB}}': variables.lawyerOab || 'OAB/AM',
     '{{NOME_ESCRITORIO}}': effectiveOfficeName,
     '{{OAB_ESCRITORIO}}': effectiveOfficeOab,
     '{{PASTA_FISICA}}': variables.cabinetFolder || 'Arquivo Geral do Escritório',

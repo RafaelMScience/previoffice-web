@@ -130,7 +130,7 @@ export interface Contract {
   customDocuments?: PhysicalDocumentAttachment[];
   feeStructure: ContractFeeStructure;
   
-  lawyerName: string;                    // e.g. "Dr. Alexandre Pontes"
+  lawyerName: string;                    // e.g. "Dr. Carlos Eduardo Silva"
   lawyerOab: string;                     // e.g. "OAB/AM 55.858"
   officeName: string;
   

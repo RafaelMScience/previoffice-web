@@ -113,10 +113,10 @@ export default function DemoDocumentosPage() {
     return firstDueDate;
   }, [firstDueDate]);
 
-  const lawyerName = 'Dr. Alexandre Pontes';
-  const lawyerOab = 'OAB/AM 55.858';
-  const officeName = 'Alexandre Pontes Sociedade de Advogados';
-  const officeOab = 'OAB/AM 12.345';
+  const lawyerName = 'Dr. Carlos Eduardo Silva';
+  const lawyerOab = 'OAB/AM 12.345';
+  const officeName = 'Silva & Oliveira Sociedade de Advogados';
+  const officeOab = 'OAB/AM 00.123';
   const todayFormatted = new Intl.DateTimeFormat('pt-BR', {
     day: 'numeric',
     month: 'long',

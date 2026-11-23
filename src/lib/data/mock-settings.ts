@@ -125,7 +125,7 @@ class SettingsStore {
     if (updatedMember) {
       securityStore.logEvent({
         actorId: 'usr-001',
-        actorName: 'Dr. Alexandre Pontes',
+        actorName: 'Advogado Titular',
         actorRole: 'Advogado Sócio Titular',
         action: 'UPDATE_PERMISSIONS',
         actionDescription: `Alterou status de ativação do colaborador ${(updatedMember as TeamMember).fullName} para ${(updatedMember as TeamMember).active ? 'Ativo' : 'Inativo'}`,
@@ -145,7 +145,7 @@ class SettingsStore {
       const mEmail = m.email.toLowerCase();
       if (mEmail === normalized) return true;
       // Support email aliases / domains
-      if (normalized.includes('alexandre') && mEmail.includes('alexandre')) return true;
+      if (normalized.includes('admin') && mEmail.includes('admin')) return true;
       if (normalized.includes('recepcao') && mEmail.includes('recepcao')) return true;
       if (normalized.includes('lucas') && mEmail.includes('lucas')) return true;
       if (normalized.includes('camila') && mEmail.includes('camila')) return true;
@@ -213,7 +213,7 @@ class SettingsStore {
     if (updatedMember) {
       securityStore.logEvent({
         actorId: 'usr-001',
-        actorName: 'Dr. Alexandre Pontes',
+        actorName: 'Advogado Titular',
         actorRole: 'Advogado Sócio Titular',
         action: 'RESET_PASSWORD',
         actionDescription: `Redefiniu senha provisória e forçou 1º acesso para o colaborador ${(updatedMember as TeamMember).fullName} (${(updatedMember as TeamMember).email})`,

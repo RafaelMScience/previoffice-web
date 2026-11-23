@@ -49,9 +49,9 @@ export function NewCaseUpdateModal({
   );
   const [actionDeadline, setActionDeadline] = useState('');
   const [notifyClientText, setNotifyClientText] = useState(
-    `Olá ${clientName}! Aqui é do escritório de advocacia do Dr. Alexandre Pontes. Passando para avisar que acabamos de dar entrada no seu pedido junto ao INSS! Já temos o número do protocolo e nossa equipe está acompanhando a análise do órgão.`
+    `Olá ${clientName}! Aqui é da equipe jurídica do escritório de advocacia. Passando para avisar que acabamos de dar entrada no seu pedido junto ao INSS! Já temos o número do protocolo e nossa equipe está acompanhando a análise do órgão.`
   );
-  const [recordedBy, setRecordedBy] = useState(() => currentUser?.fullName || 'Dr. Alexandre Pontes');
+  const [recordedBy, setRecordedBy] = useState(() => currentUser?.fullName || 'Advogado Responsável');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const applyPreset = (preset: 'INSS_INIT' | 'INSS_EXIGENCE' | 'INSS_PERICIA' | 'INSS_CONCEDE' | 'JUDICIAL_INIT') => {
@@ -63,7 +63,7 @@ export function NewCaseUpdateModal({
         setTitle('Entrada do Requerimento Administrativo no INSS');
         setDescription('Protocolado requerimento administrativo junto ao INSS via Meu INSS com procuração e documentos comprobatórios.');
         setNotifyClientText(
-          `Olá ${clientName}! Aqui é do escritório do Dr. Alexandre Pontes. Passando para avisar que acabamos de dar entrada no seu pedido junto ao INSS! Já temos o comprovante do protocolo e agora nossa equipe está acompanhando a análise do órgão.`
+          `Olá ${clientName}! Aqui é da equipe jurídica do escritório. Passando para avisar que acabamos de dar entrada no seu pedido junto ao INSS! Já temos o comprovante do protocolo e agora nossa equipe está acompanhando a análise do órgão.`
         );
         break;
       case 'INSS_EXIGENCE':

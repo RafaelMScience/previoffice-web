@@ -630,7 +630,7 @@ export function TeamManagementTab() {
         onClose={() => setShareData(null)}
         member={shareData?.member || null}
         temporaryPassword={shareData?.tempPassword || ''}
-        officeName={settingsStore.getOfficeSettings()?.officeName || 'Alexandre Pontes Advocacia'}
+        officeName={settingsStore.getOfficeSettings()?.officeName || 'Escritório de Advocacia'}
       />
     </div>
   );

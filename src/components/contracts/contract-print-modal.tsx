@@ -426,7 +426,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                   {/* Office Header */}
                   <div className="text-center border-b-2 border-[#082A52] pb-4 mb-4">
                     <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                      {contract.officeName || 'Alexandre Pontes Sociedade de Advogados'} • OAB
+                      {contract.officeName || 'Sociedade de Advogados'} • OAB
                     </div>
                     <h2 className="font-bold text-base sm:text-lg text-[#082A52] uppercase mt-1">
                       Contrato de Prestação de Serviços Advocatícios e Honorários
@@ -451,7 +451,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                         </p>
 
                         <p>
-                          <strong>CONTRATADA:</strong> <strong>{contract.officeName ? contract.officeName.toUpperCase() : 'ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS'}</strong>, pessoa jurídica de direito privado inscrita na OAB sob o registro competente, representada pelo advogado <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, inscrito na <strong>{contract.lawyerOab || 'OAB/AM 55.858'}</strong>, com sede e escritório profissional estabelecido nesta comarca, doravante denominada simplesmente <strong>CONTRATADA</strong>.
+                          <strong>CONTRATADA:</strong> <strong>{contract.officeName ? contract.officeName.toUpperCase() : 'SOCIEDADE DE ADVOGADOS'}</strong>, pessoa jurídica de direito privado inscrita na OAB sob o registro competente, representada pelo advogado <strong>{contract.lawyerName || 'Advogado Responsável'}</strong>, inscrito na <strong>{contract.lawyerOab || 'OAB/AM 00.000'}</strong>, com sede e escritório profissional estabelecido nesta comarca, doravante denominada simplesmente <strong>CONTRATADA</strong>.
                         </p>
                       </div>
 
@@ -576,9 +576,9 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                     </div>
 
                     <div className="border-t border-slate-800 pt-1.5">
-                      <strong className="block text-slate-900">{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>
+                      <strong className="block text-slate-900">{contract.lawyerName || 'Advogado Responsável'}</strong>
                       <span className="text-[11px] text-slate-500">
-                        {contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/AM'} • {locale === 'en-US' ? 'LAW FIRM' : 'CONTRATADA'}
+                        {contract.officeName || 'Sociedade de Advogados'} • {contract.lawyerOab || 'OAB/AM'} • {locale === 'en-US' ? 'LAW FIRM' : 'CONTRATADA'}
                       </span>
                     </div>
                   </div>
@@ -636,7 +636,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                       </p>
 
                       <p>
-                        <strong>OUTORGADOS:</strong> <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, advogado inscrito na Ordem dos Advogados do Brasil sob a {contract.lawyerOab || 'OAB/AM nº 55.858'}, e os advogados associados integrantes da sociedade <strong>ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS</strong>, com escritório profissional onde recebem notificações, intimações e correspondências de estilo.
+                        <strong>OUTORGADOS:</strong> <strong>{contract.lawyerName || 'Advogado Responsável'}</strong>, advogado inscrito na Ordem dos Advogados do Brasil sob a {contract.lawyerOab || 'OAB/AM nº 00.000'}, e os advogados associados integrantes da sociedade <strong>{contract.officeName ? contract.officeName.toUpperCase() : 'SOCIEDADE DE ADVOGADOS'}</strong>, com escritório profissional onde recebem notificações, intimações e correspondências de estilo.
                       </p>
 
                       <div>
@@ -706,7 +706,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                 <div className="text-center border-b-2 border-[#082A52] pb-4">
                   <div className="flex items-center justify-center gap-2 text-[#082A52] mb-1">
                     <Scale className="w-5 h-5 text-[#C89543]" />
-                    <span className="font-bold uppercase tracking-wider text-xs">{contract.officeName || 'Alexandre Pontes Sociedade de Advogados'}</span>
+                    <span className="font-bold uppercase tracking-wider text-xs">{contract.officeName || 'Sociedade de Advogados'}</span>
                   </div>
                   <h2 className="font-extrabold text-lg sm:text-xl text-[#082A52] uppercase tracking-tight">
                     {locale === 'en-US' ? 'Social Security Case File' : 'Dossiê do Processo Previdenciário'}
@@ -803,7 +803,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                 {/* Footer */}
                 <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
                   <span>{locale === 'en-US' ? 'Filing Date:' : 'Data de Autuação:'} {getFullTodayDate()}</span>
-                  <span>{contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/AM'}</span>
+                  <span>{contract.officeName || 'Sociedade de Advogados'} • {contract.lawyerOab || 'OAB/AM'}</span>
                 </div>
               </div>
             )}

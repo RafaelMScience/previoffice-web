@@ -45,7 +45,7 @@ export function ShareCredentialsModal({
       ? 'Assistente de Atendimento'
       : 'Estagiário(a) de Direito';
 
-  const firmName = officeName || 'Alexandre Pontes Advocacia';
+  const firmName = officeName || 'Escritório de Advocacia';
   const shareText = `🏛️ *PreviOffice - ${firmName}*
 Olá, ${member.fullName}! Seu acesso ao sistema do escritório foi criado com sucesso:
 

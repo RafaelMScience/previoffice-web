@@ -34,9 +34,9 @@ export function ClientPdfReportModal({
   attendances = [],
   isOpen,
   onClose,
-  lawyerName = 'Dr. Alexandre Pontes',
-  lawyerOab = 'OAB/AM 55.858',
-  officeName = 'Alexandre Pontes Sociedade de Advogados',
+  lawyerName = 'Advogado Titular',
+  lawyerOab = 'OAB/AM',
+  officeName = 'Sociedade de Advogados',
 }: ClientPdfReportModalProps) {
   const { t, locale } = useI18n();
   const isEn = locale === 'en-US';

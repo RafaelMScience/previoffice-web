@@ -374,7 +374,7 @@ export default function AdminProvisioningPage() {
                       maxLength={15}
                       value={phone}
                       onChange={(e) => setPhone(maskPhone(e.target.value))}
-                      placeholder="(92) 99415-1992"
+                      placeholder="(11) 98765-4321"
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
                     />
                   </div>
@@ -402,7 +402,7 @@ export default function AdminProvisioningPage() {
                       required
                       value={officeEmail}
                       onChange={(e) => setOfficeEmail(e.target.value)}
-                      placeholder="contato@pontesadvocacia.com.br"
+                      placeholder={t.adminProvisioning.officeEmailPlaceholder}
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
                     />
                   </div>
@@ -415,7 +415,7 @@ export default function AdminProvisioningPage() {
                       type="text"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Av. Djalma Batista, nº 1000 - Manaus/AM"
+                      placeholder="Av. Paulista, nº 1000, Sala 501 - Centro"
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
                     />
                   </div>
@@ -439,7 +439,7 @@ export default function AdminProvisioningPage() {
                       required
                       value={lawyerName}
                       onChange={(e) => setLawyerName(e.target.value)}
-                      placeholder="Dr. Alexandre Pontes"
+                      placeholder={t.adminProvisioning.lawyerNamePlaceholder}
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
                     />
                   </div>
@@ -497,7 +497,7 @@ export default function AdminProvisioningPage() {
                       maxLength={15}
                       value={lawyerPhone}
                       onChange={(e) => setLawyerPhone(maskPhone(e.target.value))}
-                      placeholder="(92) 99415-1992"
+                      placeholder="(11) 98765-4321"
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
                     />
                   </div>
@@ -511,7 +511,7 @@ export default function AdminProvisioningPage() {
                       required
                       value={lawyerEmail}
                       onChange={(e) => setLawyerEmail(e.target.value)}
-                      placeholder="dr.alexandre@pontesadvocacia.com.br"
+                      placeholder={t.adminProvisioning.lawyerEmailPlaceholder}
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
                     />
                   </div>

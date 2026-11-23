@@ -109,14 +109,14 @@ export function UploadSignedModal({
       fileSizeFormatted: fileSizeFormatted || '1.8 MB',
       fileType,
       uploadedAt: new Date().toISOString(),
-      uploadedBy: currentUser?.fullName || 'Dr. Alexandre Pontes',
+      uploadedBy: currentUser?.fullName || 'Advogado Titular',
       physicalCabinetLocation: cabinetLocation || 'Armário Geral',
       signerType,
       documentCategory,
       isSigned: true,
       fileDataUrl: uploadedDataUrl || undefined,
       replacedAt: new Date().toISOString(),
-      replacedBy: currentUser?.fullName || 'Dr. Alexandre Pontes',
+      replacedBy: currentUser?.fullName || 'Advogado Titular',
       notes: notes || undefined,
     };
 

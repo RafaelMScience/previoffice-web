@@ -252,6 +252,7 @@ export interface Translations {
     formSecLawyer: string;
     officeNameLabel: string;
     officeNamePlaceholder: string;
+    officeEmailPlaceholder: string;
     oabNumberLabel: string;
     oabNumberPlaceholder: string;
     oabUfLabel: string;
@@ -262,12 +263,14 @@ export interface Translations {
     officeEmailLabel: string;
     officeAddressLabel: string;
     lawyerNameLabel: string;
+    lawyerNamePlaceholder: string;
     lawyerCpfLabel: string;
     lawyerOabNumberLabel: string;
     lawyerOabNumberPlaceholder: string;
     lawyerOabUfLabel: string;
     lawyerPhoneLabel: string;
     lawyerEmailLabel: string;
+    lawyerEmailPlaceholder: string;
     lawyerPasswordLabel: string;
     planLabel: string;
     planTrial: string;
