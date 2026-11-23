@@ -35,7 +35,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute =
     pathname.startsWith('/login') ||
     pathname.startsWith('/definir-senha') ||
-    pathname.startsWith('/demo-documentos');
+    pathname.startsWith('/demo-documentos') ||
+    pathname.startsWith('/admin/provisioning');
 
   // Refresh auth session safely (never crash or block SSR if local Docker is offline)
   let user: any = null;
