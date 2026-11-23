@@ -29,6 +29,7 @@ describe('Guided Tour & Interactive Spotlight Walkthrough', () => {
   it('Step 3 should detail return attendances and procedural timeline', () => {
     const step3 = TOUR_STEPS[2];
     assert.strictEqual(step3.stepNumber, 3);
+    assert.strictEqual(step3.targetSelector, '#tour-return-attendance-btn');
     assert.ok(step3.title.includes('Retorno'));
     assert.ok(step3.highlights.some((h) => h.includes('Histórico Inalterável')));
     assert.ok(step3.highlights.some((h) => h.includes('Checklist de Documentos Pendentes')));
@@ -37,6 +38,7 @@ describe('Guided Tour & Interactive Spotlight Walkthrough', () => {
   it('Step 4 should explain contracts, powers of attorney, and template customization', () => {
     const step4 = TOUR_STEPS[3];
     assert.strictEqual(step4.stepNumber, 4);
+    assert.strictEqual(step4.targetSelector, '#tour-contract-btn');
     assert.ok(step4.title.includes('Contratos') && step4.title.includes('Procurações'));
     assert.ok(step4.highlights.some((h) => h.includes('Quota Litis')));
     assert.ok(step4.highlights.some((h) => h.includes('Como Alterar Minutas')));
@@ -45,6 +47,7 @@ describe('Guided Tour & Interactive Spotlight Walkthrough', () => {
   it('Step 5 should explain the purpose of the Client PDF Dossier', () => {
     const step5 = TOUR_STEPS[4];
     assert.strictEqual(step5.stepNumber, 5);
+    assert.strictEqual(step5.targetSelector, '#tour-pdf-btn');
     assert.ok(step5.title.includes('Ficha em PDF'));
     assert.ok(step5.highlights.some((h) => h.includes('Assinatura Física')));
     assert.ok(step5.highlights.some((h) => h.includes('Armazenamento em Pasta Física')));
