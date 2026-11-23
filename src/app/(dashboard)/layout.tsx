@@ -8,6 +8,8 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { OperatorSwitcherModal } from '@/components/ui/operator-switcher-modal';
+import { WelcomeModalProvider } from '@/components/welcome-modal/welcome-modal-context';
+import { WelcomeHeaderButton } from '@/components/welcome-modal/welcome-header-button';
 import { createClient } from '@/lib/supabase/client';
 import { dedupeRequest } from '@/lib/cache/request-cache';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -487,6 +489,9 @@ function DashboardContent({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Interactive Welcome Slides Guide */}
+            <WelcomeHeaderButton />
+
             {/* Topbar Language Switcher */}
             <LanguageSwitcher variant="pill" />
 
@@ -521,5 +526,9 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardContent>{children}</DashboardContent>;
+  return (
+    <WelcomeModalProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </WelcomeModalProvider>
+  );
 }
