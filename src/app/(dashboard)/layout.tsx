@@ -284,7 +284,6 @@ function DashboardContent({
 
               {canAccess('contractsAndFinancial') && (
                 <Link
-                  id="tour-contracts-nav-link"
                   href="/contracts"
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isContracts
                     ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
@@ -303,7 +302,6 @@ function DashboardContent({
             {t.navigation.sectionIntelligence}
           </div>
           <Link
-            id="tour-vade-mecum-btn"
             href="/vade-mecum"
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isVadeMecum
               ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
@@ -329,7 +327,6 @@ function DashboardContent({
 
           {canAccess('adminSettings') && (
             <Link
-              id="tour-settings-nav-link"
               href="/settings"
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isSettings
                 ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'

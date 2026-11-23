@@ -159,7 +159,6 @@ export default function ReceptionDashboardPage() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            id="tour-fast-intake-btn"
             onClick={() => setIsFastIntakeOpen(true)}
             className="bg-[#C89543] hover:bg-[#b08136] text-[#0B192E] font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-[#C89543]/20 flex items-center gap-2 text-sm"
           >
@@ -167,7 +166,6 @@ export default function ReceptionDashboardPage() {
             <span>{t.dashboard.fastIntakeBtn}</span>
           </button>
           <Link
-            id="tour-full-client-btn"
             href="/clientes/new"
             className="bg-white/10 hover:bg-white/15 text-white font-medium px-4 py-2.5 rounded-xl transition-all border border-white/15 flex items-center gap-2 text-sm"
           >
