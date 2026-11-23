@@ -256,10 +256,17 @@ export interface Translations {
     oabNumberPlaceholder: string;
     oabUfLabel: string;
     cnpjCpfLabel: string;
+    societyOabLabel: string;
+    societyOabPlaceholder: string;
     phoneLabel: string;
     officeEmailLabel: string;
     officeAddressLabel: string;
     lawyerNameLabel: string;
+    lawyerCpfLabel: string;
+    lawyerOabNumberLabel: string;
+    lawyerOabNumberPlaceholder: string;
+    lawyerOabUfLabel: string;
+    lawyerPhoneLabel: string;
     lawyerEmailLabel: string;
     lawyerPasswordLabel: string;
     planLabel: string;

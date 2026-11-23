@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { checkRateLimit, verifyMasterKey } from '@/lib/security/admin-guard';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isValidCpf, formatCpf } from '@/lib/domain/cpf-validator';
 
 export async function POST(request: NextRequest) {
   const ip =
@@ -22,13 +23,19 @@ export async function POST(request: NextRequest) {
     const {
       masterKey,
       officeName,
+      cnpj,
+      taxId,
+      societyOab,
       oabNumber,
       oabUf,
-      taxId,
       phone,
       officeEmail,
       address,
       lawyerName,
+      lawyerCpf,
+      lawyerOabNumber,
+      lawyerOabUf,
+      lawyerPhone,
       lawyerEmail,
       lawyerPassword,
       planType = 'TRIAL_90_DAYS',
@@ -42,27 +49,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const lawyerOab = (lawyerOabNumber || oabNumber || '').trim();
+    const lawyerUf = (lawyerOabUf || oabUf || 'AM').trim().toUpperCase();
+    const officeTaxId = (cnpj || taxId || '').trim();
+
     // 3. Validation
     if (
       !officeName ||
-      !oabNumber ||
-      !oabUf ||
       !officeEmail ||
       !lawyerName ||
       !lawyerEmail ||
-      !lawyerPassword
+      !lawyerPassword ||
+      !lawyerOab
     ) {
       return NextResponse.json(
-        { error: 'Missing required office or lawyer administrator fields.' },
+        { error: 'Campos obrigatórios do escritório ou do advogado titular não informados.' },
         { status: 400 }
       );
+    }
+
+    // CPF validation for lawyer (pessoa física)
+    let formattedLawyerCpf: string | null = null;
+    if (lawyerCpf && lawyerCpf.trim()) {
+      const cleanDigits = lawyerCpf.replace(/\D/g, '');
+      if (cleanDigits.length === 11 && !isValidCpf(cleanDigits)) {
+        return NextResponse.json(
+          { error: 'O CPF informado para o advogado titular é inválido.' },
+          { status: 400 }
+        );
+      }
+      formattedLawyerCpf = cleanDigits.length === 11 ? formatCpf(cleanDigits) : lawyerCpf.trim();
     }
 
     const adminClient = createAdminClient();
 
     const cleanOfficeEmail = officeEmail.trim().toLowerCase();
     const cleanLawyerEmail = lawyerEmail.trim().toLowerCase();
-    const cleanTaxId = taxId ? taxId.replace(/\D/g, '') : null;
+    const finalLawyerOab = `${lawyerOab}/${lawyerUf}`;
+    const finalSocietyOab = societyOab?.trim() || finalLawyerOab;
 
     // 4. Pre-Flight Uniqueness Checks (dispatched in parallel)
     const [{ data: existingProfile }, { data: existingTenantEmail }] = await Promise.all([
@@ -96,14 +120,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Insert Tenant in Supabase (enforced atomically by unique indexes idx_tenants_unique_email_lower and idx_tenants_unique_tax_id_digits)
+    // 5. Insert Tenant in Supabase (CNPJ vincula ao escritório / Razão Social)
     const { data: tenantData, error: tenantError } = await adminClient
       .from('tenants')
       .insert({
         office_name: officeName.trim(),
         lead_lawyer_name: lawyerName.trim(),
-        oab_number: `${oabNumber.trim()}/${oabUf.trim()}`,
-        tax_id: taxId ? taxId.trim() : null,
+        oab_number: finalSocietyOab,
+        tax_id: officeTaxId || null,
         phone: phone ? phone.trim() : null,
         whatsapp: phone ? phone.trim() : null,
         email: cleanOfficeEmail,
@@ -150,7 +174,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Create Managing Lawyer in Supabase Auth (enforces auth email uniqueness)
+    // 6. Create Managing Lawyer in Supabase Auth (CPF e OAB vinculados à Pessoa Física do Advogado)
     const { data: authData, error: authError } =
       await adminClient.auth.admin.createUser({
         email: cleanLawyerEmail,
@@ -162,8 +186,9 @@ export async function POST(request: NextRequest) {
         },
         user_metadata: {
           full_name: lawyerName.trim(),
-          phone: phone ? phone.trim() : null,
-          oab_number: `${oabNumber.trim()}/${oabUf.trim()}`,
+          cpf: formattedLawyerCpf,
+          oab_number: finalLawyerOab,
+          phone: (lawyerPhone || phone) ? (lawyerPhone || phone).trim() : null,
         },
       });
 
@@ -184,14 +209,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 7. Create Profile in public.profiles (enforced by idx_profiles_unique_email_lower)
+    // 7. Create Profile in public.profiles (CPF e OAB do Advogado)
     const { error: profileError } = await adminClient.from('profiles').insert({
       id: authData.user.id,
       tenant_id: tenantData.id,
       full_name: lawyerName.trim(),
+      cpf: formattedLawyerCpf,
       email: cleanLawyerEmail,
-      phone: phone ? phone.trim() : null,
-      oab_number: `${oabNumber.trim()}/${oabUf.trim()}`,
+      phone: (lawyerPhone || phone) ? (lawyerPhone || phone).trim() : null,
+      oab_number: finalLawyerOab,
       role: 'MANAGING_LAWYER',
       is_active: true,
     });
@@ -220,8 +246,11 @@ export async function POST(request: NextRequest) {
       data: {
         tenantId: tenantData.id,
         officeName,
-        oab: `${oabNumber}/${oabUf}`,
+        officeCnpj: officeTaxId || null,
+        societyOab: societyOab?.trim() || null,
         lawyerName,
+        lawyerCpf: formattedLawyerCpf,
+        lawyerOab: finalLawyerOab,
         lawyerEmail,
         planType,
         createdAt: new Date().toISOString(),

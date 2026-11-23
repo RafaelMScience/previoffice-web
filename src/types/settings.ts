@@ -19,6 +19,7 @@ export interface TeamMember {
   id: string;
   tenantId: string;
   fullName: string;
+  cpf?: string;
   email: string;
   phone?: string;
   memberType: MemberType;
@@ -38,6 +39,7 @@ export interface UserProfile {
   id: string;
   tenantId: string;
   fullName: string;
+  cpf?: string;
   email: string;
   phone: string;
   memberType: MemberType;

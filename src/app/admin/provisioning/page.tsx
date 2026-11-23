@@ -27,17 +27,20 @@ export default function AdminProvisioningPage() {
   const [verifyingGate, setVerifyingGate] = useState(false);
   const [gateError, setGateError] = useState<string | null>(null);
 
-  // Office form state
+  // Office form state (Pessoa Jurídica)
   const [officeName, setOfficeName] = useState('');
-  const [oabNumber, setOabNumber] = useState('');
-  const [oabUf, setOabUf] = useState('AM');
-  const [taxId, setTaxId] = useState('');
+  const [cnpj, setCnpj] = useState('');
+  const [societyOab, setSocietyOab] = useState('');
   const [phone, setPhone] = useState('');
   const [officeEmail, setOfficeEmail] = useState('');
   const [address, setAddress] = useState('');
 
-  // Lawyer user state
+  // Lawyer user state (Pessoa Física)
   const [lawyerName, setLawyerName] = useState('');
+  const [lawyerCpf, setLawyerCpf] = useState('');
+  const [lawyerOabNumber, setLawyerOabNumber] = useState('');
+  const [lawyerOabUf, setLawyerOabUf] = useState('AM');
+  const [lawyerPhone, setLawyerPhone] = useState('');
   const [lawyerEmail, setLawyerEmail] = useState('');
   const [lawyerPassword, setLawyerPassword] = useState('');
   const [planType, setPlanType] = useState('TRIAL_90_DAYS');
@@ -92,13 +95,17 @@ export default function AdminProvisioningPage() {
         body: JSON.stringify({
           masterKey,
           officeName,
-          oabNumber,
-          oabUf,
-          taxId,
+          cnpj,
+          societyOab,
+          taxId: cnpj,
           phone,
           officeEmail,
           address,
           lawyerName,
+          lawyerCpf,
+          lawyerOabNumber,
+          lawyerOabUf,
+          lawyerPhone: lawyerPhone || phone,
           lawyerEmail,
           lawyerPassword,
           planType,
@@ -123,7 +130,7 @@ export default function AdminProvisioningPage() {
 
   const copyCredentials = () => {
     if (!provisionSuccess) return;
-    const text = `PREVIOFFICE - CREDENCIAIS DE ACESSO\nEscritório: ${provisionSuccess.officeName}\nOAB: ${provisionSuccess.oab}\nLogin: ${provisionSuccess.lawyerEmail}\nSenha: ${lawyerPassword}\nAcesso: http://localhost:3000/login`;
+    const text = `PREVIOFFICE - CREDENCIAIS DE ACESSO\nEscritório: ${provisionSuccess.officeName}\nCNPJ: ${provisionSuccess.officeCnpj || 'N/A'}\nAdvogado Titular: ${provisionSuccess.lawyerName}\nCPF: ${provisionSuccess.lawyerCpf || 'N/A'}\nOAB: ${provisionSuccess.lawyerOab}\nLogin: ${provisionSuccess.lawyerEmail}\nSenha: ${lawyerPassword}\nAcesso: https://previoffice.vercel.app/login`;
     navigator.clipboard.writeText(text);
     alert('Credenciais copiadas para a área de transferência!');
   };
@@ -220,16 +227,34 @@ export default function AdminProvisioningPage() {
 
             <div className="mt-6 bg-slate-900/80 p-5 rounded-xl border border-slate-700 text-left text-xs space-y-2.5 font-mono">
               <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-500">Escritório:</span>
+                <span className="text-slate-500">Razão Social / Escritório:</span>
                 <span className="text-white font-bold">{provisionSuccess.officeName}</span>
               </div>
+              {provisionSuccess.officeCnpj && (
+                <div className="flex justify-between border-b border-slate-800 pb-2">
+                  <span className="text-slate-500">CNPJ da Sociedade:</span>
+                  <span className="text-white font-bold">{provisionSuccess.officeCnpj}</span>
+                </div>
+              )}
+              {provisionSuccess.societyOab && (
+                <div className="flex justify-between border-b border-slate-800 pb-2">
+                  <span className="text-slate-500">OAB da Sociedade:</span>
+                  <span className="text-[#C89543] font-bold">{provisionSuccess.societyOab}</span>
+                </div>
+              )}
               <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-500">OAB:</span>
-                <span className="text-[#C89543] font-bold">{provisionSuccess.oab}</span>
+                <span className="text-slate-500">Advogado Titular:</span>
+                <span className="text-white font-bold">{provisionSuccess.lawyerName}</span>
               </div>
+              {provisionSuccess.lawyerCpf && (
+                <div className="flex justify-between border-b border-slate-800 pb-2">
+                  <span className="text-slate-500">CPF do Advogado:</span>
+                  <span className="text-emerald-300 font-bold">{provisionSuccess.lawyerCpf}</span>
+                </div>
+              )}
               <div className="flex justify-between border-b border-slate-800 pb-2">
-                <span className="text-slate-500">Titular:</span>
-                <span className="text-white">{provisionSuccess.lawyerName}</span>
+                <span className="text-slate-500">OAB do Advogado:</span>
+                <span className="text-[#C89543] font-bold">{provisionSuccess.lawyerOab}</span>
               </div>
               <div className="flex justify-between border-b border-slate-800 pb-2">
                 <span className="text-slate-500">Login:</span>
@@ -289,7 +314,7 @@ export default function AdminProvisioningPage() {
             )}
 
             <form onSubmit={handleProvisionOffice} className="space-y-6">
-              {/* Section 1: Law Office Data */}
+              {/* Section 1: Law Office Data (Pessoa Jurídica / Sociedade) */}
               <div>
                 <div className="flex items-center gap-2 text-[#C89543] font-bold text-sm mb-3">
                   <Building2 className="w-4 h-4" />
@@ -317,9 +342,10 @@ export default function AdminProvisioningPage() {
                     </label>
                     <input
                       type="text"
+                      required
                       maxLength={18}
-                      value={taxId}
-                      onChange={(e) => setTaxId(maskCpfCnpj(e.target.value))}
+                      value={cnpj}
+                      onChange={(e) => setCnpj(maskCpfCnpj(e.target.value))}
                       placeholder="00.000.000/0001-00"
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
                     />
@@ -327,28 +353,13 @@ export default function AdminProvisioningPage() {
 
                   <div>
                     <label className="block font-semibold text-slate-300 mb-1">
-                      {t.adminProvisioning.oabNumberLabel}
+                      {t.adminProvisioning.societyOabLabel}
                     </label>
                     <input
                       type="text"
-                      required
-                      value={oabNumber}
-                      onChange={(e) => setOabNumber(e.target.value)}
-                      placeholder={t.adminProvisioning.oabNumberPlaceholder}
-                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">
-                      {t.adminProvisioning.oabUfLabel}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={2}
-                      value={oabUf}
-                      onChange={(e) => setOabUf(e.target.value.toUpperCase())}
+                      value={societyOab}
+                      onChange={(e) => setSocietyOab(e.target.value)}
+                      placeholder={t.adminProvisioning.societyOabPlaceholder}
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
                     />
                   </div>
@@ -363,9 +374,23 @@ export default function AdminProvisioningPage() {
                       maxLength={15}
                       value={phone}
                       onChange={(e) => setPhone(maskPhone(e.target.value))}
-                      placeholder="(83) 98888-0000"
+                      placeholder="(92) 99415-1992"
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">
+                      {t.adminProvisioning.planLabel}
+                    </label>
+                    <select
+                      value={planType}
+                      onChange={(e) => setPlanType(e.target.value)}
+                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
+                    >
+                      <option value="TRIAL_90_DAYS">{t.adminProvisioning.planTrial}</option>
+                      <option value="ANNUAL_ENTERPRISE">{t.adminProvisioning.planAnnual}</option>
+                    </select>
                   </div>
 
                   <div className="md:col-span-2">
@@ -384,21 +409,20 @@ export default function AdminProvisioningPage() {
 
                   <div>
                     <label className="block font-semibold text-slate-300 mb-1">
-                      {t.adminProvisioning.planLabel}
+                      {t.adminProvisioning.officeAddressLabel}
                     </label>
-                    <select
-                      value={planType}
-                      onChange={(e) => setPlanType(e.target.value)}
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Av. Djalma Batista, nº 1000 - Manaus/AM"
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
-                    >
-                      <option value="TRIAL_90_DAYS">{t.adminProvisioning.planTrial}</option>
-                      <option value="ANNUAL_ENTERPRISE">{t.adminProvisioning.planAnnual}</option>
-                    </select>
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Section 2: Managing Lawyer Account */}
+              {/* Section 2: Managing Lawyer Account (Pessoa Física) */}
               <div className="pt-4 border-t border-slate-700">
                 <div className="flex items-center gap-2 text-[#C89543] font-bold text-sm mb-3">
                   <UserCheck className="w-4 h-4" />
@@ -417,6 +441,64 @@ export default function AdminProvisioningPage() {
                       onChange={(e) => setLawyerName(e.target.value)}
                       placeholder="Dr. Alexandre Pontes"
                       className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">
+                      {t.adminProvisioning.lawyerCpfLabel}
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={14}
+                      value={lawyerCpf}
+                      onChange={(e) => setLawyerCpf(maskCpfCnpj(e.target.value))}
+                      placeholder="000.000.000-00"
+                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="block font-semibold text-slate-300 mb-1">
+                        {t.adminProvisioning.lawyerOabNumberLabel}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={lawyerOabNumber}
+                        onChange={(e) => setLawyerOabNumber(e.target.value)}
+                        placeholder={t.adminProvisioning.lawyerOabNumberPlaceholder}
+                        className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-semibold text-slate-300 mb-1">
+                        {t.adminProvisioning.lawyerOabUfLabel}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={2}
+                        value={lawyerOabUf}
+                        onChange={(e) => setLawyerOabUf(e.target.value.toUpperCase())}
+                        className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white text-center font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-300 mb-1">
+                      {t.adminProvisioning.lawyerPhoneLabel}
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={15}
+                      value={lawyerPhone}
+                      onChange={(e) => setLawyerPhone(maskPhone(e.target.value))}
+                      placeholder="(92) 99415-1992"
+                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white font-mono"
                     />
                   </div>
 
@@ -441,6 +523,7 @@ export default function AdminProvisioningPage() {
                     <input
                       type="password"
                       required
+                      minLength={8}
                       value={lawyerPassword}
                       onChange={(e) => setLawyerPassword(e.target.value)}
                       placeholder="••••••••••••"
