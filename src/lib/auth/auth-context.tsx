@@ -91,6 +91,8 @@ function mapProfileToTeamMember(profile: ProfileRow, user?: User | null): TeamMe
     isAdminLawyer: isAdmin,
     active: profile.is_active ?? true,
     lastLoginAt: profile.last_login_at || user?.last_sign_in_at || undefined,
+    terms_accepted_at: (profile as any).terms_accepted_at || undefined,
+    terms_version: (profile as any).terms_version || undefined,
     mustChangePassword,
     permissions,
     createdAt: profile.created_at || new Date().toISOString(),

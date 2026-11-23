@@ -44,16 +44,20 @@ function DashboardContent({
     if (!currentUser?.id || isWelcomeOpen) return;
 
     let hasAccepted = false;
-    try {
-      const stored = localStorage.getItem(`previoffice_terms_accepted_${currentUser.id}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.version === CURRENT_TERMS_VERSION) {
-          hasAccepted = true;
+    if (currentUser?.terms_accepted_at && currentUser?.terms_version === CURRENT_TERMS_VERSION) {
+      hasAccepted = true;
+    } else {
+      try {
+        const stored = localStorage.getItem(`previoffice_terms_accepted_${currentUser.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.version === CURRENT_TERMS_VERSION) {
+            hasAccepted = true;
+          }
         }
+      } catch {
+        // Ignored
       }
-    } catch {
-      // Ignored
     }
 
     if (!hasAccepted) {
