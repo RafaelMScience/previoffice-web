@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { checkRateLimit, verifyMasterKey } from '@/lib/security/admin-guard';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isValidCpf, formatCpf } from '@/lib/domain/cpf-validator';
+import { generateRandomPassword } from '@/lib/auth/password-generator';
 
 export async function POST(request: NextRequest) {
   const ip =
@@ -59,7 +60,6 @@ export async function POST(request: NextRequest) {
       !officeEmail ||
       !lawyerName ||
       !lawyerEmail ||
-      !lawyerPassword ||
       !lawyerOab
     ) {
       return NextResponse.json(
@@ -67,6 +67,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Determine secure password: if lawyerPassword provided and >= 8 chars, use it; otherwise generate random temporary password
+    const finalLawyerPassword =
+      typeof lawyerPassword === 'string' && lawyerPassword.trim().length >= 8
+        ? lawyerPassword.trim()
+        : generateRandomPassword();
 
     // CPF validation for lawyer (pessoa física)
     let formattedLawyerCpf: string | null = null;
@@ -178,7 +184,7 @@ export async function POST(request: NextRequest) {
     const { data: authData, error: authError } =
       await adminClient.auth.admin.createUser({
         email: cleanLawyerEmail,
-        password: lawyerPassword,
+        password: finalLawyerPassword,
         email_confirm: true,
         app_metadata: {
           tenant_id: tenantData.id,
@@ -189,6 +195,7 @@ export async function POST(request: NextRequest) {
           cpf: formattedLawyerCpf,
           oab_number: finalLawyerOab,
           phone: (lawyerPhone || phone) ? (lawyerPhone || phone).trim() : null,
+          must_change_password: true,
         },
       });
 
@@ -252,6 +259,8 @@ export async function POST(request: NextRequest) {
         lawyerCpf: formattedLawyerCpf,
         lawyerOab: finalLawyerOab,
         lawyerEmail,
+        temporaryPassword: finalLawyerPassword,
+        mustChangePassword: true,
         planType,
         createdAt: new Date().toISOString(),
       },

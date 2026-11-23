@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ShieldAlert,
@@ -11,12 +11,15 @@ import {
   Lock,
   ArrowRight,
   Copy,
+  Check,
+  RefreshCw,
   AlertTriangle,
   Scale,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { maskCpfCnpj, maskPhone } from '@/lib/utils/masks';
+import { generateRandomPassword } from '@/lib/auth/password-generator';
 
 export default function AdminProvisioningPage() {
   const { t } = useI18n();
@@ -43,7 +46,14 @@ export default function AdminProvisioningPage() {
   const [lawyerPhone, setLawyerPhone] = useState('');
   const [lawyerEmail, setLawyerEmail] = useState('');
   const [lawyerPassword, setLawyerPassword] = useState('');
+  const [copiedPassword, setCopiedPassword] = useState(false);
   const [planType, setPlanType] = useState('TRIAL_90_DAYS');
+
+  useEffect(() => {
+    if (!lawyerPassword) {
+      setLawyerPassword(generateRandomPassword());
+    }
+  }, []);
 
   // Submit & feedback
   const [provisioning, setProvisioning] = useState(false);
@@ -130,9 +140,22 @@ export default function AdminProvisioningPage() {
 
   const copyCredentials = () => {
     if (!provisionSuccess) return;
-    const text = `PREVIOFFICE - CREDENCIAIS DE ACESSO\nEscritório: ${provisionSuccess.officeName}\nCNPJ: ${provisionSuccess.officeCnpj || 'N/A'}\nAdvogado Titular: ${provisionSuccess.lawyerName}\nCPF: ${provisionSuccess.lawyerCpf || 'N/A'}\nOAB: ${provisionSuccess.lawyerOab}\nLogin: ${provisionSuccess.lawyerEmail}\nSenha: ${lawyerPassword}\nAcesso: https://previoffice.vercel.app/login`;
-    navigator.clipboard.writeText(text);
-    alert('Credenciais copiadas para a área de transferência!');
+    const finalPass = provisionSuccess.temporaryPassword || lawyerPassword;
+    const text = `PREVIOFFICE - CREDENCIAIS DE PRIMEIRO ACESSO\n\n` +
+      `Escritório: ${provisionSuccess.officeName}\n` +
+      `CNPJ: ${provisionSuccess.officeCnpj || 'N/A'}\n` +
+      `Advogado Titular: ${provisionSuccess.lawyerName}\n` +
+      `CPF: ${provisionSuccess.lawyerCpf || 'N/A'}\n` +
+      `OAB: ${provisionSuccess.lawyerOab}\n\n` +
+      `Login: ${provisionSuccess.lawyerEmail}\n` +
+      `Senha Provisória: ${finalPass}\n\n` +
+      `⚠️ Importante: Por segurança, no seu primeiro login o sistema exigirá a troca desta senha provisória por uma senha pessoal definitiva.\n\n` +
+      `Link de Acesso: https://previoffice.vercel.app/login`;
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Credenciais de primeiro acesso copiadas para a área de transferência!');
+    }).catch(() => {
+      alert('Erro ao copiar credenciais. Por favor, selecione e copie o texto manualmente.');
+    });
   };
 
   return (
@@ -260,9 +283,19 @@ export default function AdminProvisioningPage() {
                 <span className="text-slate-500">Login:</span>
                 <span className="text-blue-400">{provisionSuccess.lawyerEmail}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Senha:</span>
-                <span className="text-emerald-400 font-bold">{lawyerPassword}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Senha Provisória:</span>
+                <span className="text-emerald-400 font-bold font-mono tracking-wider">
+                  {provisionSuccess.temporaryPassword || lawyerPassword}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3.5 rounded-xl bg-amber-950/40 border border-amber-600/40 text-left text-xs text-amber-200 flex items-start gap-2.5">
+              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-amber-300 block mb-0.5">Troca de Senha Obrigatória no 1º Acesso</span>
+                <span>Ao realizar o primeiro login com a senha provisória acima, o advogado será automaticamente redirecionado para cadastrar sua nova senha pessoal definitiva.</span>
               </div>
             </div>
 
@@ -502,7 +535,7 @@ export default function AdminProvisioningPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="md:col-span-2">
                     <label className="block font-semibold text-slate-300 mb-1">
                       {t.adminProvisioning.lawyerEmailLabel}
                     </label>
@@ -516,19 +549,77 @@ export default function AdminProvisioningPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block font-semibold text-slate-300 mb-1">
-                      {t.adminProvisioning.lawyerPasswordLabel}
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      minLength={8}
-                      value={lawyerPassword}
-                      onChange={(e) => setLawyerPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className="w-full px-3.5 py-2 text-sm bg-slate-900 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-white"
-                    />
+                  <div className="md:col-span-3 p-4 rounded-xl bg-slate-900/90 border border-slate-700/80 space-y-3 mt-1">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <KeyRound className="w-4 h-4 text-[#C89543]" />
+                        <span>Senha Provisória de Acesso (Gerada Automaticamente)</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-amber-300 bg-amber-950/70 border border-amber-600/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <ShieldAlert className="w-3 h-3 text-amber-400" />
+                        <span>Troca obrigatória no 1º login</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          required
+                          minLength={8}
+                          value={lawyerPassword}
+                          onChange={(e) => setLawyerPassword(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-emerald-400 focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] focus:outline-none"
+                          placeholder="Prev#..."
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLawyerPassword(generateRandomPassword());
+                          setCopiedPassword(false);
+                        }}
+                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                        title="Gerar nova senha provisória aleatória"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-[#C89543]" />
+                        <span>Gerar Outra</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (lawyerPassword) {
+                            navigator.clipboard.writeText(lawyerPassword)
+                              .then(() => {
+                                setCopiedPassword(true);
+                                setTimeout(() => setCopiedPassword(false), 2000);
+                              })
+                              .catch(() => {});
+                          }
+                        }}
+                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                        title="Copiar senha para a área de transferência"
+                      >
+                        {copiedPassword ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400">Copiada</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Copiar</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Esta credencial provisória possui alta entropia criptográfica. O titular receberá esta senha para o primeiro acesso e o sistema exigirá obrigatoriamente a troca por uma senha pessoal definitiva na página <code className="text-[#C89543] font-mono bg-slate-950 px-1 py-0.5 rounded">/definir-senha</code>.
+                    </p>
                   </div>
                 </div>
               </div>
