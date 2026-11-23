@@ -118,3 +118,4 @@ export const TOUR_STEPS: TourStep[] = [
     actionHint: 'Ao clicar em "Concluir", o tour é finalizado e todos os dados fictícios são limpos imediatamente.',
   },
 ];
+

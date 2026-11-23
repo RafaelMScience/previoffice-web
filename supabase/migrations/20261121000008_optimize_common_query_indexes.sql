@@ -97,7 +97,7 @@ ON public.profiles (tenant_id, role)
 WHERE is_active = true;
 
 -- B. Lawyer OAB lookup index
--- Query: SELECT * FROM profiles WHERE oab_state = $1 AND oab_number = $2
+-- Query: SELECT * FROM profiles WHERE oab_number = $1
 CREATE INDEX IF NOT EXISTS idx_profiles_oab_lookup 
-ON public.profiles (oab_state, oab_number)
-WHERE oab_number IS NOT NULL AND oab_state IS NOT NULL;
+ON public.profiles (oab_number)
+WHERE oab_number IS NOT NULL;
