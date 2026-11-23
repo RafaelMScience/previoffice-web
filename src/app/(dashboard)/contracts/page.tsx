@@ -19,29 +19,61 @@ import { contractsStore } from '@/lib/data/mock-contracts';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
-import { createClient } from '@/lib/supabase/client';
+import {
+  fetchContractsFromDb,
+  saveContractToDb,
+  updateContractSignedStatusInDb,
+  settleContractInstallmentInDb,
+  calculateContractKpis,
+  fetchContractTemplates,
+} from '@/lib/services/contract-service';
+import { invalidateCache } from '@/lib/cache/request-cache';
+
+import dynamic from 'next/dynamic';
 
 import { ContractsKpiCards } from '@/components/contracts/contracts-kpi-cards';
+import {
+  ContractsKpiCardsSkeleton,
+  ContractsTableSkeleton,
+} from '@/components/contracts/contracts-skeleton';
 import {
   ContractsTable,
   type ContractFilterTab,
 } from '@/components/contracts/contracts-table';
-import { InstallmentsDrawerModal } from '@/components/contracts/installments-drawer-modal';
-import { UploadSignedModal } from '@/components/contracts/upload-signed-modal';
-import { ContractPrintModal } from '@/components/contracts/contract-print-modal';
-import { TemplatesManagementView } from '@/components/contracts/templates-management-view';
-import { NewContractModal } from '@/components/contracts/new-contract-modal';
+
+// Dynamic code splitting for heavy modals and sub-views (Item 22)
+const InstallmentsDrawerModal = dynamic(
+  () => import('@/components/contracts/installments-drawer-modal').then((mod) => ({ default: mod.InstallmentsDrawerModal })),
+  { ssr: false }
+);
+const UploadSignedModal = dynamic(
+  () => import('@/components/contracts/upload-signed-modal').then((mod) => ({ default: mod.UploadSignedModal })),
+  { ssr: false }
+);
+const ContractPrintModal = dynamic(
+  () => import('@/components/contracts/contract-print-modal').then((mod) => ({ default: mod.ContractPrintModal })),
+  { ssr: false }
+);
+const TemplatesManagementView = dynamic(
+  () => import('@/components/contracts/templates-management-view').then((mod) => ({ default: mod.TemplatesManagementView })),
+  { ssr: false }
+);
+const NewContractModal = dynamic(
+  () => import('@/components/contracts/new-contract-modal').then((mod) => ({ default: mod.NewContractModal })),
+  { ssr: false }
+);
 
 type ActiveViewTab = 'CONTRACTS' | 'TEMPLATES';
 
 export default function ContractsPage() {
   const { t } = useI18n();
-  const { canAccess } = useAuth();
+  const { canAccess, currentUser } = useAuth();
 
   // Core Data State
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [templates, setTemplates] = useState<ContractTemplate[]>([]);
   const [kpis, setKpis] = useState<ContractKpis | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // View & Filter State
   const [activeViewTab, setActiveViewTab] = useState<ActiveViewTab>('CONTRACTS');
@@ -64,15 +96,37 @@ export default function ContractsPage() {
   // Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const refreshData = () => {
-    setContracts(contractsStore.getContracts());
-    setTemplates(contractsStore.getTemplates());
-    setKpis(contractsStore.getKpis());
+  const refreshData = async () => {
+    setIsLoading(true);
+    try {
+      const tenantId = currentUser?.tenantId || 'tenant-001';
+      // Dispatch independent queries in parallel to eliminate waterfall latency
+      const [contractsResult, templatesResult] = await Promise.allSettled([
+        fetchContractsFromDb(tenantId),
+        fetchContractTemplates(tenantId),
+      ]);
+
+      const loadedContracts = contractsResult.status === 'fulfilled' ? contractsResult.value : [];
+      const loadedTemplates = templatesResult.status === 'fulfilled' ? templatesResult.value : [];
+
+      if (contractsResult.status === 'rejected') {
+        console.error('Falha ao carregar contratos em paralelo:', contractsResult.reason);
+      }
+      if (templatesResult.status === 'rejected') {
+        console.error('Falha ao carregar templates em paralelo:', templatesResult.reason);
+      }
+
+      setContracts(loadedContracts);
+      setTemplates(loadedTemplates);
+      setKpis(calculateContractKpis(loadedContracts));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     refreshData();
-  }, []);
+  }, [currentUser?.tenantId]);
 
   if (!canAccess('contractsAndFinancial')) {
     return (
@@ -88,161 +142,117 @@ export default function ContractsPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Settle installment handler
-  const handleSettleInstallment = (
+  // Optimistic Settle installment handler with rollback
+  const handleSettleInstallment = async (
     contractId: string,
     installmentId: string,
     paymentMethod: PaymentMethod,
     receiptReference?: string,
     notes?: string
   ) => {
-    const updated = contractsStore.settleInstallment(
-      contractId,
-      installmentId,
-      paymentMethod,
-      receiptReference,
-      notes
-    );
-    if (updated) {
-      refreshData();
-      setSelectedContractForInstallments(updated);
-      triggerToast(t.contracts.settleSuccessToast);
+    const tenantId = currentUser?.tenantId || 'tenant-001';
+    const previousContracts = [...contracts];
+    const previousSelected = selectedContractForInstallments;
+
+    // 1. Optimistic Update (Immediate UI response)
+    const optimisticContracts = contracts.map((c) => {
+      if (c.id !== contractId) return c;
+      const installments = (c.feeStructure.installments || []).map((inst) => {
+        if (inst.id !== installmentId) return inst;
+        return {
+          ...inst,
+          status: 'PAID' as const,
+          paidAt: new Date().toISOString(),
+          paymentMethod,
+          receiptReference,
+          notes,
+        };
+      });
+      return {
+        ...c,
+        feeStructure: {
+          ...c.feeStructure,
+          installments,
+        },
+      };
+    });
+
+    setContracts(optimisticContracts);
+    const updatedOptimisticContract = optimisticContracts.find((c) => c.id === contractId) || null;
+    if (updatedOptimisticContract) {
+      setSelectedContractForInstallments(updatedOptimisticContract);
+      setKpis(calculateContractKpis(optimisticContracts));
     }
-  };
+    triggerToast(t.contracts.settleSuccessToast);
 
-  // Database audit and persistence helper
-  const persistContractAndAudit = async (
-    contract: Contract,
-    actionTitle: string,
-    actionDetail: string
-  ) => {
+    // 2. Background Server Sync with Rollback
     try {
-      const supabase = createClient();
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        contract.clientId
+      const updated = await settleContractInstallmentInDb(
+        contractId,
+        tenantId,
+        installmentId,
+        paymentMethod,
+        receiptReference,
+        notes
       );
-
-      // 1. Upsert into contracts table (only if client_id is valid UUID)
-      if (isUuid) {
-        await (supabase.from('contracts') as any).upsert(
-          {
-            tenant_id: contract.tenantId,
-            client_id: contract.clientId,
-            contract_number: contract.contractNumber,
-            template_id: contract.templateId,
-            template_title: contract.templateTitle,
-            benefit_species: contract.benefitSpecies,
-            status: contract.status,
-            fee_structure: {
-              ...contract.feeStructure,
-              physicalAttachment: contract.physicalAttachment
-                ? { ...contract.physicalAttachment, fileDataUrl: undefined } // Do not bloat jsonb
-                : undefined,
-              customContractAttachment: contract.customContractAttachment
-                ? { ...contract.customContractAttachment, fileDataUrl: undefined }
-                : undefined,
-              customPoaAttachment: contract.customPoaAttachment
-                ? { ...contract.customPoaAttachment, fileDataUrl: undefined }
-                : undefined,
-            },
-            lawyer_name: contract.lawyerName,
-            lawyer_oab: contract.lawyerOab,
-            office_name: contract.officeName,
-            physical_signed_status: contract.physicalSignedStatus,
-            physical_file_location: contract.physicalFileLocation,
-            is_custom_edited: contract.isCustomEdited || false,
-            custom_edited_by: contract.customEditedBy,
-            custom_edited_at: contract.customEditedAt,
-            custom_contract_body: contract.customContractBody,
-            custom_poa_body: contract.customPoaBody,
-            issued_at: contract.issuedAt,
-          },
-          { onConflict: 'tenant_id,contract_number' }
-        );
-
-        // 2. Audit log into attendances table
-        await (supabase.from('attendances') as any).insert({
-          tenant_id: contract.tenantId,
-          client_id: contract.clientId,
-          attendance_type: 'OTHER',
-          objective: `${actionTitle}: ${contract.contractNumber}`,
-          notes: actionDetail,
-          attended_at: new Date().toISOString(),
-        });
+      if (updated) {
+        setSelectedContractForInstallments(updated);
+      } else {
+        throw new Error('Falha ao confirmar no servidor');
       }
-    } catch (err) {
-      console.warn('Supabase persistence/audit skipped (using local mock store):', err);
+    } catch (err: any) {
+      // 3. Rollback on Server Error
+      setContracts(previousContracts);
+      setSelectedContractForInstallments(previousSelected);
+      setKpis(calculateContractKpis(previousContracts));
+      triggerToast(`Não foi possível confirmar a baixa: ${err?.message || 'Erro de rede'}. O valor foi restaurado.`);
     }
   };
 
   // Attach physical document handler
-  const handleAttachSigned = (
+  const handleAttachSigned = async (
     contractId: string,
     attachment: PhysicalDocumentAttachment
   ) => {
-    const updated = contractsStore.attachSignedPhysicalDocument(contractId, attachment);
-    if (updated) {
-      refreshData();
-      triggerToast(t.contracts.uploadSuccessToast);
-
-      // Persist to Supabase and log audit
-      const categoryLabel =
-        attachment.documentCategory === 'FEE_CONTRACT'
-          ? 'Contrato de Honorários'
-          : attachment.documentCategory === 'POWER_OF_ATTORNEY'
-          ? 'Procuração Ad Judicia'
-          : 'Documento da Advocacia';
-
-      persistContractAndAudit(
-        updated,
-        'Documento Físico Assinado Vinculado',
-        `Arquivo "${attachment.fileName}" (${attachment.fileSizeFormatted}) anexado por ${
-          attachment.uploadedBy
-        }. Finalidade: ${categoryLabel}. Local: ${attachment.physicalCabinetLocation}. Assinado: ${
-          attachment.isSigned ? 'Sim' : 'Não'
-        }.`
-      );
-    }
+    const tenantId = currentUser?.tenantId || 'tenant-001';
+    await updateContractSignedStatusInDb(contractId, tenantId, 'ATTACHED', attachment);
+    await refreshData();
+    triggerToast(t.contracts.uploadSuccessToast);
   };
 
   // Create contract handler
-  const handleCreateContract = (
+  const handleCreateContract = async (
     contractData: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>
   ) => {
     const created = contractsStore.createContract(contractData);
-    refreshData();
+    await saveContractToDb(created);
+    await refreshData();
     triggerToast(`Contrato ${created.contractNumber} formalizado com sucesso!`);
-
-    // Persist to Supabase and log audit
-    const hasCustomDoc = Boolean(created.physicalAttachment);
-    persistContractAndAudit(
-      created,
-      'Contrato Formalizado',
-      `Contrato ${created.contractNumber} para ${created.clientName} (${created.benefitSpecies}). Regime: ${
-        created.feeStructure.feeModel
-      }. ${
-        hasCustomDoc
-          ? `Minuta customizada enviada: "${created.physicalAttachment?.fileName}" (${
-              created.physicalAttachment?.isSigned ? 'Assinado' : 'Pendente de assinatura'
-            }) por ${created.physicalAttachment?.replacedBy}.`
-          : 'Minuta padrão do sistema vinculada.'
-      }`
-    );
   };
 
   // Add template handler
   const handleAddTemplate = (
     templateData: Omit<ContractTemplate, 'id' | 'createdAt' | 'updatedAt'>
   ) => {
-    const newTpl = contractsStore.addTemplate(templateData);
+    const tenantId = currentUser?.tenantId || 'tenant-001';
+    const newTpl = contractsStore.addTemplate({
+      ...templateData,
+      tenantId,
+    });
+    invalidateCache('templates:');
     refreshData();
     triggerToast(`Minuta "${newTpl.title}" cadastrada com sucesso!`);
   };
 
   // Update template handler
   const handleUpdateTemplate = (templateData: ContractTemplate) => {
-    const updated = contractsStore.updateTemplate(templateData);
+    const tenantId = currentUser?.tenantId || templateData.tenantId || 'tenant-001';
+    const updated = contractsStore.updateTemplate({
+      ...templateData,
+      tenantId,
+    });
     if (updated) {
+      invalidateCache('templates:');
       refreshData();
       triggerToast(`Minuta "${updated.title}" atualizada com sucesso!`);
     }
@@ -290,7 +300,11 @@ export default function ContractsPage() {
       </div>
 
       {/* Executive KPI Cards */}
-      {kpis && <ContractsKpiCards kpis={kpis} />}
+      {isLoading ? (
+        <ContractsKpiCardsSkeleton />
+      ) : (
+        kpis && <ContractsKpiCards kpis={kpis} />
+      )}
 
       {/* Main View Toggle Switcher */}
       <div className="flex items-center justify-between border-b border-slate-200">
@@ -340,7 +354,9 @@ export default function ContractsPage() {
       </div>
 
       {/* Active Tab Content */}
-      {activeViewTab === 'CONTRACTS' || !canAccess('templatesManage') ? (
+      {isLoading ? (
+        <ContractsTableSkeleton />
+      ) : activeViewTab === 'CONTRACTS' || !canAccess('templatesManage') ? (
         <ContractsTable
           contracts={contracts}
           searchTerm={searchTerm}
@@ -373,45 +389,53 @@ export default function ContractsPage() {
       )}
 
       {/* Modals & Drawers */}
-      <InstallmentsDrawerModal
-        contract={selectedContractForInstallments}
-        isOpen={isInstallmentsOpen}
-        onClose={() => {
-          setIsInstallmentsOpen(false);
-          setSelectedContractForInstallments(null);
-        }}
-        onSettleInstallment={handleSettleInstallment}
-      />
+      {isInstallmentsOpen && selectedContractForInstallments && (
+        <InstallmentsDrawerModal
+          contract={selectedContractForInstallments}
+          isOpen={isInstallmentsOpen}
+          onClose={() => {
+            setIsInstallmentsOpen(false);
+            setSelectedContractForInstallments(null);
+          }}
+          onSettleInstallment={handleSettleInstallment}
+        />
+      )}
 
-      <UploadSignedModal
-        contract={selectedContractForUpload}
-        isOpen={isUploadOpen}
-        onClose={() => {
-          setIsUploadOpen(false);
-          setSelectedContractForUpload(null);
-        }}
-        onUploadSuccess={handleAttachSigned}
-      />
+      {isUploadOpen && selectedContractForUpload && (
+        <UploadSignedModal
+          contract={selectedContractForUpload}
+          isOpen={isUploadOpen}
+          onClose={() => {
+            setIsUploadOpen(false);
+            setSelectedContractForUpload(null);
+          }}
+          onUploadSuccess={handleAttachSigned}
+        />
+      )}
 
-      <ContractPrintModal
-        contract={selectedContractForPrint}
-        isOpen={isPrintOpen}
-        onClose={() => {
-          setIsPrintOpen(false);
-          setSelectedContractForPrint(null);
-        }}
-      />
+      {isPrintOpen && selectedContractForPrint && (
+        <ContractPrintModal
+          contract={selectedContractForPrint}
+          isOpen={isPrintOpen}
+          onClose={() => {
+            setIsPrintOpen(false);
+            setSelectedContractForPrint(null);
+          }}
+        />
+      )}
 
-      <NewContractModal
-        isOpen={isNewContractOpen}
-        onClose={() => {
-          setIsNewContractOpen(false);
-          setSelectedTemplateForNewContract(null);
-        }}
-        templates={templates}
-        selectedTemplateFromLibrary={selectedTemplateForNewContract}
-        onContractCreated={handleCreateContract}
-      />
+      {isNewContractOpen && (
+        <NewContractModal
+          isOpen={isNewContractOpen}
+          onClose={() => {
+            setIsNewContractOpen(false);
+            setSelectedTemplateForNewContract(null);
+          }}
+          templates={templates}
+          selectedTemplateFromLibrary={selectedTemplateForNewContract}
+          onContractCreated={handleCreateContract}
+        />
+      )}
     </div>
   );
 }

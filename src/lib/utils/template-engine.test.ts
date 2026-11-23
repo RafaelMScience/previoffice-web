@@ -6,6 +6,7 @@ import {
   mergeTemplatePlaceholders,
   formatMoneyBRL,
   formatDatePtBR,
+  formatPaymentMethod,
 } from './template-engine.ts';
 
 describe('Legal Template Engine & Remuneration Regimes', () => {
@@ -95,6 +96,17 @@ describe('Legal Template Engine & Remuneration Regimes', () => {
       assert.strictEqual(total, 2400);
     });
 
+    it('should respect recurringDueDay for subsequent installments when specified', () => {
+      // 1ª parcela no dia 25/11/2026, demais parcelas todo dia 10
+      const installments = generateFeeInstallments(2400, 4, '2026-11-25', 'CTR-TEST-003', 10);
+
+      assert.strictEqual(installments.length, 4);
+      assert.strictEqual(installments[0].dueDate, '2026-11-25'); // 1ª parcela na data de entrada
+      assert.strictEqual(installments[1].dueDate, '2026-12-10'); // 2ª parcela no dia fixo 10
+      assert.strictEqual(installments[2].dueDate, '2027-01-10'); // 3ª parcela no dia fixo 10
+      assert.strictEqual(installments[3].dueDate, '2027-02-10'); // 4ª parcela no dia fixo 10
+    });
+
     it('should clamp due dates correctly when month has fewer days (e.g. Jan 31 -> Feb 28)', () => {
       const installments = generateFeeInstallments(3000, 3, '2026-01-31', 'CTR-TEST-002');
 
@@ -114,6 +126,18 @@ describe('Legal Template Engine & Remuneration Regimes', () => {
     it('formatDatePtBR formats ISO dates to DD/MM/AAAA', () => {
       assert.strictEqual(formatDatePtBR('2026-12-05'), '05/12/2026');
       assert.strictEqual(formatDatePtBR('2026-12-05T12:00:00Z'), '05/12/2026');
+    });
+
+    it('formatPaymentMethod translates English payment enum keys to Portuguese labels', () => {
+      assert.strictEqual(formatPaymentMethod('PIX'), 'PIX');
+      assert.strictEqual(formatPaymentMethod('CREDIT_CARD'), 'Cartão de Crédito');
+      assert.strictEqual(formatPaymentMethod('BOLETO'), 'Boleto Bancário');
+      assert.strictEqual(formatPaymentMethod('BANK_SLIP'), 'Boleto Bancário');
+      assert.strictEqual(formatPaymentMethod('CASH'), 'Dinheiro em Espécie');
+      assert.strictEqual(formatPaymentMethod('BANK_TRANSFER'), 'Transferência Bancária');
+      assert.strictEqual(formatPaymentMethod('RPV_PRECATORIO_RETENTION'), 'Retenção de RPV / Precatório');
+      assert.strictEqual(formatPaymentMethod(undefined), 'PIX');
+      assert.strictEqual(formatPaymentMethod('OUTRO_METODO'), 'OUTRO_METODO');
     });
   });
 });

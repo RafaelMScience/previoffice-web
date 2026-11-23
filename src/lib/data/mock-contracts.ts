@@ -10,23 +10,22 @@ import type {
 export const INITIAL_CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
     id: 'tpl-001',
-    tenantId: 'tenant-001',
-    title: 'Minuta Padrão — Aposentadoria por Idade Rural (Dr. Alexandre Pontes)',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Aposentadoria por Idade Rural',
+    documentCategory: 'FEE_CONTRACT',
     benefitSpecies: 'Aposentadoria por Idade Rural',
     description: 'Padrão oficial para lavradores e segurados especiais com comprovação de atividade campesina, destacamento de RPV e Quota Litis 30%.',
     defaultFeeModel: 'QUOTA_LITIS',
     defaultQuotaLitisPercentage: 30,
     clausesCount: 8,
     isDefault: true,
-    lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/PB 18.234',
     contentBody: `INSTRUMENTO PARTICULAR DE CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS PROFISSIONAIS — APOSENTADORIA RURAL
 
 Pelo presente instrumento particular, regido pela Lei Federal nº 8.906/1994 (Estatuto da Advocacia e da OAB), pelos artigos 593 e seguintes e 653 e seguintes da Lei Federal nº 10.406/2002 (Código Civil Brasileiro), pelo Código de Ética e Disciplina da OAB e pela legislação previdenciária de regência (Lei nº 8.213/1991), têm entre si justo e acordado:
 
 CONTRATANTE: {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente e domiciliado(a) em {{ENDERECO}}, telefone/WhatsApp: {{TELEFONE}}.
 
-CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, inscrita na OAB/PB, representada neste ato pelo(a) advogado(a) Dr(a). {{NOME_ADVOGADO}}, inscrito(a) na OAB sob o nº {{OAB_ADVOGADO}}, com sede e domicílio profissional no escritório central.
+CONTRATADA: {{NOME_ESCRITORIO}}, representada neste ato pelo(a) advogado(a) {{ADVOGADO}}, inscrito(a) na {{OAB}}, com domicílio profissional no escritório central.
 
 As partes ajustam o presente contrato mediante as seguintes cláusulas:
 
@@ -63,22 +62,21 @@ Localidade, {{DATA_EXTENSO}}.`,
   },
   {
     id: 'tpl-002',
-    tenantId: 'tenant-001',
-    title: 'Minuta Padrão — BPC/LOAS Incapacidade e Idoso (Dra. Camila Santos)',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Benefício Assistencial BPC/LOAS',
+    documentCategory: 'FEE_CONTRACT',
     benefitSpecies: 'BPC/LOAS',
-    description: 'Modelo oficial da Dra. Camila com cláusulas de assistência social sem carência (Lei 8.742/93), avaliação pericial e honorários de êxito.',
+    description: 'Padrão oficial com cláusulas de assistência social sem carência (Lei 8.742/93), avaliação pericial e honorários de êxito.',
     defaultFeeModel: 'QUOTA_LITIS',
     defaultQuotaLitisPercentage: 30,
     clausesCount: 8,
     isDefault: true,
-    lawyerName: 'Dra. Camila Santos',
-    lawyerOab: 'OAB/PB 22.100',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS E HONORÁRIOS PROFISSIONAIS — BENEFÍCIO DE PRESTAÇÃO CONTINUADA (BPC/LOAS)
 
 Pelo presente instrumento particular, regido pela Lei Federal nº 8.906/1994 (Estatuto da OAB), artigos 593 e seguintes e 653 e seguintes da Lei Federal nº 10.406/2002 (Código Civil) e Lei Federal nº 8.742/1993 (Lei Orgânica da Assistência Social - LOAS), celebram entre si:
 
 CONTRATANTE: {{NOME_CLIENTE}}, portador(a) do CPF/MF nº {{CPF}}, RG nº {{RG}}, residente em {{ENDERECO}}, telefone: {{TELEFONE}}.
-CONTRATADA: Sociedade de Advogados sob patrocínio de {{NOME_ADVOGADO}}, {{OAB_ADVOGADO}}.
+CONTRATADA: SOCIEDADE DE ADVOGADOS, sob o patrocínio técnico do corpo jurídico responsável.
 
 CLÁUSULA 1ª — DO OBJETO: Prestação de serviços jurídicos para postulação e obtenção do Benefício de Prestação Continuada da Assistência Social ({{BENEFICIO}}), em favor da pessoa com deficiência ou idoso hipossuficiente (Pasta: {{PASTA_FISICA}}).
 CLÁUSULA 2ª — DOS HONORÁRIOS CONTRATUAIS: Pelos serviços prestados, em conformidade com o art. 22 da Lei Federal nº 8.906/1994 e o Código de Ética e Disciplina da OAB, o(a) CONTRATANTE pagará à CONTRATADA a título de honorários advocatícios:
@@ -96,22 +94,21 @@ Localidade, {{DATA_EXTENSO}}.`,
   },
   {
     id: 'tpl-003',
-    tenantId: 'tenant-001',
-    title: 'Minuta Padrão — Aposentadoria Urbana & Regras de Transição (Dr. Alexandre Pontes)',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Aposentadoria Urbana & Regras de Transição',
+    documentCategory: 'FEE_CONTRACT',
     benefitSpecies: 'Aposentadoria por Tempo de Contribuição',
     description: 'Averbação de PPP/LTCAT insalubre, retificação de vínculos no CNIS, regras de transição da EC 103/2019 e quota litis padrão OAB.',
     defaultFeeModel: 'QUOTA_LITIS',
     defaultQuotaLitisPercentage: 30,
     clausesCount: 8,
     isDefault: true,
-    lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/PB 18.234',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS PREVIDENCIÁRIOS — APOSENTADORIA URBANA E REGRAS DE TRANSIÇÃO (EC 103/2019)
 
 Pelo presente instrumento, regido pela Lei Federal nº 8.906/1994, Lei Federal nº 10.406/2002 e Lei Federal nº 8.213/1991:
 
 CONTRATANTE: {{NOME_CLIENTE}}, portador(a) do CPF {{CPF}}, RG {{RG}}, residente em {{ENDERECO}}, telefone: {{TELEFONE}}.
-CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, representada por {{NOME_ADVOGADO}}, {{OAB_ADVOGADO}}.
+CONTRATADA: SOCIEDADE DE ADVOGADOS, sob representação do corpo jurídico da banca.
 
 CLÁUSULA 1ª — DO OBJETO: Retificação, acerto de vínculos e remunerações no CNIS, averbação de tempo especial/insalubre e postulação administrativa e judicial do benefício de {{BENEFICIO}} (Pasta: {{PASTA_FISICA}}).
 CLÁUSULA 2ª — DOS HONORÁRIOS CONTRATUAIS: Pelos serviços profissionais prestados, em conformidade com o art. 22 da Lei Federal nº 8.906/1994 e o Código de Ética e Disciplina da OAB, o(a) CONTRATANTE pagará à CONTRATADA a título de honorários advocatícios:
@@ -129,22 +126,21 @@ Localidade, {{DATA_EXTENSO}}.`,
   },
   {
     id: 'tpl-004',
-    tenantId: 'tenant-001',
-    title: 'Minuta Padrão — Planejamento Previdenciário Parcelado (Banca Geral)',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Planejamento Previdenciário Parcelado',
+    documentCategory: 'FEE_CONTRACT',
     benefitSpecies: 'Planejamento Previdenciário',
     description: 'Estrutura com honorários fixos de consultoria para estudo técnico de aposentadoria e análise contributiva.',
     defaultFeeModel: 'FIXED_INSTALLMENT',
     defaultQuotaLitisPercentage: 0,
     clausesCount: 7,
     isDefault: false,
-    lawyerName: 'Dr. Alexandre Pontes',
-    lawyerOab: 'OAB/PB 18.234',
     contentBody: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS JURÍDICOS E CONSULTORIA — PLANEJAMENTO PREVIDENCIÁRIO
 
 Pelo presente instrumento, regido pela Lei Federal nº 8.906/1994 e artigos 593 e seguintes da Lei Federal nº 10.406/2002:
 
 CONTRATANTE: {{NOME_CLIENTE}}, CPF: {{CPF}}, residente em {{ENDERECO}}, telefone: {{TELEFONE}}.
-CONTRATADA: ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS, sob a responsabilidade de {{NOME_ADVOGADO}}, {{OAB_ADVOGADO}}.
+CONTRATADA: SOCIEDADE DE ADVOGADOS, sob a responsabilidade técnica do advogado condutor.
 
 CLÁUSULA 1ª — DO OBJETO: Elaboração de Estudo Técnico de Planejamento Previdenciário contendo análise detalhada do CNIS, contagem de tempo de contribuição, projeção de regras de transição e cálculo de Renda Mensal Inicial (RMI) mais vantajosa (Pasta: {{PASTA_FISICA}}).
 CLÁUSULA 2ª — DO VALOR E FORMA DE PAGAMENTO: Pela prestação dos serviços de consultoria técnica, o(a) CONTRATANTE pagará {{HONORARIOS}}.
@@ -158,9 +154,415 @@ Localidade, {{DATA_EXTENSO}}.`,
     createdAt: '2026-03-01T11:00:00Z',
     updatedAt: '2026-11-20T15:30:00Z',
   },
+  {
+    id: 'tpl-005',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Procuração Ad Judicia et Extra (Previdenciária)',
+    documentCategory: 'POWER_OF_ATTORNEY',
+    benefitSpecies: 'Geral / Todos os Benefícios',
+    description: 'Procuração com poderes especiais para postulação e levantamento de RPV/precatório perante o INSS e Justiça Federal.',
+    defaultFeeModel: 'QUOTA_LITIS',
+    defaultQuotaLitisPercentage: 30,
+    clausesCount: 4,
+    isDefault: true,
+    contentBody: `PROCURAÇÃO AD JUDICIA ET EXTRA
+
+OUTORGANTE: {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente e domiciliado(a) em {{ENDERECO}}, telefone/WhatsApp: {{TELEFONE}}.
+
+OUTORGADOS: Os advogados integrantes da SOCIEDADE DE ADVOGADOS, com endereço profissional onde recebem intimações e notificações de estilo.
+
+PODERES: Pelo presente instrumento de mandato, o(a) OUTORGANTE confere aos OUTORGADOS amplos poderes para o foro em geral, com a cláusula "ad judicia et extra", em qualquer Juízo, Instância, Tribunal ou Repartição Pública, especialmente perante o INSTITUTO NACIONAL DO SEGURO SOCIAL (INSS), Ministério da Previdência Social, Caixa Econômica Federal e Banco do Brasil, podendo propor e acompanhar ações administrativas e judiciais em prol do benefício de {{BENEFICIO}}, praticando todos os atos necessários ao bom e fiel cumprimento deste mandato, inclusive confessar, reconhecer a procedência do pedido, transigir, desistir, renunciar ao direito sobre o qual se funda a ação, firmar compromissos, receber valores, dar e receber quitação, requerer expedição e levantamento de RPV e Precatórios, e substabelecer esta a outrem, com ou sem reserva de iguais poderes.
+
+Localidade, {{DATA_EXTENSO}}.`,
+    createdAt: '2026-03-05T10:00:00Z',
+    updatedAt: '2026-11-20T15:30:00Z',
+  },
+  {
+    id: 'tpl-006',
+    tenantId: 'system',
+    title: 'Minuta Padrão — Declaração de Hipossuficiência Econômica',
+    documentCategory: 'DECLARATION_HIPO',
+    benefitSpecies: 'Geral / Todos os Benefícios',
+    description: 'Declaração formal de insuficiência de recursos para gratuidade da justiça (art. 98 do CPC).',
+    defaultFeeModel: 'QUOTA_LITIS',
+    defaultQuotaLitisPercentage: 0,
+    clausesCount: 2,
+    isDefault: true,
+    contentBody: `DECLARAÇÃO DE HIPOSSUFICIÊNCIA ECONÔMICA (JUSTIÇA GRATUITA)
+
+Eu, {{NOME_CLIENTE}}, brasileiro(a), {{ESTADO_CIVIL}}, profissão: {{PROFISSAO}}, inscrito(a) no CPF/MF sob o nº {{CPF}}, portador(a) do RG nº {{RG}}, residente e domiciliado(a) em {{ENDERECO}},
+
+DECLARO, sob as penas da lei e em conformidade com o artigo 98 e seguintes da Lei Federal nº 13.105/2015 (Código de Processo Civil) e artigo 5º, inciso LXXIV da Constituição Federal de 1988, que não possuo condições financeiras de arcar com as custas processuais, despesas judiciais e honorários advocatícios sem prejuízo do sustento próprio e de minha família.
+
+Por ser a expressão da verdade, firmo a presente declaração para que produza seus regulares efeitos de direito perante os órgãos jurisdicionais competentes.
+
+Localidade, {{DATA_EXTENSO}}.`,
+    createdAt: '2026-03-10T10:00:00Z',
+    updatedAt: '2026-11-20T15:30:00Z',
+  },
 ];
 
-export const INITIAL_CONTRACTS: Contract[] = [];
+export const INITIAL_CONTRACTS: Contract[] = [
+  {
+    id: 'ctr-001',
+    tenantId: 'tenant-001',
+    contractNumber: 'CTR-2026-081',
+    clientId: 'cli-001',
+    clientName: 'Maria Francisca da Silva',
+    clientCpf: '12345678909',
+    clientPhone: '(92) 98765-4321',
+    benefitSpecies: 'Aposentadoria por Idade Rural',
+    templateId: 'tpl-001',
+    templateTitle: 'Aposentadoria Rural por Idade',
+    status: 'ACTIVE',
+    physicalSignedStatus: 'ATTACHED',
+    physicalAttachment: {
+      id: 'att-001',
+      fileName: 'Contrato_Procuracao_Maria_Francisca_Assinado.pdf',
+      fileSizeFormatted: '2.4 MB',
+      fileType: 'application/pdf',
+      uploadedAt: '2026-11-12T14:30:00Z',
+      uploadedBy: 'Dr. Alexandre Pontes',
+      physicalCabinetLocation: 'Armário B - Gaveta 03 - Pasta 2026-042',
+      signerType: 'CLIENT_SIGNATURE',
+      notes: 'Assinatura a rogo com presença de 2 testemunhas idôneas da comunidade rural.',
+    },
+    feeStructure: {
+      feeModel: 'QUOTA_LITIS',
+      quotaLitisPercentage: 30,
+      estimatedRetroactiveAmount: 42000,
+      estimatedSuccessFeeAmount: 12600,
+      actualSuccessFeeReceived: 0,
+      installments: [],
+    },
+    lawyerName: 'Dr. Alexandre Pontes',
+    lawyerOab: 'OAB/AM 55.858',
+    officeName: 'Alexandre Pontes Sociedade de Advogados',
+    issuedAt: '2026-11-10T11:00:00Z',
+    signedAt: '2026-11-12T14:25:00Z',
+    physicalFileLocation: 'Armário B - Gaveta 03 - Pasta 2026-042',
+    notes: 'Requerimento administrativo protocolado no INSS com segurado especial reconhecido.',
+    createdAt: '2026-11-10T11:00:00Z',
+    updatedAt: '2026-11-12T14:30:00Z',
+  },
+  {
+    id: 'ctr-002',
+    tenantId: 'tenant-001',
+    contractNumber: 'CTR-2026-092',
+    clientId: 'cli-002',
+    clientName: 'Severino Manoel dos Santos',
+    clientCpf: '98765432100',
+    clientPhone: '(92) 99123-4567',
+    benefitSpecies: 'BPC/LOAS Deficiência',
+    templateId: 'tpl-002',
+    templateTitle: 'Benefício Assistencial BPC/LOAS',
+    status: 'ACTIVE',
+    physicalSignedStatus: 'PENDING',
+    feeStructure: {
+      feeModel: 'HYBRID',
+      quotaLitisPercentage: 20,
+      estimatedRetroactiveAmount: 28000,
+      estimatedSuccessFeeAmount: 5600,
+      fixedTotalAmount: 1400,
+      downPaymentAmount: 400,
+      installmentCount: 4,
+      installments: [
+        {
+          id: 'inst-002-1',
+          contractId: 'ctr-002',
+          installmentNumber: 1,
+          dueDate: '2026-10-15',
+          amount: 400,
+          status: 'PAID',
+          paidAt: '2026-10-15T15:20:00Z',
+          paymentMethod: 'PIX',
+          receiptReference: 'PIX-E2E-99887766',
+          notes: 'Entrada à vista paga no balcão',
+        },
+        {
+          id: 'inst-002-2',
+          contractId: 'ctr-002',
+          installmentNumber: 2,
+          dueDate: '2026-11-15',
+          amount: 250,
+          status: 'PAID',
+          paidAt: '2026-11-14T10:15:00Z',
+          paymentMethod: 'PIX',
+          receiptReference: 'PIX-E2E-11223344',
+          notes: 'Segunda parcela quitada com antecedência',
+        },
+        {
+          id: 'inst-002-3',
+          contractId: 'ctr-002',
+          installmentNumber: 3,
+          dueDate: '2026-12-15',
+          amount: 250,
+          status: 'PENDING',
+        },
+        {
+          id: 'inst-002-4',
+          contractId: 'ctr-002',
+          installmentNumber: 4,
+          dueDate: '2027-01-15',
+          amount: 250,
+          status: 'PENDING',
+        },
+        {
+          id: 'inst-002-5',
+          contractId: 'ctr-002',
+          installmentNumber: 5,
+          dueDate: '2027-02-15',
+          amount: 250,
+          status: 'PENDING',
+        },
+      ],
+    },
+    lawyerName: 'Dr. Alexandre Pontes',
+    lawyerOab: 'OAB/AM 55.858',
+    officeName: 'Alexandre Pontes Sociedade de Advogados',
+    issuedAt: '2026-10-10T09:30:00Z',
+    signedAt: '2026-10-15T15:00:00Z',
+    physicalFileLocation: 'Armário A - Gaveta 01 - Pasta 2026-015',
+    notes: 'Aguardando cliente trazer a folha física com firma reconhecida para arquivar no cofre.',
+    createdAt: '2026-10-10T09:30:00Z',
+    updatedAt: '2026-11-14T10:15:00Z',
+  },
+  {
+    id: 'ctr-003',
+    tenantId: 'tenant-001',
+    contractNumber: 'CTR-2026-088',
+    clientId: 'cli-003',
+    clientName: 'Antonia Ribeiro de Lima',
+    clientCpf: '45678912345',
+    clientPhone: '(92) 98888-2233',
+    benefitSpecies: 'Aposentadoria por Tempo de Contribuição',
+    templateId: 'tpl-003',
+    templateTitle: 'Aposentadoria Urbana Transição',
+    status: 'ACTIVE',
+    physicalSignedStatus: 'ATTACHED',
+    physicalAttachment: {
+      id: 'att-003',
+      fileName: 'Contrato_Assinado_Antonia_Ribeiro.pdf',
+      fileSizeFormatted: '1.8 MB',
+      fileType: 'application/pdf',
+      uploadedAt: '2026-11-08T16:00:00Z',
+      uploadedBy: 'Dr. Alexandre Pontes',
+      physicalCabinetLocation: 'Armário C - Gaveta 02 - Pasta 2026-089',
+      signerType: 'CLIENT_SIGNATURE',
+    },
+    feeStructure: {
+      feeModel: 'QUOTA_LITIS',
+      quotaLitisPercentage: 30,
+      estimatedRetroactiveAmount: 36000,
+      estimatedSuccessFeeAmount: 10800,
+      actualSuccessFeeReceived: 0,
+      installments: [],
+    },
+    lawyerName: 'Dr. Alexandre Pontes',
+    lawyerOab: 'OAB/AM 55.858',
+    officeName: 'Alexandre Pontes Sociedade de Advogados',
+    issuedAt: '2026-11-05T14:00:00Z',
+    signedAt: '2026-11-08T15:45:00Z',
+    physicalFileLocation: 'Armário C - Gaveta 02 - Pasta 2026-089',
+    notes: 'Contrato físico assinado no gabinete. Atrasados com base na DER de Jan/2025.',
+    createdAt: '2026-11-05T14:00:00Z',
+    updatedAt: '2026-11-08T16:00:00Z',
+  },
+  {
+    id: 'ctr-004',
+    tenantId: 'tenant-001',
+    contractNumber: 'CTR-2026-105',
+    clientId: 'cli-004',
+    clientName: 'Josefa Clementina Alves',
+    clientCpf: '78912345678',
+    clientPhone: '(92) 99345-6789',
+    benefitSpecies: 'Planejamento Previdenciário',
+    templateId: 'tpl-004',
+    templateTitle: 'Contrato Parcelado Fixo com Entrada',
+    status: 'ACTIVE',
+    physicalSignedStatus: 'ATTACHED',
+    physicalAttachment: {
+      id: 'att-004',
+      fileName: 'Scan_Contrato_Josefa_Clementina.pdf',
+      fileSizeFormatted: '3.1 MB',
+      fileType: 'application/pdf',
+      uploadedAt: '2026-10-01T11:20:00Z',
+      uploadedBy: 'Dr. Alexandre Pontes',
+      physicalCabinetLocation: 'Arquivo Geral - Pasta 2026-105',
+      signerType: 'CLIENT_SIGNATURE',
+    },
+    feeStructure: {
+      feeModel: 'FIXED_INSTALLMENT',
+      fixedTotalAmount: 2400,
+      downPaymentAmount: 400,
+      installmentCount: 5,
+      installments: [
+        {
+          id: 'inst-004-1',
+          contractId: 'ctr-004',
+          installmentNumber: 1,
+          dueDate: '2026-10-01',
+          amount: 400,
+          status: 'PAID',
+          paidAt: '2026-10-01T11:00:00Z',
+          paymentMethod: 'PIX',
+          receiptReference: 'PIX-001122',
+        },
+        {
+          id: 'inst-004-2',
+          contractId: 'ctr-004',
+          installmentNumber: 2,
+          dueDate: '2026-11-01',
+          amount: 400,
+          status: 'PAID',
+          paidAt: '2026-11-01T09:30:00Z',
+          paymentMethod: 'BOLETO',
+          receiptReference: 'BOL-990088',
+        },
+        {
+          id: 'inst-004-3',
+          contractId: 'ctr-004',
+          installmentNumber: 3,
+          dueDate: '2026-11-15',
+          amount: 400,
+          status: 'OVERDUE',
+          notes: 'Aguardando contato pelo WhatsApp para regularização do boleto',
+        },
+        {
+          id: 'inst-004-4',
+          contractId: 'ctr-004',
+          installmentNumber: 4,
+          dueDate: '2026-12-15',
+          amount: 400,
+          status: 'PENDING',
+        },
+        {
+          id: 'inst-004-5',
+          contractId: 'ctr-004',
+          installmentNumber: 5,
+          dueDate: '2027-01-15',
+          amount: 400,
+          status: 'PENDING',
+        },
+        {
+          id: 'inst-004-6',
+          contractId: 'ctr-004',
+          installmentNumber: 6,
+          dueDate: '2027-02-15',
+          amount: 400,
+          status: 'PENDING',
+        },
+      ],
+    },
+    lawyerName: 'Dr. Alexandre Pontes',
+    lawyerOab: 'OAB/AM 55.858',
+    officeName: 'Alexandre Pontes Sociedade de Advogados',
+    issuedAt: '2026-10-01T10:00:00Z',
+    signedAt: '2026-10-01T10:45:00Z',
+    physicalFileLocation: 'Arquivo Geral - Pasta 2026-105',
+    createdAt: '2026-10-01T10:00:00Z',
+    updatedAt: '2026-11-16T12:00:00Z',
+  },
+  {
+    id: 'ctr-005',
+    tenantId: 'tenant-001',
+    contractNumber: 'CTR-2026-044',
+    clientId: 'cli-005',
+    clientName: 'Sebastião Ferreira Ramos',
+    clientCpf: '32165498711',
+    clientPhone: '(92) 99678-1234',
+    benefitSpecies: 'Pensão por Morte Rural',
+    templateId: 'tpl-001',
+    templateTitle: 'Pensão por Morte Previdenciária',
+    status: 'CONCLUDED',
+    physicalSignedStatus: 'ATTACHED',
+    physicalAttachment: {
+      id: 'att-005',
+      fileName: 'Contrato_Concluido_Sebastiao_Ferreira.pdf',
+      fileSizeFormatted: '1.5 MB',
+      fileType: 'application/pdf',
+      uploadedAt: '2026-08-10T14:00:00Z',
+      uploadedBy: 'Dr. Alexandre Pontes',
+      physicalCabinetLocation: 'Arquivo Morto / Concluídos - Pasta 2026-044',
+      signerType: 'CLIENT_SIGNATURE',
+    },
+    feeStructure: {
+      feeModel: 'QUOTA_LITIS',
+      quotaLitisPercentage: 30,
+      estimatedRetroactiveAmount: 32833.33,
+      estimatedSuccessFeeAmount: 9850,
+      actualSuccessFeeReceived: 9850,
+      installments: [],
+    },
+    lawyerName: 'Dr. Alexandre Pontes',
+    lawyerOab: 'OAB/AM 55.858',
+    officeName: 'Alexandre Pontes Sociedade de Advogados',
+    issuedAt: '2026-08-01T08:30:00Z',
+    signedAt: '2026-08-10T11:00:00Z',
+    concludedAt: '2026-11-01T16:00:00Z',
+    physicalFileLocation: 'Arquivo Morto / Concluídos - Pasta 2026-044',
+    notes: 'Benefício implantado no INSS com sucesso. Honorários recebidos integralmente via RPV.',
+    createdAt: '2026-08-01T08:30:00Z',
+    updatedAt: '2026-11-01T16:00:00Z',
+  },
+  {
+    id: 'ctr-006',
+    tenantId: 'tenant-001',
+    contractNumber: 'CTR-2026-118',
+    clientId: 'cli-006',
+    clientName: 'Geraldo Rodrigues de Sousa',
+    clientCpf: '65432198700',
+    clientPhone: '(92) 98711-2233',
+    benefitSpecies: 'Auxílio por Incapacidade Temporária',
+    templateId: 'tpl-002',
+    templateTitle: 'Benefício Assistencial BPC/LOAS',
+    status: 'PENDING_SIGNATURE',
+    physicalSignedStatus: 'PENDING',
+    feeStructure: {
+      feeModel: 'HYBRID',
+      quotaLitisPercentage: 30,
+      estimatedRetroactiveAmount: 18000,
+      estimatedSuccessFeeAmount: 5400,
+      fixedTotalAmount: 900,
+      downPaymentAmount: 300,
+      installmentCount: 3,
+      installments: [
+        {
+          id: 'inst-006-1',
+          contractId: 'ctr-006',
+          installmentNumber: 1,
+          dueDate: '2026-11-25',
+          amount: 300,
+          status: 'PENDING',
+        },
+        {
+          id: 'inst-006-2',
+          contractId: 'ctr-006',
+          installmentNumber: 2,
+          dueDate: '2026-12-25',
+          amount: 300,
+          status: 'PENDING',
+        },
+        {
+          id: 'inst-006-3',
+          contractId: 'ctr-006',
+          installmentNumber: 3,
+          dueDate: '2027-01-25',
+          amount: 300,
+          status: 'PENDING',
+        },
+      ],
+    },
+    lawyerName: 'Dr. Alexandre Pontes',
+    lawyerOab: 'OAB/AM 55.858',
+    officeName: 'Alexandre Pontes Sociedade de Advogados',
+    issuedAt: '2026-11-16T15:00:00Z',
+    physicalFileLocation: 'Armário A - Gaveta 03 - Pasta 2026-118',
+    notes: 'Minuta impressa entregue ao cliente para assinatura junto aos familiares.',
+    createdAt: '2026-11-16T15:00:00Z',
+    updatedAt: '2026-11-16T15:00:00Z',
+  },
+];
 
 export function calculateContractKpis(contracts: Contract[]): ContractKpis {
   let totalContractedAmount = 0;
@@ -224,7 +626,7 @@ export function calculateContractKpis(contracts: Contract[]): ContractKpis {
 const TEMPLATES_STORAGE_KEY = 'previoffice_contract_templates';
 const CONTRACTS_STORAGE_KEY = 'previoffice_contracts';
 
-class ContractsStore {
+export class ContractsStore {
   private contracts: Contract[] = [...INITIAL_CONTRACTS];
   private templates: ContractTemplate[] = [...INITIAL_CONTRACT_TEMPLATES];
   private isLoadedFromStorage = false;
@@ -240,23 +642,40 @@ class ContractsStore {
           const missingInitials = INITIAL_CONTRACT_TEMPLATES.filter(
             (init) => !storedIds.has(init.id)
           );
-          // If stored templates have old versions of initial templates that lacked the robust legal header,
-          // update them to the robust system version unless modified by the user
+          // Normalize stored templates: system initial templates receive updated institutional formats,
+          // while custom user-created templates are fully preserved with all their data
           const updatedTemplates = parsed.map((storedTpl: ContractTemplate) => {
             const initial = INITIAL_CONTRACT_TEMPLATES.find((i) => i.id === storedTpl.id);
-            if (initial && !storedTpl.contentBody.includes('Lei Federal nº 8.906/1994')) {
-              return { ...initial, ...storedTpl, contentBody: initial.contentBody };
+            if (initial) {
+              return {
+                ...initial,
+                ...storedTpl,
+                tenantId: initial.tenantId,
+                title: initial.title,
+                lawyerName: storedTpl.lawyerName || undefined,
+                lawyerOab: storedTpl.lawyerOab || undefined,
+                documentCategory: storedTpl.documentCategory || initial.documentCategory,
+                contentBody: initial.contentBody,
+              };
             }
-            return storedTpl;
+            return {
+              ...storedTpl,
+              tenantId: storedTpl.tenantId || 'tenant-001',
+              documentCategory: storedTpl.documentCategory || 'FEE_CONTRACT',
+            };
           });
           this.templates = [...updatedTemplates, ...missingInitials];
+        } else {
+          this.templates = [...INITIAL_CONTRACT_TEMPLATES];
         }
       }
       const storedContracts = localStorage.getItem(CONTRACTS_STORAGE_KEY);
       if (storedContracts) {
         const parsed = JSON.parse(storedContracts);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           this.contracts = parsed;
+        } else {
+          this.contracts = [...INITIAL_CONTRACTS];
         }
       }
       this.isLoadedFromStorage = true;
@@ -413,11 +832,27 @@ class ContractsStore {
     }
     const idx = this.templates.findIndex((t) => t.id === updated.id);
     if (idx === -1) return null;
+
+    if (updated.isDefault) {
+      const docCat = updated.documentCategory || 'FEE_CONTRACT';
+      this.templates = this.templates.map((t) => {
+        if (
+          t.id !== updated.id &&
+          t.tenantId === updated.tenantId &&
+          t.benefitSpecies === updated.benefitSpecies &&
+          (t.documentCategory || 'FEE_CONTRACT') === docCat
+        ) {
+          return { ...t, isDefault: false };
+        }
+        return t;
+      });
+    }
+
     const tpl: ContractTemplate = {
       ...updated,
       updatedAt: new Date().toISOString(),
     };
-    this.templates[idx] = tpl;
+    this.templates = this.templates.map((t) => (t.id === updated.id ? tpl : t));
     this.saveToStorage();
     return tpl;
   }
@@ -426,9 +861,24 @@ class ContractsStore {
     if (!this.isLoadedFromStorage) {
       this.loadFromStorage();
     }
+
+    if (template.isDefault) {
+      const docCat = template.documentCategory || 'FEE_CONTRACT';
+      this.templates = this.templates.map((t) => {
+        if (
+          t.tenantId === template.tenantId &&
+          t.benefitSpecies === template.benefitSpecies &&
+          (t.documentCategory || 'FEE_CONTRACT') === docCat
+        ) {
+          return { ...t, isDefault: false };
+        }
+        return t;
+      });
+    }
+
     const newTpl: ContractTemplate = {
       ...template,
-      id: `tpl-${Date.now()}`,
+      id: `tpl-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -443,7 +893,7 @@ class ContractsStore {
     }
     const created: Contract = {
       ...newContract,
-      id: `ctr-${Date.now()}`,
+      id: `ctr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -21,6 +21,7 @@ import {
 import type { Contract } from '@/types/contract';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatBenefitType } from '@/lib/utils/benefit-translations';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export type ContractFilterTab = 'ALL' | 'ACTIVE' | 'INSTALLMENTS' | 'PENDING_SIGNATURE' | 'CONCLUDED';
 
@@ -46,6 +47,7 @@ export function ContractsTable({
   onOpenUpload,
 }: ContractsTableProps) {
   const { t } = useI18n();
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   const isContractSettled = (contract: Contract) => {
     if (contract.feeStructure.isSettled) return true;
@@ -89,18 +91,19 @@ export function ContractsTable({
         return false;
       if (activeFilter === 'CONCLUDED' && !settled && contract.status !== 'CONCLUDED') return false;
 
-      // Text search
-      if (!searchTerm.trim()) return true;
-      const term = searchTerm.toLowerCase();
+      // Text search (debounced to avoid heavy filtering passes on rapid typing)
+      if (!debouncedSearchTerm.trim()) return true;
+      const term = debouncedSearchTerm.toLowerCase();
+      const cleanDigits = term.replace(/\D/g, '');
       const matchNumber = contract.contractNumber.toLowerCase().includes(term);
       const matchClient = contract.clientName.toLowerCase().includes(term);
-      const matchCpf = contract.clientCpf.replace(/\D/g, '').includes(term.replace(/\D/g, ''));
+      const matchCpf = cleanDigits.length > 0 && contract.clientCpf.replace(/\D/g, '').includes(cleanDigits);
       const matchBenefit = contract.benefitSpecies.toLowerCase().includes(term);
       const matchLocation = contract.physicalFileLocation?.toLowerCase().includes(term);
 
       return matchNumber || matchClient || matchCpf || matchBenefit || matchLocation;
     });
-  }, [contracts, activeFilter, searchTerm]);
+  }, [contracts, activeFilter, debouncedSearchTerm]);
 
   const formatBRL = (val?: number) => {
     if (val === undefined || isNaN(val)) return 'R$ 0,00';

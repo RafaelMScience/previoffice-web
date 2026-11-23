@@ -163,7 +163,7 @@ export function OfficeSettingsTab() {
                   required
                   value={office.oabSocietyNumber}
                   onChange={(e) => setOffice({ ...office, oabSocietyNumber: e.target.value })}
-                  placeholder="OAB/PB 1.450/2019"
+                  placeholder="OAB/AM 1.450/2019"
                   className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] outline-hidden font-medium text-slate-800 transition-all"
                 />
               </div>

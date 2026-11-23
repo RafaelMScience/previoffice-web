@@ -29,6 +29,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { fetchClientsFromDb } from '@/lib/services/client-service';
 import { maskCpf } from '@/lib/utils/masks';
 import { generateFeeInstallments } from '@/lib/utils/template-engine';
+import { formatBenefitType, formatDocumentCategory } from '@/lib/utils/benefit-translations';
 
 interface NewContractModalProps {
   isOpen: boolean;
@@ -40,11 +41,11 @@ interface NewContractModalProps {
 
 // Fallback clients if database query returns empty
 const FALLBACK_CLIENTS = [
-  { id: 'cli-001', name: 'Maria Francisca da Silva', cpf: '123.456.789-09', phone: '(83) 98765-4321', location: 'Armário B - Gaveta 03 - Pasta 2026-042', benefit: 'Aposentadoria Rural' },
-  { id: 'cli-002', name: 'José Carlos Pereira', cpf: '234.567.890-12', phone: '(83) 99123-4567', location: 'Armário A - Gaveta 01 - Pasta 2026-043', benefit: 'Auxílio por Incapacidade Temporária' },
-  { id: 'cli-003', name: 'Ana Lúcia dos Santos', cpf: '345.678.901-23', phone: '(83) 98877-6655', location: 'Armário B - Gaveta 02 - Pasta 2026-044', benefit: 'BPC/LOAS Idoso' },
-  { id: 'cli-004', name: 'Raimundo Nonato de Sousa', cpf: '456.789.012-34', phone: '(83) 99881-2233', location: 'Armário C - Gaveta 01 - Pasta 2026-045', benefit: 'Pensão por Morte Rural' },
-  { id: 'cli-005', name: 'Severina Maria da Conceição', cpf: '567.890.123-45', phone: '(83) 98711-3344', location: 'Armário A - Gaveta 03 - Pasta 2026-046', benefit: 'Aposentadoria Urbana (Idade)' },
+  { id: 'cli-001', name: 'Maria Francisca da Silva', cpf: '123.456.789-09', phone: '(92) 98765-4321', location: 'Armário B - Gaveta 03 - Pasta 2026-042', benefit: 'Aposentadoria Rural' },
+  { id: 'cli-002', name: 'José Carlos Pereira', cpf: '234.567.890-12', phone: '(92) 99123-4567', location: 'Armário A - Gaveta 01 - Pasta 2026-043', benefit: 'Auxílio por Incapacidade Temporária' },
+  { id: 'cli-003', name: 'Ana Lúcia dos Santos', cpf: '345.678.901-23', phone: '(92) 98877-6655', location: 'Armário B - Gaveta 02 - Pasta 2026-044', benefit: 'BPC/LOAS Idoso' },
+  { id: 'cli-004', name: 'Raimundo Nonato de Sousa', cpf: '456.789.012-34', phone: '(92) 99881-2233', location: 'Armário C - Gaveta 01 - Pasta 2026-045', benefit: 'Pensão por Morte Rural' },
+  { id: 'cli-005', name: 'Severina Maria da Conceição', cpf: '567.890.123-45', phone: '(92) 98711-3344', location: 'Armário A - Gaveta 03 - Pasta 2026-046', benefit: 'Aposentadoria Urbana (Idade)' },
 ];
 
 export function NewContractModal({
@@ -100,13 +101,32 @@ export function NewContractModal({
             cpf: c.cpf ? maskCpf(c.cpf) : 'Não informado',
             phone: c.phone || '',
             location: `Armário Geral - Pasta ${c.id.substring(0, 8)}`,
-            benefit: c.benefitType || 'Benefício Previdenciário',
+            benefit: c.benefitType ? formatBenefitType(c.benefitType, 'pt-BR') : 'Benefício Previdenciário',
           }));
           setClientOptions(mapped);
           setSelectedClientId(mapped[0].id);
           setCabinetLocation(mapped[0].location);
           if (mapped[0].benefit) {
-            setBenefitSpecies(mapped[0].benefit);
+            const formatted = formatBenefitType(mapped[0].benefit, 'pt-BR');
+            setBenefitSpecies(formatted);
+            const matched = templates.find(
+              (t) =>
+                (formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit) &&
+                t.isDefault &&
+                (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory)
+            ) || templates.find(
+              (t) => (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory) && t.isDefault
+            ) || templates.find(
+              (t) => formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit
+            ) || templates[0];
+
+            if (matched) {
+              setTemplateId(matched.id);
+              setFeeModel(matched.defaultFeeModel);
+              if (matched.defaultQuotaLitisPercentage) {
+                setQuotaLitisPercentage(matched.defaultQuotaLitisPercentage);
+              }
+            }
           }
         }
       } catch (err) {
@@ -126,7 +146,7 @@ export function NewContractModal({
   useEffect(() => {
     if (selectedTemplateFromLibrary && isOpen) {
       setTemplateId(selectedTemplateFromLibrary.id);
-      setBenefitSpecies(selectedTemplateFromLibrary.benefitSpecies);
+      setBenefitSpecies(formatBenefitType(selectedTemplateFromLibrary.benefitSpecies, 'pt-BR'));
       setFeeModel(selectedTemplateFromLibrary.defaultFeeModel);
       if (selectedTemplateFromLibrary.defaultQuotaLitisPercentage) {
         setQuotaLitisPercentage(selectedTemplateFromLibrary.defaultQuotaLitisPercentage);
@@ -138,13 +158,37 @@ export function NewContractModal({
 
   const currentClient = clientOptions.find((c) => c.id === selectedClientId) || clientOptions[0];
 
+  const autoSelectDefaultTemplate = (targetBenefit: string) => {
+    const formatted = formatBenefitType(targetBenefit, 'pt-BR');
+    const matched = templates.find(
+      (t) =>
+        (formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === targetBenefit) &&
+        t.isDefault &&
+        (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory)
+    ) || templates.find(
+      (t) => (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory) && t.isDefault
+    ) || templates.find(
+      (t) => formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === targetBenefit
+    ) || templates[0];
+
+    if (matched) {
+      setTemplateId(matched.id);
+      setFeeModel(matched.defaultFeeModel);
+      if (matched.defaultQuotaLitisPercentage) {
+        setQuotaLitisPercentage(matched.defaultQuotaLitisPercentage);
+      }
+    }
+  };
+
   const handleClientChange = (clientId: string) => {
     setSelectedClientId(clientId);
     const client = clientOptions.find((c) => c.id === clientId);
     if (client) {
       setCabinetLocation(client.location);
       if (client.benefit) {
-        setBenefitSpecies(client.benefit);
+        const formatted = formatBenefitType(client.benefit, 'pt-BR');
+        setBenefitSpecies(formatted);
+        autoSelectDefaultTemplate(formatted);
       }
     }
   };
@@ -153,7 +197,7 @@ export function NewContractModal({
     setTemplateId(tplId);
     const tpl = templates.find((t) => t.id === tplId);
     if (tpl) {
-      setBenefitSpecies(tpl.benefitSpecies);
+      setBenefitSpecies(formatBenefitType(tpl.benefitSpecies, 'pt-BR'));
       setFeeModel(tpl.defaultFeeModel);
       if (tpl.defaultQuotaLitisPercentage) {
         setQuotaLitisPercentage(tpl.defaultQuotaLitisPercentage);
@@ -221,14 +265,14 @@ export function NewContractModal({
         fileSizeFormatted: uploadedFileSizeFormatted,
         fileType: 'application/pdf',
         uploadedAt: new Date().toISOString(),
-        uploadedBy: currentUser?.fullName || 'Dr. Alexandre Pontes',
+        uploadedBy: currentUser?.fullName || 'Advogado(a) Responsável',
         physicalCabinetLocation: cabinetLocation || 'Armário Geral',
         signerType: 'CLIENT_SIGNATURE',
         documentCategory,
         isSigned: isSignedDocument,
         fileDataUrl: uploadedDataUrl,
         replacedAt: new Date().toISOString(),
-        replacedBy: currentUser?.fullName || 'Dr. Alexandre Pontes',
+        replacedBy: currentUser?.fullName || 'Advogado(a) Responsável',
       };
     }
 
@@ -269,9 +313,9 @@ export function NewContractModal({
       isCustomEdited: Boolean(customAttachment),
       customEditedBy: customAttachment?.replacedBy,
       customEditedAt: customAttachment?.replacedAt,
-      lawyerName: tpl?.lawyerName || 'Dr. Alexandre Pontes',
-      lawyerOab: tpl?.lawyerOab || 'OAB/PB 18.234',
-      officeName: 'Alexandre Pontes Sociedade de Advogados',
+      lawyerName: tpl?.lawyerName || currentUser?.fullName || 'Advogado(a) Responsável',
+      lawyerOab: tpl?.lawyerOab || (currentUser as any)?.oabNumber || '',
+      officeName: (currentUser as any)?.officeName || 'Sociedade de Advogados',
       issuedAt: new Date().toISOString(),
       signedAt: isSignedDocument ? new Date().toISOString() : undefined,
       physicalFileLocation: cabinetLocation || 'Armário Geral',
@@ -323,7 +367,7 @@ export function NewContractModal({
             >
               {clientOptions.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} • CPF: {c.cpf} {c.benefit ? `(${c.benefit})` : ''}
+                  {c.name} • CPF: {c.cpf} {c.benefit ? `(${formatBenefitType(c.benefit, 'pt-BR')})` : ''}
                 </option>
               ))}
             </select>
@@ -339,11 +383,12 @@ export function NewContractModal({
               <select
                 value={templateId}
                 onChange={(e) => handleTemplateChange(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30 font-medium"
               >
                 {templates.map((tpl) => (
                   <option key={tpl.id} value={tpl.id}>
-                    {tpl.title}
+                    {tpl.isDefault ? '★ [PADRÃO] ' : ''}
+                    {formatDocumentCategory(tpl.documentCategory, tpl.customCategoryName)}: {tpl.title}
                   </option>
                 ))}
               </select>
@@ -359,6 +404,7 @@ export function NewContractModal({
                 required
                 value={benefitSpecies}
                 onChange={(e) => setBenefitSpecies(e.target.value)}
+                onBlur={() => autoSelectDefaultTemplate(benefitSpecies)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30"
               />
             </div>

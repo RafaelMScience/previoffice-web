@@ -7,10 +7,15 @@ import { Search, AlertCircle, FileText, CheckCircle2, ArrowUpRight, Clock, UserC
 import { Badge } from '@/components/ui/badge';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { useDebounce } from '@/hooks/use-debounce';
+import { useVirtualList } from '@/hooks/use-virtual-list';
+import { prefetchClientDetails } from '@/lib/services/prefetch-service';
+import { IsolatedSearchInput } from '@/components/common/isolated-search-input';
 import type { AttendanceType } from '@/types/attendance';
 
 export interface ReceptionTableRow {
   id: string;
+  tenantId?: string;
   fullName: string;
   cpf: string;
   photoUrl?: string | null;
@@ -40,19 +45,19 @@ export function ReceptionTable({
 }: ReceptionTableProps) {
   const { t } = useI18n();
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('ALL');
 
   const effectiveRows = rows !== undefined ? rows : (initialRows || []);
 
   const filteredRows = useMemo(() => {
     return effectiveRows.filter((row) => {
-      // Search matching
-      const matchesSearch =
-        row.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        row.cpf.includes(searchTerm.replace(/\D/g, ''));
+      // Search matching with debounced term to prevent sluggish re-renders on keystrokes
+      const cleanDigits = debouncedSearchTerm.replace(/\D/g, '');
+      const matchesName = row.fullName.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
+      const matchesCpf = cleanDigits.length > 0 && row.cpf.includes(cleanDigits);
 
-      if (!matchesSearch) return false;
+      if (debouncedSearchTerm.trim() && !matchesName && !matchesCpf) return false;
 
       // Filter category matching
       switch (activeFilter) {
@@ -67,7 +72,18 @@ export function ReceptionTable({
           return true;
       }
     });
-  }, [effectiveRows, searchTerm, activeFilter]);
+  }, [effectiveRows, debouncedSearchTerm, activeFilter]);
+
+  // Virtualization for long lists (> 25 rows) to keep DOM lean and 60fps scrolling (Item 23)
+  const shouldVirtualize = filteredRows.length > 25;
+  const { startIndex, endIndex, topPadding, bottomPadding, onScroll } = useVirtualList({
+    totalItems: filteredRows.length,
+    itemHeight: 74,
+    containerHeight: 650,
+    overscan: 4,
+  });
+
+  const visibleRows = shouldVirtualize ? filteredRows.slice(startIndex, endIndex) : filteredRows;
 
   const renderAttendanceTypeBadge = (type: AttendanceType) => {
     switch (type) {
@@ -91,17 +107,11 @@ export function ReceptionTable({
     <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
       {/* Table Action Bar */}
       <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Search Input */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder={t.receptionTable.searchPlaceholder}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white transition-all text-slate-800 placeholder-slate-400"
-          />
-        </div>
+        {/* Isolated Search Input: Prevents table re-rendering on every keystroke (Item 30) */}
+        <IsolatedSearchInput
+          placeholder={t.receptionTable.searchPlaceholder}
+          onSearch={setDebouncedSearchTerm}
+        />
 
         {/* Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
@@ -153,9 +163,12 @@ export function ReceptionTable({
       </div>
 
       {/* Table Content */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-700">
-          <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200">
+      <div
+        className={`overflow-x-auto ${shouldVirtualize ? 'max-h-[650px] overflow-y-auto' : ''}`}
+        onScroll={shouldVirtualize ? onScroll : undefined}
+      >
+        <table className="w-full text-left text-sm text-slate-700" aria-rowcount={filteredRows.length}>
+          <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 tracking-wider border-b border-slate-200 sticky top-0 z-10">
             <tr>
               <th scope="col" className="px-5 py-3.5">{t.receptionTable.colClientInfo}</th>
               <th scope="col" className="px-5 py-3.5">{t.receptionTable.colVisitDetails}</th>
@@ -175,12 +188,21 @@ export function ReceptionTable({
                 </td>
               </tr>
             ) : (
-              filteredRows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="hover:bg-amber-50/40 transition-colors group cursor-pointer"
-                  onClick={() => router.push(`/clientes/${row.id}`)}
-                >
+              <>
+                {shouldVirtualize && topPadding > 0 && (
+                  <tr aria-hidden="true" style={{ height: topPadding }}>
+                    <td colSpan={6} />
+                  </tr>
+                )}
+                {visibleRows.map((row, idx) => (
+                  <tr
+                    key={row.id}
+                    aria-rowindex={shouldVirtualize ? startIndex + idx + 1 : idx + 1}
+                    className="hover:bg-amber-50/40 transition-colors group cursor-pointer"
+                    onMouseEnter={() => prefetchClientDetails(row.id, row.tenantId || '')}
+                    onFocus={() => prefetchClientDetails(row.id, row.tenantId || '')}
+                    onClick={() => router.push(`/clientes/${row.id}`)}
+                  >
                   {/* Client Info */}
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
@@ -188,7 +210,11 @@ export function ReceptionTable({
                         <img
                           src={row.photoUrl}
                           alt={row.fullName}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-full object-cover border-2 border-slate-100 flex-shrink-0"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs flex-shrink-0">
@@ -294,9 +320,15 @@ export function ReceptionTable({
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
+              ))}
+              {shouldVirtualize && bottomPadding > 0 && (
+                <tr aria-hidden="true" style={{ height: bottomPadding }}>
+                  <td colSpan={6} />
+                </tr>
+              )}
+            </>
+          )}
+        </tbody>
         </table>
       </div>
 

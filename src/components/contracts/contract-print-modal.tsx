@@ -275,24 +275,24 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
         </div>
 
         {/* Document Selection Tabs */}
-        <div className="px-5 pt-3 border-b border-slate-200 bg-white flex items-center justify-between overflow-x-auto gap-4">
-          <div className="flex items-center gap-2">
+        <div className="px-4 sm:px-6 pt-2.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between overflow-x-auto gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => {
                 setDocType('CONTRACT');
                 setViewCustomPdf(true);
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 border-b-2 text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2.5 sm:gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-b-[3px] text-base sm:text-lg font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'CONTRACT'
-                  ? 'border-[#082A52] text-[#082A52]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[#082A52] text-[#082A52] bg-white rounded-t-xl shadow-xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-white/60 rounded-t-xl'
               }`}
             >
-              <FileText className="w-4 h-4 text-[#C89543]" />
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-[#C89543] shrink-0" />
               <span>1. Contrato de Honorários OAB</span>
               {customContractDoc?.fileDataUrl && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                   PDF Vinculado
                 </span>
               )}
@@ -304,16 +304,16 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                 setDocType('POA');
                 setViewCustomPdf(true);
               }}
-              className={`flex items-center gap-2 px-3.5 py-2 border-b-2 text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2.5 sm:gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-b-[3px] text-base sm:text-lg font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'POA'
-                  ? 'border-[#082A52] text-[#082A52]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[#082A52] text-[#082A52] bg-white rounded-t-xl shadow-xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-white/60 rounded-t-xl'
               }`}
             >
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 shrink-0" />
               <span>2. Procuração Ad Judicia et Extra</span>
               {customPoaDoc?.fileDataUrl && (
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
                   PDF Vinculado
                 </span>
               )}
@@ -322,13 +322,13 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
             <button
               type="button"
               onClick={() => setDocType('FOLDER_COVER')}
-              className={`flex items-center gap-2 px-3.5 py-2 border-b-2 text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-2.5 sm:gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-b-[3px] text-base sm:text-lg font-bold transition-all whitespace-nowrap cursor-pointer ${
                 docType === 'FOLDER_COVER'
-                  ? 'border-[#082A52] text-[#082A52]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-[#082A52] text-[#082A52] bg-white rounded-t-xl shadow-xs'
+                  : 'border-transparent text-slate-600 hover:text-[#082A52] hover:bg-white/60 rounded-t-xl'
               }`}
             >
-              <FolderLock className="w-4 h-4 text-amber-600" />
+              <FolderLock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 shrink-0" />
               <span>3. Capa de Pasta Física (Arquivo)</span>
             </button>
           </div>
@@ -338,9 +338,9 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
             <button
               type="button"
               onClick={() => setViewCustomPdf(!viewCustomPdf)}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold border border-slate-300 text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors shrink-0 mb-1"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold border border-slate-300 text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors shrink-0 mb-1 shadow-2xs"
             >
-              <Eye className="w-3.5 h-3.5 text-[#0B78D0]" />
+              <Eye className="w-4 h-4 text-[#0B78D0]" />
               <span>
                 {viewCustomPdf ? 'Visualizar Minuta Padrão do Sistema' : 'Visualizar PDF do Escritório'}
               </span>
@@ -404,6 +404,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                   <iframe
                     src={activeCustomDoc.fileDataUrl}
                     title="PDF Personalizado do Escritório"
+                    loading="lazy"
                     className="w-full h-[780px] border-none"
                   />
                 ) : (
@@ -446,11 +447,11 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                         <p>
                           <strong>CONTRATANTE:</strong> <strong>{contract.clientName}</strong>, inscrito(a) no CPF/MF sob o nº{' '}
                           <span className="font-mono font-bold">{contract.clientCpf}</span>, telefone{' '}
-                          <span>{contract.clientPhone || 'Não informado'}</span>, domiciliado(a) no Estado da Paraíba, doravante denominado(a) simplesmente <strong>CONTRATANTE</strong>.
+                          <span>{contract.clientPhone || 'Não informado'}</span>, domiciliado(a) no Estado do Amazonas, doravante denominado(a) simplesmente <strong>CONTRATANTE</strong>.
                         </p>
 
                         <p>
-                          <strong>CONTRATADA:</strong> <strong>{contract.officeName ? contract.officeName.toUpperCase() : 'ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS'}</strong>, pessoa jurídica de direito privado inscrita na OAB sob o registro competente, representada pelo advogado <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, inscrito na <strong>{contract.lawyerOab || 'OAB/PB 18.234'}</strong>, com sede e escritório profissional estabelecido nesta comarca, doravante denominada simplesmente <strong>CONTRATADA</strong>.
+                          <strong>CONTRATADA:</strong> <strong>{contract.officeName ? contract.officeName.toUpperCase() : 'ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS'}</strong>, pessoa jurídica de direito privado inscrita na OAB sob o registro competente, representada pelo advogado <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, inscrito na <strong>{contract.lawyerOab || 'OAB/AM 55.858'}</strong>, com sede e escritório profissional estabelecido nesta comarca, doravante denominada simplesmente <strong>CONTRATADA</strong>.
                         </p>
                       </div>
 
@@ -577,7 +578,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                     <div className="border-t border-slate-800 pt-1.5">
                       <strong className="block text-slate-900">{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>
                       <span className="text-[11px] text-slate-500">
-                        {contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/PB'} • {locale === 'en-US' ? 'LAW FIRM' : 'CONTRATADA'}
+                        {contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/AM'} • {locale === 'en-US' ? 'LAW FIRM' : 'CONTRATADA'}
                       </span>
                     </div>
                   </div>
@@ -631,11 +632,11 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                   ) : (
                     <div className="space-y-3 text-xs leading-relaxed text-slate-800">
                       <p>
-                        <strong>OUTORGANTE:</strong> <strong>{contract.clientName}</strong>, brasileiro(a), inscrito(a) no Cadastro de Pessoas Físicas (CPF/MF) sob o nº <span className="font-mono font-bold">{contract.clientCpf}</span>, residente e domiciliado(a) no Estado da Paraíba.
+                        <strong>OUTORGANTE:</strong> <strong>{contract.clientName}</strong>, brasileiro(a), inscrito(a) no Cadastro de Pessoas Físicas (CPF/MF) sob o nº <span className="font-mono font-bold">{contract.clientCpf}</span>, residente e domiciliado(a) no Estado do Amazonas.
                       </p>
 
                       <p>
-                        <strong>OUTORGADOS:</strong> <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, advogado inscrito na Ordem dos Advogados do Brasil sob a {contract.lawyerOab || 'OAB/PB nº 18.234'}, e os advogados associados integrantes da sociedade <strong>ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS</strong>, com escritório profissional onde recebem notificações, intimações e correspondências de estilo.
+                        <strong>OUTORGADOS:</strong> <strong>{contract.lawyerName || 'Dr. Alexandre Pontes'}</strong>, advogado inscrito na Ordem dos Advogados do Brasil sob a {contract.lawyerOab || 'OAB/AM nº 55.858'}, e os advogados associados integrantes da sociedade <strong>ALEXANDRE PONTES SOCIEDADE DE ADVOGADOS</strong>, com escritório profissional onde recebem notificações, intimações e correspondências de estilo.
                       </p>
 
                       <div>
@@ -802,7 +803,7 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
                 {/* Footer */}
                 <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-400">
                   <span>{locale === 'en-US' ? 'Filing Date:' : 'Data de Autuação:'} {getFullTodayDate()}</span>
-                  <span>{contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/PB'}</span>
+                  <span>{contract.officeName || 'Alexandre Pontes Advogados'} • {contract.lawyerOab || 'OAB/AM'}</span>
                 </div>
               </div>
             )}

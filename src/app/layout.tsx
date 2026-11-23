@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { I18nProvider } from '@/lib/i18n/i18n-context';
 import { AuthProvider } from '@/lib/auth/auth-context';
+import { WebVitalsReporter } from '@/components/telemetry/web-vitals';
 
 export const metadata: Metadata = {
   title: 'PreviOffice — Legal Practice SaaS & Social Security Management',
@@ -16,6 +17,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="min-h-screen antialiased bg-[#F8FAFC]">
+        <WebVitalsReporter />
         <I18nProvider>
           <AuthProvider>
             {children}

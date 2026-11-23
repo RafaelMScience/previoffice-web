@@ -333,7 +333,11 @@ export function ClientDetailHeader({
               <img
                 src={client.photoReference}
                 alt={client.fullName}
+                width={64}
+                height={64}
                 className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
               />
             ) : (
               getInitials(client.fullName)

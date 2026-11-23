@@ -16,10 +16,10 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
   const { id } = await params;
   const supabase = await createClientServer();
 
-  // 1. Try loading real client from Supabase PostgreSQL
+  // 1. Single-query nested join to eliminate sequential network hops during SSR
   const { data: rawClient } = await (supabase
     .from('clients') as any)
-    .select('*')
+    .select('*, attendances(*)')
     .eq('id', id)
     .is('deleted_at', null)
     .maybeSingle();
@@ -27,11 +27,7 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
   const clientRow = rawClient as any;
 
   if (clientRow) {
-    const { data: attendanceRows } = await (supabase
-      .from('attendances') as any)
-      .select('*')
-      .eq('client_id', id)
-      .order('attended_at', { ascending: false });
+    const attendanceRows = clientRow.attendances || [];
 
     const client: Client = {
       id: clientRow.id,

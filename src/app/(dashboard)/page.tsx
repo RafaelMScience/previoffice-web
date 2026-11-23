@@ -14,11 +14,23 @@ import {
   ArrowUpRight,
   Loader2,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { ReceptionTable, type ReceptionTableRow } from '@/components/reception/reception-table';
-import { MemoryCardModal } from '@/components/memory-card/memory-card-modal';
-import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
+import { DashboardTableSkeleton } from '@/components/dashboard/dashboard-table-skeleton';
+import type { FastIntakeData } from '@/components/reception/fast-intake-modal';
+
+// Dynamic code splitting for modals (Item 22)
+const MemoryCardModal = dynamic(
+  () => import('@/components/memory-card/memory-card-modal').then((mod) => ({ default: mod.MemoryCardModal })),
+  { ssr: false }
+);
+const FastIntakeModal = dynamic(
+  () => import('@/components/reception/fast-intake-modal').then((mod) => ({ default: mod.FastIntakeModal })),
+  { ssr: false }
+);
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useFetchWithAbort } from '@/hooks/use-fetch-with-abort';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { fetchClientsFromDb, createFastIntakeInDb } from '@/lib/services/client-service';
 import { formatBenefitType } from '@/lib/utils/benefit-translations';
@@ -27,6 +39,7 @@ import type { Client } from '@/types/client';
 export default function ReceptionDashboardPage() {
   const { t } = useI18n();
   const { canAccess, currentUser } = useAuth();
+  const { getSignal } = useFetchWithAbort();
 
   // Reception table state
   const [receptionRows, setReceptionRows] = useState<ReceptionTableRow[]>([]);
@@ -42,9 +55,11 @@ export default function ReceptionDashboardPage() {
 
   const loadClients = useCallback(async () => {
     if (!currentUser?.tenantId) return;
+    const signal = getSignal();
     setLoadingRows(true);
     try {
       const clients = await fetchClientsFromDb(currentUser.tenantId);
+      if (signal.aborted) return;
       setClientsCache(clients);
 
       const rows: ReceptionTableRow[] = clients.map((c) => {
@@ -54,6 +69,7 @@ export default function ReceptionDashboardPage() {
 
         return {
           id: c.id,
+          tenantId: c.tenantId,
           fullName: c.fullName,
           cpf: c.cpf || c.normalizedCpf || '---',
           photoUrl: c.photoReference || null,
@@ -260,10 +276,7 @@ export default function ReceptionDashboardPage() {
         </div>
 
         {loadingRows ? (
-          <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-[#C89543]" />
-            <span className="text-xs text-slate-500 font-medium">Carregando atendimentos do banco...</span>
-          </div>
+          <DashboardTableSkeleton />
         ) : receptionRows.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-3 bg-slate-50/50">
             <Users className="w-10 h-10 text-slate-300" />

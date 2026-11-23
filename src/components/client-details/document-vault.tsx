@@ -220,23 +220,29 @@ export function DocumentVault({ clientId, clientName }: DocumentVaultProps) {
     }
   };
 
-  // 3. Confirm and execute document deletion with operator audit
+  // 3. Optimistic document deletion with rollback
   const handleConfirmDelete = async () => {
     if (!deletingDoc) return;
+    const docToDelete = deletingDoc;
+    const previousDocuments = [...documents];
+
+    // Optimistic UI update: Remove document immediately from the screen
+    setDocuments((prev) => prev.filter((d) => d.id !== docToDelete.id));
+    setDeletingDoc(null);
+    showToast(`Documento "${docToDelete.displayName}" removido.`);
 
     try {
       setIsDeleting(true);
-      const res = await deleteClientDocument(deletingDoc.id);
-
-      setDocuments((prev) => prev.filter((d) => d.id !== deletingDoc.id));
+      const res = await deleteClientDocument(docToDelete.id);
       showToast(
-        `Documento "${deletingDoc.displayName}" excluído com sucesso. Registro auditado por ${
+        `Documento "${docToDelete.displayName}" excluído com sucesso. Registro auditado por ${
           res.deletedByName || currentUser?.fullName || 'Operador'
         }.`
       );
-      setDeletingDoc(null);
     } catch (err: any) {
-      alert(`Erro ao excluir documento: ${err?.message || 'Erro interno.'}`);
+      // Rollback on server failure
+      setDocuments(previousDocuments);
+      setErrorMessage(`Não foi possível excluir o documento no servidor (${err?.message || 'Erro de rede'}). O documento foi restaurado.`);
     } finally {
       setIsDeleting(false);
     }
@@ -515,12 +521,15 @@ export function DocumentVault({ clientId, clientName }: DocumentVaultProps) {
                     src={viewBlobUrl || getDocumentViewUrl(viewingDoc.id)}
                     alt={viewingDoc.displayName}
                     className="max-h-[75vh] w-auto max-w-full rounded-lg shadow-md object-contain bg-white"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               ) : isPdfMime(viewingDoc.mimeType, viewingDoc.extension) ? (
                 <iframe
                   src={viewBlobUrl || getDocumentViewUrl(viewingDoc.id)}
                   title={viewingDoc.displayName}
+                  loading="lazy"
                   className="w-full h-[75vh] rounded-lg border border-slate-300 shadow-sm bg-white"
                 />
               ) : (

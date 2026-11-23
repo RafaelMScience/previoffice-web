@@ -5,6 +5,8 @@ import {
   formatBilingualBenefitType,
   findBenefitCatalogItem,
   getCanonicalBenefitKey,
+  formatSpecialCategory,
+  formatSpecialCategories,
   BENEFIT_TYPES_CATALOG,
 } from './benefit-translations.ts';
 
@@ -72,5 +74,49 @@ describe('Benefit Types Catalog & Translation Utility', () => {
   it('should handle empty or null values gracefully', () => {
     assert.strictEqual(formatBenefitType('', 'pt-BR'), 'Não informado');
     assert.strictEqual(formatBenefitType(null, 'en-US'), 'Not specified');
+  });
+
+  it('should format special categories correctly in Portuguese and English', () => {
+    assert.strictEqual(
+      formatSpecialCategory('URBAN_COMMON', 'pt-BR'),
+      'Geral / Trabalhador Urbano'
+    );
+    assert.strictEqual(
+      formatSpecialCategory('URBAN_COMMON', 'en-US'),
+      'General / Urban Worker'
+    );
+    assert.strictEqual(
+      formatSpecialCategory('RURAL', 'pt-BR'),
+      'Produtor Rural / Agricultura Familiar (Segurado Especial)'
+    );
+    assert.strictEqual(
+      formatSpecialCategory('PCD', 'pt-BR'),
+      'Pessoa com Deficiência (PCD)'
+    );
+    assert.strictEqual(
+      formatSpecialCategory('SPECIAL_HAZARDOUS', 'pt-BR'),
+      'Especial com Insalubridade / Periculosidade'
+    );
+    assert.strictEqual(
+      formatSpecialCategory('', 'pt-BR'),
+      'Não informado'
+    );
+    assert.strictEqual(
+      formatSpecialCategory(undefined, 'en-US'),
+      'Not informed'
+    );
+
+    assert.strictEqual(
+      formatSpecialCategories(['URBAN_COMMON', 'PCD'], 'pt-BR'),
+      'Geral / Trabalhador Urbano, Pessoa com Deficiência (PCD)'
+    );
+    assert.strictEqual(
+      formatSpecialCategories(['URBAN_COMMON'], 'en-US'),
+      'General / Urban Worker'
+    );
+    assert.strictEqual(
+      formatSpecialCategories([], 'pt-BR'),
+      'Não informado'
+    );
   });
 });

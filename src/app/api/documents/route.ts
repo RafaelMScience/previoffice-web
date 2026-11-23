@@ -1,6 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClientServer } from '@/lib/supabase/server';
+import { createCompressedJsonResponse } from '@/lib/utils/compression';
+import {
+  sanitizePagination,
+  buildPaginationMeta,
+  DEFAULT_PAGE_LIMIT,
+  MAX_PAGE_LIMIT,
+} from '@/lib/utils/pagination';
 import type { LegalDocument, DocumentCategory } from '@/types/document';
 
 export async function GET(request: NextRequest) {
@@ -53,13 +60,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 3. Query active documents for client and tenant
-    const { data: rows, error } = await (adminClient.from('documents') as any)
-      .select('*')
+    // 3. Sanitize pagination parameters (default 20, max 100)
+    const paginationParams = sanitizePagination(
+      searchParams.get('page'),
+      searchParams.get('limit'),
+      DEFAULT_PAGE_LIMIT,
+      MAX_PAGE_LIMIT
+    );
+
+    // 4. Query active documents with exact count and strict range in a single PostgREST call
+    const { data: rows, count: totalCount, error } = await (adminClient.from('documents') as any)
+      .select('*', { count: 'exact' })
       .eq('client_id', clientId)
       .eq('tenant_id', profile.tenant_id)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(paginationParams.from, paginationParams.to);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -84,7 +100,13 @@ export async function GET(request: NextRequest) {
       deletedByUserId: row.deleted_by_user_id || undefined,
     }));
 
-    return NextResponse.json({ documents });
+    const pagination = buildPaginationMeta(
+      totalCount || 0,
+      paginationParams.page,
+      paginationParams.limit
+    );
+
+    return createCompressedJsonResponse({ documents, pagination }, request);
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || 'Erro interno.' }, { status: 500 });
   }

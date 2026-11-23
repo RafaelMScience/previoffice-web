@@ -26,7 +26,7 @@ export interface CaseUpdate {
   tenantId: string;
   clientId: string;
   processNumber?: string; // 20-digit CNJ or 10-digit NB
-  forumOrAgency: string; // e.g. "INSS - Agência Areia/PB" or "1ª Vara Federal de Guarabira"
+  forumOrAgency: string; // e.g. "INSS - Agência Manaus/AM" or "Vara Federal de Manaus"
   stage: CaseStage;
   eventKind: CaseEventKind;
   eventDate: string; // ISO datetime

@@ -24,15 +24,18 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import type { AttendanceType, AttendanceWithClient } from '@/types/attendance';
 import { NewGeneralAttendanceModal } from '@/components/attendances/new-general-attendance-modal';
+import { AttendancesTableSkeleton } from '@/components/attendances/attendances-table-skeleton';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { fetchAttendancesFromDb } from '@/lib/services/client-service';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export default function AttendancesPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { canAccess, currentUser } = useAuth();
   const router = useRouter();
 
@@ -40,6 +43,7 @@ export default function AttendancesPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'table' | 'timeline'>('table');
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [filterType, setFilterType] = useState<
     'ALL' | 'RETURN_DOCUMENTS' | 'FIRST_CONSULTATION' | 'CONTRACT_SIGNING'
   >('ALL');
@@ -91,13 +95,13 @@ export default function AttendancesPage() {
 
   // Filtered attendances
   const filteredAttendances = useMemo(() => {
-    const cleanTerm = searchTerm.replace(/\D/g, '');
+    const cleanTerm = debouncedSearchTerm.replace(/\D/g, '');
     return attendances.filter((att) => {
       const matchesSearch =
-        att.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        att.clientName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
         (cleanTerm.length > 0 && att.clientCpf.includes(cleanTerm)) ||
-        att.objective.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (att.attendantName || '').toLowerCase().includes(searchTerm.toLowerCase());
+        att.objective.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        (att.attendantName || '').toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
 
@@ -112,7 +116,7 @@ export default function AttendancesPage() {
       }
       return true;
     });
-  }, [attendances, searchTerm, filterType]);
+  }, [attendances, debouncedSearchTerm, filterType]);
 
   if (!canAccess('receptionDesk')) {
     return (
@@ -428,14 +432,7 @@ export default function AttendancesPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-[#C89543]" />
-                        <span className="text-xs text-slate-500 font-medium">Carregando atendimentos...</span>
-                      </div>
-                    </td>
-                  </tr>
+                  <AttendancesTableSkeleton />
                 ) : filteredAttendances.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
@@ -489,7 +486,7 @@ export default function AttendancesPage() {
                         {/* Objective */}
                         <td className="px-5 py-4">
                           <span className="text-xs font-semibold text-slate-800 line-clamp-1">
-                            {att.objective}
+                            {formatBenefitType(att.objective, locale === 'en-US' ? 'en-US' : 'pt-BR')}
                           </span>
                         </td>
 
@@ -654,7 +651,7 @@ export default function AttendancesPage() {
                       {/* Objective */}
                       <div className="text-xs font-semibold text-slate-800">
                         <span className="text-slate-500 font-normal">Objetivo: </span>
-                        {att.objective}
+                        {formatBenefitType(att.objective, locale === 'en-US' ? 'en-US' : 'pt-BR')}
                       </div>
 
                       {/* Narrative History */}

@@ -257,3 +257,143 @@ export function getCanonicalBenefitKey(rawBenefit?: string | null): string {
   const item = findBenefitCatalogItem(rawBenefit);
   return item ? item.key : (rawBenefit || 'General Query');
 }
+
+/**
+ * Standard Benefit Catalog Options for Template & Contract selection
+ */
+export const BENEFIT_CATALOG_OPTIONS = [
+  'Aposentadoria por Idade Urbana',
+  'Aposentadoria por Idade Rural',
+  'Aposentadoria por Tempo de Contribuição',
+  'Aposentadoria Especial',
+  'Auxílio por Incapacidade Temporária (Auxílio-Doença)',
+  'Auxílio-Acidente',
+  'Benefício de Prestação Continuada (BPC/LOAS Idoso)',
+  'Benefício de Prestação Continuada (BPC/LOAS Deficiência)',
+  'Pensão por Morte Urbana',
+  'Pensão por Morte Rural',
+  'Salário-Maternidade',
+  'Revisão de Benefício',
+  'Planejamento Previdenciário',
+  'Geral / Todos os Benefícios',
+  'Outro Benefício',
+] as const;
+
+/**
+ * Standard Document Category Options for Minutas & Modelos
+ */
+export const DOCUMENT_CATEGORY_OPTIONS = [
+  { value: 'FEE_CONTRACT', label: 'Contrato de Honorários' },
+  { value: 'POWER_OF_ATTORNEY', label: 'Procuração Ad Judicia et Extra' },
+  { value: 'DECLARATION_HIPO', label: 'Declaração de Hipossuficiência' },
+  { value: 'WAIVER_TERM', label: 'Termo de Renúncia' },
+  { value: 'INSS_REQUEST', label: 'Requerimento Administrativo INSS' },
+  { value: 'OTHER', label: 'Outro Tipo de Documento' },
+] as const;
+
+/**
+ * Formats a document category enum to friendly Portuguese label
+ */
+export function formatDocumentCategory(
+  category?: string,
+  customName?: string
+): string {
+  if (category === 'OTHER' && customName?.trim()) {
+    return customName.trim();
+  }
+  switch (category) {
+    case 'FEE_CONTRACT':
+      return 'Contrato de Honorários';
+    case 'POWER_OF_ATTORNEY':
+      return 'Procuração Ad Judicia';
+    case 'DECLARATION_HIPO':
+      return 'Declaração de Hipossuficiência';
+    case 'WAIVER_TERM':
+      return 'Termo de Renúncia';
+    case 'INSS_REQUEST':
+      return 'Requerimento INSS';
+    case 'OTHER':
+      return customName?.trim() || 'Outro Documento';
+    default:
+      return 'Contrato de Honorários';
+  }
+}
+
+/**
+ * Formats a special category enum or string into friendly localized label.
+ * Maps 'URBAN_COMMON' -> 'Geral / Trabalhador Urbano' (or 'General / Urban Worker' in EN),
+ * 'RURAL' -> 'Produtor Rural / Agricultura Familiar (Segurado Especial)',
+ * 'PCD' -> 'Pessoa com Deficiência (PCD)',
+ * 'SPECIAL_HAZARDOUS' -> 'Especial com Insalubridade / Periculosidade'.
+ */
+export function formatSpecialCategory(
+  category?: string,
+  locale: 'pt-BR' | 'en-US' = 'pt-BR'
+): string {
+  if (!category || !category.trim()) {
+    return locale === 'en-US' ? 'Not informed' : 'Não informado';
+  }
+
+  const normalized = category.trim().toUpperCase().replace(/[\s-]+/g, '_');
+
+  switch (normalized) {
+    case 'URBAN_COMMON':
+    case 'URBAN':
+    case 'GERAL':
+    case 'URBANO':
+    case 'TRABALHADOR_URBANO':
+      return locale === 'en-US' ? 'General / Urban Worker' : 'Geral / Trabalhador Urbano';
+
+    case 'RURAL':
+    case 'SEGURADO_ESPECIAL':
+    case 'AGRICULTOR':
+    case 'AGRICULTURA_FAMILIAR':
+    case 'PRODUTOR_RURAL':
+      return locale === 'en-US'
+        ? 'Rural Producer / Family Agriculture (Special Insured)'
+        : 'Produtor Rural / Agricultura Familiar (Segurado Especial)';
+
+    case 'PCD':
+    case 'DEFICIENCIA':
+    case 'DEFICIENTE':
+    case 'PESSOA_COM_DEFICIENCIA':
+      return locale === 'en-US'
+        ? 'Person with Disability (PwD)'
+        : 'Pessoa com Deficiência (PCD)';
+
+    case 'SPECIAL_HAZARDOUS':
+    case 'HAZARDOUS':
+    case 'INSALUBRE':
+    case 'INSALUBRIDADE':
+    case 'PERICULOSIDADE':
+    case 'ATIVIDADE_ESPECIAL':
+      return locale === 'en-US'
+        ? 'Special with Hazardous / Unhealthy Activity'
+        : 'Especial com Insalubridade / Periculosidade';
+
+    default:
+      return category;
+  }
+}
+
+/**
+ * Formats an array of special categories into a comma-separated localized string.
+ */
+export function formatSpecialCategories(
+  categories?: (string | undefined)[] | null,
+  locale: 'pt-BR' | 'en-US' = 'pt-BR'
+): string {
+  if (!categories || categories.length === 0) {
+    return locale === 'en-US' ? 'Not informed' : 'Não informado';
+  }
+  const formatted = categories
+    .map((cat) => (cat ? formatSpecialCategory(cat, locale) : null))
+    .filter((val): val is string => Boolean(val && val !== 'Não informado' && val !== 'Not informed'));
+
+  if (formatted.length === 0) {
+    return locale === 'en-US' ? 'Not informed' : 'Não informado';
+  }
+
+  return formatted.join(', ');
+}
+

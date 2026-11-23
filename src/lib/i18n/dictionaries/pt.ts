@@ -406,7 +406,7 @@ export const ptTranslations: Translations = {
     formProcessNumber: 'Número do Processo (CNJ) ou Número do Benefício (NB)',
     formProcessPlaceholder: 'ex: 0800123-45.2026.4.05.8201 ou NB 198.452.120-1',
     formAgency: 'Órgão Competente / Vara Judicial *',
-    formAgencyPlaceholder: 'ex: INSS - Agência Areia/PB ou 1ª Vara Federal de Guarabira',
+    formAgencyPlaceholder: 'ex: INSS - Agência Manaus/AM ou Vara Federal de Manaus',
     formStage: 'Fase do Processo *',
     formEventKind: 'Tipo de Movimentação *',
     formDate: 'Data do Andamento *',
