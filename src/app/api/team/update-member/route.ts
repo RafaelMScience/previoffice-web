@@ -49,25 +49,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let isCallerAdmin = callerUser.app_metadata?.role === 'MANAGING_LAWYER';
-    let callerProfile: any = null;
-
-    const { data: profileCheck } = await adminClient
+    // 1. Caller Authorization: Verify caller is an active MANAGING_LAWYER with tenant_id directly from the database
+    const { data: callerProfile } = await adminClient
       .from('profiles')
       .select('tenant_id, full_name, role')
       .eq('id', callerUser.id)
       .maybeSingle();
 
-    if (profileCheck) {
-      callerProfile = profileCheck;
-      if (callerProfile.role === 'MANAGING_LAWYER') {
-        isCallerAdmin = true;
-      }
-    }
-
-    if (!isCallerAdmin) {
+    if (!callerProfile || callerProfile.role !== 'MANAGING_LAWYER' || !callerProfile.tenant_id) {
       return NextResponse.json(
-        { error: 'Acesso negado. Apenas advogados sócios/administradores podem alterar membros da equipe.' },
+        { error: 'Acesso negado. Apenas advogados sócios/administradores com escritório ativo podem alterar membros da equipe.' },
         { status: 403 }
       );
     }
@@ -88,10 +79,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ID do membro é obrigatório.' }, { status: 400 });
     }
 
+    // 0. Strict Multi-Tenant Boundary: verify target member belongs to caller's tenant
+    const { data: targetProfile, error: targetError } = await adminClient
+      .from('profiles')
+      .select('id, tenant_id')
+      .eq('id', id)
+      .eq('tenant_id', callerProfile.tenant_id)
+      .maybeSingle();
+
+    if (targetError || !targetProfile) {
+      return NextResponse.json(
+        { error: 'Membro não encontrado ou não pertence ao seu escritório.' },
+        { status: 404 }
+      );
+    }
+
     // Determine mapped role
     const mappedRole = mapMemberTypeToDbRole(memberType as MemberType, Boolean(isAdminLawyer));
 
-    // 1. Update public.profiles with Service Role bypass
+    // 1. Update public.profiles with strict tenant isolation
     const { data: updatedProfile, error: profileError } = await adminClient
       .from('profiles')
       .update({
@@ -103,12 +109,14 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
+      .eq('tenant_id', callerProfile.tenant_id)
       .select()
       .single();
 
     if (profileError) {
+      console.error('Error updating profile in team-update-member:', profileError);
       return NextResponse.json(
-        { error: `Erro ao atualizar perfil no banco: ${profileError.message}` },
+        { error: 'Erro ao atualizar dados do membro no banco de dados.' },
         { status: 500 }
       );
     }

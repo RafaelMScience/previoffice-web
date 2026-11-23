@@ -45,8 +45,11 @@ export function verifyMasterKey(providedKey: string): boolean {
     return false;
   }
 
-  const configuredMasterKey =
-    process.env.MASTER_ADMIN_KEY || 'po_adm_aLOMsQVEpXvRnbQZQZgnlKxJWrQaG6xg';
+  const configuredMasterKey = process.env.MASTER_ADMIN_KEY;
+  if (!configuredMasterKey) {
+    console.error('SECURITY ALERT: MASTER_ADMIN_KEY is not defined in environment variables. Refusing master authentication.');
+    return false;
+  }
 
   // Normalize lengths to avoid timing leakage via length mismatch
   const providedBuffer = Buffer.from(providedKey);

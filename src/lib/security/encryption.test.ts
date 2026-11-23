@@ -75,4 +75,30 @@ describe('Encryption Security Module', () => {
     assert.deepStrictEqual(decrypted, original);
     assert.strictEqual(decrypted.toString('utf-8'), original.toString('utf-8'));
   });
+
+  it('should fail closed and throw in production when master keys are missing', () => {
+    const origEnv = process.env.NODE_ENV;
+    const origKey1 = process.env.ENCRYPTION_MASTER_KEY;
+    const origKey2 = process.env.MASTER_ADMIN_KEY;
+
+    try {
+      (process.env as any).NODE_ENV = 'production';
+      delete process.env.ENCRYPTION_MASTER_KEY;
+      delete process.env.MASTER_ADMIN_KEY;
+
+      assert.throws(
+        () => {
+          encryptData('SegredoQueNaoPodeUsarFallback');
+        },
+        {
+          name: 'Error',
+          message: /SECURITY CRITICAL: ENCRYPTION_MASTER_KEY or MASTER_ADMIN_KEY must be defined in production environment/,
+        }
+      );
+    } finally {
+      (process.env as any).NODE_ENV = origEnv;
+      if (origKey1) process.env.ENCRYPTION_MASTER_KEY = origKey1;
+      if (origKey2) process.env.MASTER_ADMIN_KEY = origKey2;
+    }
+  });
 });

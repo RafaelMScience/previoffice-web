@@ -2,9 +2,24 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClientServer } from '@/lib/supabase/server';
 import { generateIntegritySeal } from '@/lib/services/audit-service';
+import { checkRateLimit } from '@/lib/security/admin-guard';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      '127.0.0.1';
+
+    // 0. Rate limiting: 20 revocation attempts per 15 min window per IP
+    const rateLimit = checkRateLimit(ip, 'security-terminate-session', 20, 15 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Limite de requisições excedido. Tente novamente mais tarde.' },
+        { status: 429 }
+      );
+    }
+
     const adminClient = createAdminClient();
 
     // 1. Authenticate caller
@@ -33,16 +48,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Caller Authorization: verify MANAGING_LAWYER
+    // 2. Caller Authorization: verify MANAGING_LAWYER with active tenant
     const { data: callerProfile } = await adminClient
       .from('profiles')
       .select('tenant_id, full_name, role')
       .eq('id', callerUser.id)
       .maybeSingle();
 
-    if (!callerProfile || callerProfile.role !== 'MANAGING_LAWYER') {
+    if (!callerProfile || callerProfile.role !== 'MANAGING_LAWYER' || !callerProfile.tenant_id) {
       return NextResponse.json(
-        { error: 'Acesso negado. Apenas advogados sócios podem revogar sessões remotas.' },
+        { error: 'Acesso negado. Apenas advogados sócios com escritório ativo podem revogar sessões remotas.' },
         { status: 403 }
       );
     }
@@ -54,23 +69,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ID do usuário é obrigatório.' }, { status: 400 });
     }
 
+    // 2.1 Multi-Tenant Isolation Check: verify target user belongs to caller's tenant
+    const { data: targetProfile, error: targetError } = await adminClient
+      .from('profiles')
+      .select('id, tenant_id, full_name')
+      .eq('id', userId)
+      .eq('tenant_id', callerProfile.tenant_id)
+      .maybeSingle();
+
+    if (targetError || !targetProfile) {
+      return NextResponse.json(
+        { error: 'Usuário não encontrado ou não pertence ao seu escritório.' },
+        { status: 404 }
+      );
+    }
+
     // 3. Revoke active auth tokens globally in Supabase Auth
+    const nowIso = new Date().toISOString();
+
+    // 3.1 Invoke DB RPC to delete active records from auth.sessions
+    const { error: rpcError } = await (adminClient.rpc as any)('terminate_user_sessions', {
+      target_user_id: userId,
+    });
+    if (rpcError) {
+      console.warn('Notice terminating sessions via RPC (falling back to metadata invalidation):', rpcError.message);
+    }
+
+    // 3.2 Update user metadata with session invalidation timestamp
     try {
-      await adminClient.auth.admin.signOut(userId, 'global');
-    } catch (signOutErr) {
-      console.warn('Notice signing out user globally:', signOutErr);
+      await adminClient.auth.admin.updateUserById(userId, {
+        user_metadata: {
+          session_revoked_at: nowIso,
+          sessions_revoked_by: callerUser.id,
+        },
+      });
+    } catch (metaErr) {
+      console.warn('Notice syncing user metadata session invalidation:', metaErr);
     }
 
     // 4. Record forensic audit log
-    const nowIso = new Date().toISOString();
     const tenantId = callerProfile.tenant_id;
     const payload = `${tenantId}:${callerUser.id}:UPDATE_PERMISSIONS:Revogou sessão de ${userId}:${nowIso}`;
     const hash = generateIntegritySeal(payload);
-
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-      request.headers.get('x-real-ip') ||
-      '127.0.0.1';
 
     await adminClient.from('audit_logs').insert({
       tenant_id: tenantId,

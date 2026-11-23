@@ -9,16 +9,21 @@ const ALGORITHM = 'aes-256-gcm';
 const DEFAULT_FALLBACK_KEY = 'po_master_security_encryption_key_2026';
 
 function getKeys(): Buffer[] {
-  const primary =
-    process.env.ENCRYPTION_MASTER_KEY ||
-    process.env.MASTER_ADMIN_KEY ||
-    DEFAULT_FALLBACK_KEY;
+  const envKey = process.env.ENCRYPTION_MASTER_KEY || process.env.MASTER_ADMIN_KEY;
+
+  if (!envKey && process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'SECURITY CRITICAL: ENCRYPTION_MASTER_KEY or MASTER_ADMIN_KEY must be defined in production environment.'
+    );
+  }
+
+  const primary = envKey || DEFAULT_FALLBACK_KEY;
 
   const keys: Buffer[] = [
     crypto.createHash('sha256').update(primary).digest(),
   ];
 
-  if (primary !== DEFAULT_FALLBACK_KEY) {
+  if (process.env.NODE_ENV !== 'production' && primary !== DEFAULT_FALLBACK_KEY) {
     keys.push(crypto.createHash('sha256').update(DEFAULT_FALLBACK_KEY).digest());
   }
 
