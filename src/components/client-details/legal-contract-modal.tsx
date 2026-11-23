@@ -31,6 +31,7 @@ import {
 } from '@/lib/utils/template-engine';
 import { maskCpf, maskPhone } from '@/lib/utils/masks';
 import { formatBenefitType, formatDocumentCategory } from '@/lib/utils/benefit-translations';
+import { escapeHtml } from '@/lib/security/xss';
 
 export interface GeneratedDocItem {
   id: string;
@@ -419,7 +420,7 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
         <!DOCTYPE html>
         <html>
           <head>
-            <title>${currentDoc.title} - ${client.fullName}</title>
+            <title>${escapeHtml(currentDoc.title)} - ${escapeHtml(client.fullName)}</title>
             <style>
               @page { size: A4; margin: 20mm 15mm; }
               body { font-family: serif; font-size: 13px; line-height: 1.6; color: #111; margin: 0; padding: 0; }
@@ -433,20 +434,20 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
           </head>
           <body>
             <div class="header">
-              <h3>${officeName}</h3>
-              <p>Sociedade de Advogados inscrita sob a ${officeOab} • Advocacia Previdenciária</p>
+              <h3>${escapeHtml(officeName)}</h3>
+              <p>Sociedade de Advogados inscrita sob a ${escapeHtml(officeOab)} • Advocacia Previdenciária</p>
             </div>
-            <div class="content">${currentDoc.content}</div>
+            <div class="content">${escapeHtml(currentDoc.content)}</div>
             <div class="signatures">
               <div>
                 <div class="sig-line"></div>
-                <strong>${client.fullName}</strong><br/>
+                <strong>${escapeHtml(client.fullName)}</strong><br/>
                 <span>OUTORGANTE / CONTRATANTE</span>
               </div>
               <div>
                 <div class="sig-line"></div>
-                <strong>${selectedLawyer.name}</strong><br/>
-                <span>${selectedLawyer.oab} • ADVOGADO(A)</span>
+                <strong>${escapeHtml(selectedLawyer.name)}</strong><br/>
+                <span>${escapeHtml(selectedLawyer.oab)} • ADVOGADO(A)</span>
               </div>
             </div>
           </body>
@@ -484,20 +485,20 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
           (d, idx) => `
           <div style="${idx < selectedDocs.length - 1 ? 'page-break-after: always;' : ''} padding: 10px;">
             <div class="header">
-              <h3>${officeName}</h3>
-              <p>Sociedade de Advogados inscrita sob a ${officeOab} • Advocacia Previdenciária</p>
+              <h3>${escapeHtml(officeName)}</h3>
+              <p>Sociedade de Advogados inscrita sob a ${escapeHtml(officeOab)} • Advocacia Previdenciária</p>
             </div>
-            <div class="content">${d.content}</div>
+            <div class="content">${escapeHtml(d.content)}</div>
             <div class="signatures">
               <div>
                 <div class="sig-line"></div>
-                <strong>${client.fullName}</strong><br/>
+                <strong>${escapeHtml(client.fullName)}</strong><br/>
                 <span>OUTORGANTE / CONTRATANTE</span>
               </div>
               <div>
                 <div class="sig-line"></div>
-                <strong>${selectedLawyer.name}</strong><br/>
-                <span>${selectedLawyer.oab} • ADVOGADO(A)</span>
+                <strong>${escapeHtml(selectedLawyer.name)}</strong><br/>
+                <span>${escapeHtml(selectedLawyer.oab)} • ADVOGADO(A)</span>
               </div>
             </div>
           </div>
@@ -510,7 +511,7 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
         <!DOCTYPE html>
         <html>
           <head>
-            <title>Kit de Emissão - ${client.fullName}</title>
+            <title>Kit de Emissão - ${escapeHtml(client.fullName)}</title>
             <style>
               @page { size: A4; margin: 20mm 15mm; }
               body { font-family: serif; font-size: 13px; line-height: 1.6; color: #111; margin: 0; padding: 0; }

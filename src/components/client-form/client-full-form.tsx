@@ -22,6 +22,7 @@ import {
   Search,
   Sparkles,
   Move,
+  Loader2,
 } from 'lucide-react';
 import { AvatarCropModal } from './avatar-crop-modal';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
@@ -29,7 +30,6 @@ import { maskCpf, maskPhone, maskCep, maskBenefitNumber } from '@/lib/utils/mask
 import { compressAvatarPhoto } from '@/lib/utils/image-compressor';
 import { calculateAge, checkRuralRetirementAge } from '@/lib/domain/benefit-rules';
 import { formatBenefitType, getCanonicalBenefitKey } from '@/lib/utils/benefit-translations';
-import { decryptData } from '@/lib/security/encryption';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { createClient } from '@/lib/supabase/client';
@@ -111,15 +111,16 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   // Social Security Credentials
   const [benefitNumber, setBenefitNumber] = useState(initialData?.benefitNumber ? maskBenefitNumber(initialData.benefitNumber) : '');
   const [inssPassword, setInssPassword] = useState(
-    initialData?.inssPassword ? decryptData(initialData.inssPassword) : ''
+    initialData?.inssPassword || ''
   );
   const [showInssPassword, setShowInssPassword] = useState(false);
   const [isCopiedInss, setIsCopiedInss] = useState(false);
+  const [isRevealingInss, setIsRevealingInss] = useState(false);
 
   // Sync initial INSS password whenever initialData updates
   useEffect(() => {
     if (initialData?.inssPassword) {
-      setInssPassword(decryptData(initialData.inssPassword));
+      setInssPassword(initialData.inssPassword);
     }
   }, [initialData?.inssPassword]);
 
@@ -135,14 +136,41 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
     if (!showInssPassword) return;
     const timer = setTimeout(() => {
       setShowInssPassword(false);
+      if (initialData?.inssPassword && (clientId || (initialData as any)?.id)) {
+        setInssPassword('••••••••');
+      }
     }, 15000);
     return () => clearTimeout(timer);
-  }, [showInssPassword]);
+  }, [showInssPassword, initialData?.inssPassword, clientId, (initialData as any)?.id]);
 
-  const toggleShowInssPassword = () => {
+  const toggleShowInssPassword = async () => {
     if (!showInssPassword) {
-      setShowInssPassword(true);
-      if (inssPassword) {
+      const targetId = clientId || (initialData as any)?.id;
+      // If password is masked, fetch decrypted plaintext on-demand via authenticated API
+      if (inssPassword === '••••••••' && targetId) {
+        try {
+          setIsRevealingInss(true);
+          const res = await fetch(`/api/clients/${targetId}/inss-password`, {
+            method: 'POST',
+          });
+          const data = await res.json();
+          if (data.success) {
+            setInssPassword(data.password || '');
+            setShowInssPassword(true);
+          } else {
+            setErrorMessage(data.error || 'Não foi possível revelar a senha do INSS.');
+          }
+        } catch (err) {
+          console.error('Failed to reveal INSS password:', err);
+          setErrorMessage('Erro de conexão ao revelar a senha do INSS.');
+        } finally {
+          setIsRevealingInss(false);
+        }
+      } else {
+        setShowInssPassword(true);
+      }
+
+      if (inssPassword && inssPassword !== '••••••••') {
         securityStore.logEvent({
           actorId: currentUser?.id || 'usr-001',
           actorName: currentUser?.fullName || 'Operador',
@@ -158,33 +186,76 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
       }
     } else {
       setShowInssPassword(false);
+      if (initialData?.inssPassword && (clientId || (initialData as any)?.id)) {
+        setInssPassword('••••••••');
+      }
     }
   };
 
-  const handleCopyInssPassword = () => {
-    if (!inssPassword) return;
+  const handleCopyInssPassword = async () => {
+    let passwordToCopy = inssPassword;
+    const targetId = clientId || (initialData as any)?.id;
+
+    if (passwordToCopy === '••••••••' && targetId) {
+      try {
+        setIsRevealingInss(true);
+        const res = await fetch(`/api/clients/${targetId}/inss-password`, {
+          method: 'POST',
+        });
+        const data = await res.json();
+        if (data.success && data.password) {
+          passwordToCopy = data.password;
+          // Security: do not mutate inssPassword state to plaintext; keep field safely masked
+        } else {
+          setErrorMessage(data.error || 'Não foi possível obter a senha do INSS para cópia.');
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to fetch password for copy:', err);
+        setErrorMessage('Erro de rede ao buscar senha do INSS.');
+        return;
+      } finally {
+        setIsRevealingInss(false);
+      }
+    }
+
+    if (!passwordToCopy || passwordToCopy === '••••••••') return;
+
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard
-        .writeText(inssPassword)
-        .then(() => {
-          setIsCopiedInss(true);
-          securityStore.logEvent({
-            actorId: currentUser?.id || 'usr-001',
-            actorName: currentUser?.fullName || 'Operador',
-            actorRole: currentUser?.memberType || 'LAWYER',
+      try {
+        await navigator.clipboard.writeText(passwordToCopy);
+        setIsCopiedInss(true);
+
+        // VULN-06: Persist audit log to PostgreSQL audit_logs table via /api/audit/log
+        fetch('/api/audit/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             action: 'VIEW_INSS_PASSWORD',
             actionDescription: `Copiou a senha do Meu INSS do cliente ${fullName || initialData?.fullName || 'Cadastro'} para a área de transferência`,
-            targetResource: `Cliente ${clientId || initialData?.cpf || 'Novo'} - Credenciais Meu INSS (Clipboard)`,
-            clientId: clientId,
-            ipAddress: '127.0.0.1 (Local)',
-            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser',
+            targetResource: `Cliente ${targetId || initialData?.cpf || 'Novo'} - Credenciais Meu INSS (Clipboard)`,
+            clientId: targetId,
             severity: 'WARNING',
-          });
-          setTimeout(() => setIsCopiedInss(false), 2000);
-        })
-        .catch(() => {
-          // Graceful fallback if clipboard access is denied
+          }),
+        }).catch((err) => console.warn('Failed to record copy audit log:', err));
+
+        securityStore.logEvent({
+          actorId: currentUser?.id || 'usr-001',
+          actorName: currentUser?.fullName || 'Operador',
+          actorRole: currentUser?.memberType || 'LAWYER',
+          action: 'VIEW_INSS_PASSWORD',
+          actionDescription: `Copiou a senha do Meu INSS do cliente ${fullName || initialData?.fullName || 'Cadastro'} para a área de transferência`,
+          targetResource: `Cliente ${targetId || initialData?.cpf || 'Novo'} - Credenciais Meu INSS (Clipboard)`,
+          clientId: targetId,
+          ipAddress: '127.0.0.1 (Local)',
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Browser',
+          severity: 'WARNING',
         });
+
+        setTimeout(() => setIsCopiedInss(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy to clipboard:', err);
+      }
     }
   };
 
@@ -232,8 +303,7 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
     if (foundClient.state) setState(foundClient.state);
     if (foundClient.email) setEmail(foundClient.email);
     if (foundClient.encrypted_inss_password || foundClient.encryptedInssPassword) {
-      const rawPass = foundClient.encrypted_inss_password || foundClient.encryptedInssPassword;
-      setInssPassword(decryptData(rawPass));
+      setInssPassword('••••••••');
     }
 
     setFastIntakeNotice(
@@ -911,15 +981,18 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
                   <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button
                       type="button"
+                      disabled={isRevealingInss}
                       onClick={toggleShowInssPassword}
-                      className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-200/60 transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-200/60 transition-colors disabled:opacity-50"
                       title={
                         showInssPassword
                           ? t.clientForm.inssPasswordToggleHide
                           : t.clientForm.inssPasswordToggleShow
                       }
                     >
-                      {showInssPassword ? (
+                      {isRevealingInss ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-[#C89543]" />
+                      ) : showInssPassword ? (
                         <EyeOff className="w-4 h-4" />
                       ) : (
                         <Eye className="w-4 h-4" />

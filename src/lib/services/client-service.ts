@@ -395,17 +395,23 @@ export async function createFullClientInDb(
     has_active_benefit: input.hasActiveBenefit ?? false,
     benefit_number: input.benefitNumber || null,
     special_categories: input.specialCategories,
-    encrypted_inss_password: input.inssPassword
-      ? isEncrypted(input.inssPassword.trim())
-        ? input.inssPassword.trim()
-        : encryptData(input.inssPassword.trim())
-      : null,
     photo_reference: photoUrl !== undefined ? photoUrl : (input.photoReference ?? null),
     notes: input.notes || null,
     last_visit_at: new Date().toISOString(),
     last_attendant_name: attendant.name,
     updated_at: new Date().toISOString(),
   };
+
+  // VULN-05: Preserve existing encrypted password if the input contains the masked placeholder '••••••••'
+  if (input.inssPassword === '') {
+    clientPayload.encrypted_inss_password = null;
+  } else if (input.inssPassword && !input.inssPassword.includes('•')) {
+    clientPayload.encrypted_inss_password = isEncrypted(input.inssPassword.trim())
+      ? input.inssPassword.trim()
+      : encryptData(input.inssPassword.trim());
+  } else if (!existingClientId) {
+    clientPayload.encrypted_inss_password = null;
+  }
 
   if (!existingClientId) {
     clientPayload.status = 'PROSPECT';
@@ -713,12 +719,9 @@ function mapDbRowToClient(row: any): Client {
     benefitNumber: row.benefit_number || undefined,
     recentContributionsSummary: row.recent_contributions_summary || undefined,
     specialCategories: (row.special_categories as SpecialCategory[]) || [],
-    encryptedInssPassword: row.encrypted_inss_password
-      ? decryptData(row.encrypted_inss_password)
-      : undefined,
-    inssPassword: row.encrypted_inss_password
-      ? decryptData(row.encrypted_inss_password)
-      : undefined,
+    // VULN-05: Mask INSS password in domain models to prevent accidental leakage in client state or API serialization
+    encryptedInssPassword: row.encrypted_inss_password ? '••••••••' : undefined,
+    inssPassword: row.encrypted_inss_password ? '••••••••' : undefined,
     photoReference: row.photo_reference || undefined,
     notes: row.notes || undefined,
     pendingDocuments,

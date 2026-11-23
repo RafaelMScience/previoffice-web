@@ -19,6 +19,7 @@ import type { Contract } from '@/types/contract';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import { formatDatePtBR } from '@/lib/utils/template-engine';
+import { escapeHtml } from '@/lib/security/xss';
 
 interface ContractPrintModalProps {
   contract: Contract | null;
@@ -142,15 +143,15 @@ export function ContractPrintModal({ contract, isOpen, onClose }: ContractPrintM
     const docTitle =
       locale === 'en-US'
         ? docType === 'CONTRACT'
-          ? `Legal Fee Agreement - ${contract.clientName} - ${contract.contractNumber}`
+          ? `Legal Fee Agreement - ${escapeHtml(contract.clientName)} - ${escapeHtml(contract.contractNumber)}`
           : docType === 'POA'
-          ? `Power of Attorney - ${contract.clientName}`
-          : `Physical Folder Cover - ${contract.clientName}`
+          ? `Power of Attorney - ${escapeHtml(contract.clientName)}`
+          : `Physical Folder Cover - ${escapeHtml(contract.clientName)}`
         : docType === 'CONTRACT'
-        ? `Contrato de Honorários - ${contract.clientName} - ${contract.contractNumber}`
+        ? `Contrato de Honorários - ${escapeHtml(contract.clientName)} - ${escapeHtml(contract.contractNumber)}`
         : docType === 'POA'
-        ? `Procuração Ad Judicia - ${contract.clientName}`
-        : `Capa de Pasta Física - ${contract.clientName}`;
+        ? `Procuração Ad Judicia - ${escapeHtml(contract.clientName)}`
+        : `Capa de Pasta Física - ${escapeHtml(contract.clientName)}`;
 
     doc.open();
     doc.write(`

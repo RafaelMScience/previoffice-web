@@ -16,6 +16,7 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import { maskPhone } from '@/lib/utils/masks';
 import { formatBenefitType, formatSpecialCategories } from '@/lib/utils/benefit-translations';
+import { escapeHtml } from '@/lib/security/xss';
 import type { Client, MaritalStatus } from '@/types/client';
 import type { Attendance, AttendanceType } from '@/types/attendance';
 
@@ -136,7 +137,7 @@ export function ClientPdfReportModal({
       <html lang="${isEn ? 'en-US' : 'pt-BR'}">
         <head>
           <meta charset="utf-8" />
-          <title>${isEn ? 'Client Record' : 'Ficha do Cliente'} - ${client.fullName}</title>
+          <title>${isEn ? 'Client Record' : 'Ficha do Cliente'} - ${escapeHtml(client.fullName)}</title>
           ${styleTags}
           <style>
             @page {
