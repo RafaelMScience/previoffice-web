@@ -99,6 +99,35 @@ function DashboardContent({
     },
   });
 
+  // Re-verify session validity on unlock before dismissing lock screen
+  const handleUnlock = async () => {
+    try {
+      // If browser is explicitly offline, preserve open forms and unlock locally
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        unlock();
+        return;
+      }
+
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.getUser();
+
+      // Tolerate transient network failures without wiping in-progress forms
+      if (error && (error.name === 'AuthRetryableFetchError' || (error as any).status === 0)) {
+        unlock();
+        return;
+      }
+
+      // Explicitly revoked, expired, or invalid session: log out immediately
+      if (error || !data?.user) {
+        handleLogout();
+        return;
+      }
+    } catch {
+      // Offline fallback: allow local unlock if unexpected exception occurs
+    }
+    unlock();
+  };
+
   // Debounced global search state with request cancellation
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
   const debouncedGlobalSearch = useDebounce(globalSearchTerm, 300);
@@ -596,7 +625,7 @@ function DashboardContent({
         {/* 45-Minute Inactivity Lock Screen (Preserves form data) */}
         <InactivityLockScreen
           isLocked={isLocked}
-          onUnlock={unlock}
+          onUnlock={handleUnlock}
           onSignOut={handleLogout}
           user={currentUser ? { fullName: currentUser.fullName, role: currentUser.memberType } : null}
         />

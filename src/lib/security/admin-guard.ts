@@ -12,6 +12,9 @@ const rateLimitMap = new Map<string, RateLimitRecord>();
  * Checks sliding-window rate limit for a client IP and action.
  * Returns { allowed: boolean, remaining: number }
  */
+let lastCleanup = 0;
+const MAX_RATE_LIMIT_ENTRIES = 1000;
+
 export function checkRateLimit(
   ip: string,
   action: string,
@@ -20,6 +23,26 @@ export function checkRateLimit(
 ): { allowed: boolean; remaining: number } {
   const key = `${action}:${ip}`;
   const now = Date.now();
+
+  // 1. Throttled expiration purge & hard capacity ceiling (prevents event loop blocking)
+  if (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES) {
+    if (now - lastCleanup > 30_000) {
+      lastCleanup = now;
+      for (const [k, v] of rateLimitMap.entries()) {
+        if (now > v.resetAt) {
+          rateLimitMap.delete(k);
+        }
+      }
+    }
+
+    // 2. Strict hard ceiling: evict oldest entries if map is still at capacity
+    while (rateLimitMap.size >= MAX_RATE_LIMIT_ENTRIES) {
+      const oldestKey = rateLimitMap.keys().next().value;
+      if (!oldestKey) break;
+      rateLimitMap.delete(oldestKey);
+    }
+  }
+
   const record = rateLimitMap.get(key);
 
   if (!record || now > record.resetAt) {

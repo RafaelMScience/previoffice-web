@@ -6,9 +6,27 @@ import {
   MetricPayload,
   MetricName,
 } from '@/lib/telemetry/vitals';
+import { checkRateLimit } from '@/lib/security/admin-guard';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip =
+      req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      req.headers.get('x-real-ip') ||
+      '127.0.0.1';
+
+    // 0. Rate limiting: max 60 vital submissions per minute per IP
+    const rateLimit = checkRateLimit(ip, 'telemetry-vitals-post', 60, 60 * 1000);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too many telemetry requests' }, { status: 429 });
+    }
+
+    // 1. Content size validation: reject payloads > 16KB
+    const contentLength = req.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 16384) {
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+
     let body: MetricPayload | null = null;
     try {
       body = (await req.json()) as MetricPayload;
@@ -28,7 +46,8 @@ export async function POST(req: NextRequest) {
       !isValidMetricName(body.name) ||
       typeof body.value !== 'number' ||
       !Number.isFinite(body.value) ||
-      body.value < 0
+      body.value < 0 ||
+      body.value > 120_000 // Max 2 minutes realistic ceiling for browser Web Vitals
     ) {
       return NextResponse.json({ error: 'Invalid metric payload' }, { status: 400 });
     }
@@ -53,6 +72,16 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    req.headers.get('x-real-ip') ||
+    '127.0.0.1';
+
+  const rateLimit = checkRateLimit(ip, 'telemetry-vitals-get', 60, 60 * 1000);
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: 'Too many telemetry read requests' }, { status: 429 });
+  }
+
   const { searchParams } = new URL(req.url);
   const metric = searchParams.get('metric') as MetricName | null;
 

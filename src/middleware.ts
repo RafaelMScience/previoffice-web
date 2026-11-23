@@ -1,14 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
+import { isStaticAssetPath } from '@/lib/security/routing';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Never intercept static files, internal Next.js assets, or files with extensions
+  // Never intercept static files, internal Next.js assets, or API routes
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
-    pathname.includes('.')
+    isStaticAssetPath(pathname)
   ) {
     return NextResponse.next();
   }

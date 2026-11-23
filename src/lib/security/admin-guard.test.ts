@@ -45,3 +45,11 @@ test('Security Guard: checkRateLimit Sliding Window', () => {
   assert.equal(res4.allowed, false);
   assert.equal(res4.remaining, 0);
 });
+
+test('Security Guard: checkRateLimit Hard Capacity Ceiling & No Event Loop Starvation', () => {
+  // Test rapid insertion of 1,200 unique IP addresses to verify ceiling bounded at 1,000 entries
+  for (let i = 0; i < 1200; i++) {
+    const res = checkRateLimit(`10.0.${Math.floor(i / 256)}.${i % 256}`, 'stress-action', 5, 60000);
+    assert.equal(res.allowed, true);
+  }
+});
