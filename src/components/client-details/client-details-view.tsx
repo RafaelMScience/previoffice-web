@@ -429,7 +429,9 @@ export function ClientDetailsView({
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
         clientId={client.id}
-        defaultObjective={formatBenefitType(client.benefitType, 'pt-BR') || 'Aposentadoria Rural - Segurado Especial'}
+        clientBenefitType={client.benefitType}
+        defaultObjective={client.benefitType ? formatBenefitType(client.benefitType, 'pt-BR') : 'Aposentadoria Rural - Segurado Especial'}
+        existingAttendances={attendances}
         onSave={handleSaveAttendance}
       />
 
