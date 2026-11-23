@@ -197,6 +197,7 @@ export function ReceptionTable({
                 {visibleRows.map((row, idx) => (
                   <tr
                     key={row.id}
+                    id={row.id === 'demo-client-tour-001' ? 'tour-demo-client-row' : idx === 0 ? 'tour-demo-client-row' : undefined}
                     aria-rowindex={shouldVirtualize ? startIndex + idx + 1 : idx + 1}
                     className="hover:bg-amber-50/40 transition-colors group cursor-pointer"
                     onMouseEnter={() => prefetchClientDetails(row.id, row.tenantId || '')}
@@ -224,6 +225,11 @@ export function ReceptionTable({
                       <div>
                         <div className="font-semibold text-slate-900 group-hover:text-[#C89543] transition-colors flex items-center gap-2">
                           {row.fullName}
+                          {row.id === 'demo-client-tour-001' && (
+                            <span className="text-[10px] bg-[#C89543]/20 border border-[#C89543]/40 text-[#8C6218] font-bold px-2 py-0.5 rounded-full">
+                              Exemplo Tour (Sandbox)
+                            </span>
+                          )}
                           {row.totalVisits > 1 && (
                             <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded">
                               {row.totalVisits}x

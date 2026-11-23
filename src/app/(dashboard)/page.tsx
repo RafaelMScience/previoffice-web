@@ -34,12 +34,14 @@ import { useFetchWithAbort } from '@/hooks/use-fetch-with-abort';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
 import { fetchClientsFromDb, createFastIntakeInDb } from '@/lib/services/client-service';
 import { formatBenefitType } from '@/lib/utils/benefit-translations';
+import { useTour } from '@/components/guided-tour/guided-tour-context';
 import type { Client } from '@/types/client';
 
 export default function ReceptionDashboardPage() {
   const { t } = useI18n();
   const { canAccess, currentUser } = useAuth();
   const { getSignal } = useFetchWithAbort();
+  const { demoClient } = useTour();
 
   // Reception table state
   const [receptionRows, setReceptionRows] = useState<ReceptionTableRow[]>([]);
@@ -131,12 +133,36 @@ export default function ReceptionDashboardPage() {
   };
 
   const handleOpenMemoryCard = (row: ReceptionTableRow) => {
+    if (demoClient && row.id === demoClient.id) {
+      setSelectedClientForMemoryCard(demoClient);
+      setIsMemoryCardOpen(true);
+      return;
+    }
     const found = clientsCache.find((c) => c.id === row.id);
     if (found) {
       setSelectedClientForMemoryCard(found);
       setIsMemoryCardOpen(true);
     }
   };
+
+  const demoRow: ReceptionTableRow | null = demoClient
+    ? {
+        id: demoClient.id,
+        tenantId: demoClient.tenantId,
+        fullName: demoClient.fullName,
+        cpf: demoClient.cpf || '123.456.789-00',
+        photoUrl: null,
+        attendanceType: 'RETURN',
+        lastVisitAt: 'Hoje (Exemplo Guiado)',
+        totalVisits: 2,
+        pendingDocuments: ['Autodeclaração Rural assinada'],
+        registrationProgress: 85,
+        assignedAttendant: 'Dr. Advogado Titular',
+        benefitTypeNotes: demoClient.benefitType,
+      }
+    : null;
+
+  const displayRows = demoRow ? [demoRow, ...receptionRows] : receptionRows;
 
   return (
     <div className="space-y-6">
@@ -157,6 +183,7 @@ export default function ReceptionDashboardPage() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
+            id="tour-fast-intake-btn"
             onClick={() => setIsFastIntakeOpen(true)}
             className="bg-[#C89543] hover:bg-[#b08136] text-[#0B192E] font-bold px-4 py-2.5 rounded-xl transition-all shadow-md shadow-[#C89543]/20 flex items-center gap-2 text-sm"
           >
@@ -164,6 +191,7 @@ export default function ReceptionDashboardPage() {
             <span>{t.dashboard.fastIntakeBtn}</span>
           </button>
           <Link
+            id="tour-full-client-btn"
             href="/clientes/new"
             className="bg-white/10 hover:bg-white/15 text-white font-medium px-4 py-2.5 rounded-xl transition-all border border-white/15 flex items-center gap-2 text-sm"
           >
@@ -277,7 +305,7 @@ export default function ReceptionDashboardPage() {
 
         {loadingRows ? (
           <DashboardTableSkeleton />
-        ) : receptionRows.length === 0 ? (
+        ) : displayRows.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center gap-3 bg-slate-50/50">
             <Users className="w-10 h-10 text-slate-300" />
             <div>
@@ -297,7 +325,7 @@ export default function ReceptionDashboardPage() {
           </div>
         ) : (
           <ReceptionTable
-            rows={receptionRows}
+            rows={displayRows}
             onOpenMemoryCard={handleOpenMemoryCard}
           />
         )}

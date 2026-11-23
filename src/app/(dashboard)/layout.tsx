@@ -8,6 +8,9 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
 import { OperatorSwitcherModal } from '@/components/ui/operator-switcher-modal';
+import { GuidedTourProvider } from '@/components/guided-tour/guided-tour-context';
+import { GuidedTourOverlay } from '@/components/guided-tour/guided-tour-overlay';
+import { TourHeaderButton } from '@/components/guided-tour/tour-header-button';
 import { createClient } from '@/lib/supabase/client';
 import { dedupeRequest } from '@/lib/cache/request-cache';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -219,7 +222,8 @@ export default function DashboardLayout({
   const isSettings = pathname.startsWith('/settings');
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <GuidedTourProvider>
+      <div className="flex min-h-screen bg-[#F8FAFC]">
       {/* Fixed Sticky Sidebar */}
       <aside className="w-64 bg-[#0B192E] text-white flex flex-col flex-shrink-0 sticky top-0 h-screen z-40 border-r border-white/10">
         {/* Brand Header */}
@@ -282,6 +286,7 @@ export default function DashboardLayout({
 
               {canAccess('contractsAndFinancial') && (
                 <Link
+                  id="tour-contracts-nav-link"
                   href="/contracts"
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isContracts
                     ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
@@ -300,6 +305,7 @@ export default function DashboardLayout({
             {t.navigation.sectionIntelligence}
           </div>
           <Link
+            id="tour-vade-mecum-btn"
             href="/vade-mecum"
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isVadeMecum
               ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
@@ -325,6 +331,7 @@ export default function DashboardLayout({
 
           {canAccess('adminSettings') && (
             <Link
+              id="tour-settings-nav-link"
               href="/settings"
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium text-sm transition-all ${isSettings
                 ? 'bg-gradient-to-r from-[#C89543]/20 to-transparent border-l-2 border-[#C89543] text-white font-bold'
@@ -484,6 +491,9 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Tour Guided Button */}
+            <TourHeaderButton />
+
             {/* Topbar Language Switcher */}
             <LanguageSwitcher variant="pill" />
 
@@ -510,5 +520,9 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
-  );
+
+    {/* Guided Tour Interactive Overlay */}
+    <GuidedTourOverlay />
+  </GuidedTourProvider>
+);
 }
