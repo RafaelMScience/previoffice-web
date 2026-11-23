@@ -15,7 +15,7 @@ import {
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import { maskPhone } from '@/lib/utils/masks';
-import { formatBenefitType } from '@/lib/utils/benefit-translations';
+import { formatBenefitType, formatSpecialCategories } from '@/lib/utils/benefit-translations';
 import type { Client, MaritalStatus } from '@/types/client';
 import type { Attendance, AttendanceType } from '@/types/attendance';
 
@@ -836,9 +836,7 @@ export function ClientPdfReportModal({
                       <div className="flex justify-between items-center py-0.5">
                         <span className="text-slate-500 shrink-0">{isEn ? 'Special Category:' : 'Categoria Especial:'}</span>
                         <span className="font-medium text-[#16324F] text-right truncate pl-2">
-                          {client.specialCategories && client.specialCategories.length > 0
-                            ? client.specialCategories.join(', ')
-                            : (isEn ? 'Not informed' : 'Não informado')}
+                          {formatSpecialCategories(client.specialCategories, isEn ? 'en-US' : 'pt-BR')}
                         </span>
                       </div>
                     </div>
@@ -915,7 +913,9 @@ export function ClientPdfReportModal({
                               </span>
                             </td>
                             <td className="px-2.5 py-1.5 text-[11px] text-slate-600">
-                              <span className="font-semibold block text-[#16324F]">{att.objective}</span>
+                              <span className="font-semibold block text-[#16324F]">
+                                {formatBenefitType(att.objective, isEn ? 'en-US' : 'pt-BR')}
+                              </span>
                               {att.narrativeHistory && (
                                 <span className="line-clamp-2 text-slate-500 text-[10px]">
                                   {att.narrativeHistory}

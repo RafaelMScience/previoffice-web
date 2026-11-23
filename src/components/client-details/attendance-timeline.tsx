@@ -15,6 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import type { Attendance, AttendanceType } from '@/types/attendance';
 
 interface AttendanceTimelineProps {
@@ -30,7 +31,7 @@ export function AttendanceTimeline({
   onToggleDocumentDelivered,
   onFormalizeContract,
 }: AttendanceTimelineProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const getAttendanceTypeLabel = (type: AttendanceType) => {
     switch (type) {
@@ -140,7 +141,7 @@ export function AttendanceTimeline({
                       </span>
 
                       <span className="text-xs font-bold text-slate-800">
-                        {item.objective}
+                        {formatBenefitType(item.objective, locale === 'en-US' ? 'en-US' : 'pt-BR')}
                       </span>
                     </div>
 

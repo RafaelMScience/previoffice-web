@@ -24,6 +24,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
 import { formatCpf } from '@/lib/domain/cpf-validator';
 import type { AttendanceType, AttendanceWithClient } from '@/types/attendance';
 import { NewGeneralAttendanceModal } from '@/components/attendances/new-general-attendance-modal';
@@ -34,7 +35,7 @@ import { fetchAttendancesFromDb } from '@/lib/services/client-service';
 import { useDebounce } from '@/hooks/use-debounce';
 
 export default function AttendancesPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { canAccess, currentUser } = useAuth();
   const router = useRouter();
 
@@ -485,7 +486,7 @@ export default function AttendancesPage() {
                         {/* Objective */}
                         <td className="px-5 py-4">
                           <span className="text-xs font-semibold text-slate-800 line-clamp-1">
-                            {att.objective}
+                            {formatBenefitType(att.objective, locale === 'en-US' ? 'en-US' : 'pt-BR')}
                           </span>
                         </td>
 
@@ -650,7 +651,7 @@ export default function AttendancesPage() {
                       {/* Objective */}
                       <div className="text-xs font-semibold text-slate-800">
                         <span className="text-slate-500 font-normal">Objetivo: </span>
-                        {att.objective}
+                        {formatBenefitType(att.objective, locale === 'en-US' ? 'en-US' : 'pt-BR')}
                       </div>
 
                       {/* Narrative History */}
