@@ -1,36 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
-import {
-  Users,
-  Plus,
-  Scale,
-  User,
-  GraduationCap,
-  Shield,
-  Edit2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Search,
-  MessageCircle,
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, Plus, Shield } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { createClient } from '@/lib/supabase/client';
 import { settingsStore } from '@/lib/data/mock-settings';
-import type { MemberType, TeamMember } from '@/types/settings';
-import { AddTeamMemberModal, generateRandomPassword } from './add-team-member-modal';
+import type { TeamMember } from '@/types/settings';
+import { AddTeamMemberModal } from './add-team-member-modal';
 import { ShareCredentialsModal } from './share-credentials-modal';
+import { TeamFiltersBar, TeamMemberRow } from './team/index';
 
 export function TeamManagementTab() {
   const { t, locale } = useI18n();
   const { currentUser } = useAuth();
+  const isEn = locale === 'en-US';
+
   const [members, setMembers] = useState<TeamMember[]>(() =>
     currentUser ? [currentUser] : settingsStore.getTeamMembers()
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!currentUser?.tenantId) return;
     const supabase = createClient();
     (supabase.from('profiles') as any)
@@ -85,6 +75,7 @@ export function TeamManagementTab() {
         }
       });
   }, [currentUser]);
+
   const [filterType, setFilterType] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -128,7 +119,7 @@ export function TeamManagementTab() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setWarningMessage(data.error || 'Erro ao gerar nova senha provisória.');
+        setWarningMessage(data.error || (isEn ? 'Failed to generate temporary password.' : 'Erro ao gerar nova senha provisória.'));
         setTimeout(() => setWarningMessage(null), 4000);
         return;
       }
@@ -141,7 +132,7 @@ export function TeamManagementTab() {
         tempPassword: data.temporaryPassword,
       });
     } catch (err: any) {
-      setWarningMessage(err?.message || 'Erro ao conectar ao servidor para redefinir credencial.');
+      setWarningMessage(err?.message || (isEn ? 'Connection error while resetting credentials.' : 'Erro ao conectar ao servidor para redefinir credencial.'));
       setTimeout(() => setWarningMessage(null), 4000);
     }
   };
@@ -154,9 +145,9 @@ export function TeamManagementTab() {
       const activeAdmins = members.filter((m) => m.isAdminLawyer && m.active);
       if (activeAdmins.length <= 1) {
         setWarningMessage(
-          locale === 'pt-BR'
-            ? 'Não é permitido desativar o único advogado administrador ativo da banca.'
-            : 'Cannot deactivate the only active administrator of the firm.'
+          isEn
+            ? 'Cannot deactivate the only active administrator of the firm.'
+            : 'Não é permitido desativar o único advogado administrador ativo da banca.'
         );
         setTimeout(() => setWarningMessage(null), 4000);
         return;
@@ -182,7 +173,7 @@ export function TeamManagementTab() {
 
       if (!res.ok) {
         const data = await res.json();
-        setWarningMessage(data.error || 'Erro ao alterar status do colaborador.');
+        setWarningMessage(data.error || (isEn ? 'Failed to update member status.' : 'Erro ao alterar status do colaborador.'));
         setTimeout(() => setWarningMessage(null), 4000);
         return;
       }
@@ -190,7 +181,7 @@ export function TeamManagementTab() {
       settingsStore.toggleMemberActive(id);
       setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, active: newActive } : m)));
     } catch (err: any) {
-      setWarningMessage(err?.message || 'Erro de conexão ao alterar status.');
+      setWarningMessage(err?.message || (isEn ? 'Connection error while updating status.' : 'Erro de conexão ao alterar status.'));
       setTimeout(() => setWarningMessage(null), 4000);
     }
   };
@@ -207,9 +198,9 @@ export function TeamManagementTab() {
       );
       if (isDuplicate) {
         throw new Error(
-          locale === 'pt-BR'
-            ? `Já existe outro membro da equipe cadastrado com o e-mail "${emailLower}".`
-            : `Another team member is already registered with email "${emailLower}".`
+          isEn
+            ? `Another team member is already registered with email "${emailLower}".`
+            : `Já existe outro membro da equipe cadastrado com o e-mail "${emailLower}".`
         );
       }
     } else {
@@ -218,9 +209,9 @@ export function TeamManagementTab() {
       );
       if (isDuplicate) {
         throw new Error(
-          locale === 'pt-BR'
-            ? `Já existe um membro da equipe cadastrado com o e-mail "${emailLower}".`
-            : `A team member is already registered with email "${emailLower}".`
+          isEn
+            ? `A team member is already registered with email "${emailLower}".`
+            : `Já existe um membro da equipe cadastrado com o e-mail "${emailLower}".`
         );
       }
     }
@@ -228,13 +219,6 @@ export function TeamManagementTab() {
     if (editingMember) {
       const isPrimaryAdmin = editingMember.id === 'usr-001';
       const isNowAdmin = isPrimaryAdmin || memberData.isAdminLawyer;
-      const targetRole = isNowAdmin
-        ? 'MANAGING_LAWYER'
-        : memberData.memberType === 'INTERN'
-        ? 'INTERN'
-        : memberData.memberType === 'ASSISTANT'
-        ? 'ASSISTANT'
-        : 'ASSOCIATE_LAWYER';
 
       const updatedMember: TeamMember = {
         ...editingMember,
@@ -256,12 +240,9 @@ export function TeamManagementTab() {
         updatedAt: new Date().toISOString(),
       };
 
-      // Call secure server API with Admin privileges to persist in profiles + auth.users
       const res = await fetch('/api/team/update-member', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: editingMember.id,
           fullName: updatedMember.fullName,
@@ -276,18 +257,15 @@ export function TeamManagementTab() {
 
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error || 'Falha ao atualizar colaborador no servidor.');
+        throw new Error(json.error || (isEn ? 'Failed to update member on server.' : 'Falha ao atualizar colaborador no servidor.'));
       }
 
       settingsStore.updateTeamMember(updatedMember);
       setMembers((prev) => prev.map((m) => (m.id === updatedMember.id ? updatedMember : m)));
     } else {
-      // Real API call to provision user in Supabase Auth & public.profiles
       const res = await fetch('/api/team/create-member', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: memberData.fullName,
           email: emailLower,
@@ -304,7 +282,7 @@ export function TeamManagementTab() {
 
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error || 'Falha ao cadastrar membro da equipe.');
+        throw new Error(json.error || (isEn ? 'Failed to create team member.' : 'Falha ao cadastrar membro da equipe.'));
       }
 
       const createdMember: TeamMember = json.data;
@@ -321,9 +299,9 @@ export function TeamManagementTab() {
   };
 
   const formatLastLogin = (isoString?: string) => {
-    if (!isoString) return locale === 'pt-BR' ? 'Nunca acessou' : 'Never logged in';
+    if (!isoString) return isEn ? 'Never logged in' : 'Nunca acessou';
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) return locale === 'pt-BR' ? 'Nunca acessou' : 'Never logged in';
+    if (isNaN(date.getTime())) return isEn ? 'Never logged in' : 'Nunca acessou';
 
     const now = new Date();
     const isToday =
@@ -338,25 +316,21 @@ export function TeamManagementTab() {
       date.getMonth() === yesterday.getMonth() &&
       date.getFullYear() === yesterday.getFullYear();
 
-    const timeStr = date.toLocaleTimeString(locale === 'pt-BR' ? 'pt-BR' : 'en-US', {
+    const timeStr = date.toLocaleTimeString(isEn ? 'en-US' : 'pt-BR', {
       hour: '2-digit',
       minute: '2-digit',
     });
 
-    if (isToday) {
-      return locale === 'pt-BR' ? `Hoje às ${timeStr}` : `Today at ${timeStr}`;
-    }
-    if (isYesterday) {
-      return locale === 'pt-BR' ? `Ontem às ${timeStr}` : `Yesterday at ${timeStr}`;
-    }
+    if (isToday) return isEn ? `Today at ${timeStr}` : `Hoje às ${timeStr}`;
+    if (isYesterday) return isEn ? `Yesterday at ${timeStr}` : `Ontem às ${timeStr}`;
 
-    const dateStr = date.toLocaleDateString(locale === 'pt-BR' ? 'pt-BR' : 'en-US', {
+    const dateStr = date.toLocaleDateString(isEn ? 'en-US' : 'pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     });
 
-    return locale === 'pt-BR' ? `${dateStr} às ${timeStr}` : `${dateStr} at ${timeStr}`;
+    return isEn ? `${dateStr} at ${timeStr}` : `${dateStr} às ${timeStr}`;
   };
 
   return (
@@ -364,7 +338,7 @@ export function TeamManagementTab() {
       {/* Warning banner */}
       {warningMessage && (
         <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
-          <Shield className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <Shield className="w-4 h-4 text-amber-600 shrink-0" />
           <span>{warningMessage}</span>
         </div>
       )}
@@ -389,63 +363,16 @@ export function TeamManagementTab() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          <button
-            onClick={() => setFilterType('ALL')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterType === 'ALL'
-                ? 'bg-[#082A52] text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            Todos ({members.length})
-          </button>
-          <button
-            onClick={() => setFilterType('LAWYER')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterType === 'LAWYER'
-                ? 'bg-[#082A52] text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            Advogados ({members.filter((m) => m.memberType === 'LAWYER').length})
-          </button>
-          <button
-            onClick={() => setFilterType('ASSISTANT')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterType === 'ASSISTANT'
-                ? 'bg-[#082A52] text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            Assistentes ({members.filter((m) => m.memberType === 'ASSISTANT').length})
-          </button>
-          <button
-            onClick={() => setFilterType('INTERN')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterType === 'INTERN'
-                ? 'bg-[#082A52] text-white shadow-xs'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            Estagiários ({members.filter((m) => m.memberType === 'INTERN').length})
-          </button>
-        </div>
+      <TeamFiltersBar
+        filterType={filterType}
+        setFilterType={setFilterType}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        members={members}
+        locale={locale}
+      />
 
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar colaborador..."
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:border-[#C89543] outline-hidden text-slate-800 placeholder:text-slate-400"
-          />
-        </div>
-      </div>
-
-      {/* Team Members Table / List */}
+      {/* Team Members Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -461,153 +388,15 @@ export function TeamManagementTab() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {filteredMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-slate-50/60 transition-colors">
-                  {/* Member Name + Avatar */}
-                  <td className="py-3.5 px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#082A52] to-[#0B192E] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                        {member.fullName
-                          .split(' ')
-                          .map((n) => n[0])
-                          .slice(0, 2)
-                          .join('')}
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-900">{member.fullName}</div>
-                        <div className="text-[11px] text-slate-500">{member.email}</div>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Classification Type */}
-                  <td className="py-3.5 px-4">
-                    <div className="flex flex-col gap-1 items-start">
-                      {member.memberType === 'LAWYER' ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#082A52]/10 text-[#082A52] border border-[#082A52]/20">
-                          <Scale className="w-3.5 h-3.5 text-[#C89543]" />
-                          <span>{t.settings.lawyer}</span>
-                          {member.oabNumber && (
-                            <span className="text-[10px] font-mono text-slate-600">({member.oabNumber})</span>
-                          )}
-                        </div>
-                      ) : member.memberType === 'ASSISTANT' ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                          <User className="w-3.5 h-3.5 text-amber-600" />
-                          <span>{t.settings.assistant}</span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                          <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
-                          <span>{t.settings.intern}</span>
-                        </div>
-                      )}
-
-                      {member.isAdminLawyer && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                          <Shield className="w-3 h-3 text-amber-700" />
-                          <span>Sócio Admin</span>
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* Permissions tags */}
-                  <td className="py-3.5 px-4">
-                    <div className="flex flex-wrap gap-1 max-w-xs">
-                      {member.permissions.adminSettings && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                          Admin
-                        </span>
-                      )}
-                      {member.permissions.securityAudit && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#C89543]/15 text-[#8C6218] border border-[#C89543]/30">
-                          Auditoria (LGPD)
-                        </span>
-                      )}
-                      {member.permissions.receptionDesk && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                          Recepção
-                        </span>
-                      )}
-                      {member.permissions.clientsManage && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                          Clientes
-                        </span>
-                      )}
-                      {member.permissions.casesManage && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                          Processos
-                        </span>
-                      )}
-                      {member.permissions.contractsAndFinancial && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Honorários
-                        </span>
-                      )}
-                      {member.permissions.templatesManage && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                          Minutas
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* Status */}
-                  <td className="py-3.5 px-4">
-                    <button
-                      onClick={() => handleToggleActive(member.id)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold cursor-pointer transition-all ${
-                        member.active
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                          : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'
-                      }`}
-                      title="Clique para alternar o status"
-                    >
-                      {member.active ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>ATIVO</span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle className="w-3 h-3 text-slate-400" />
-                          <span>INATIVO</span>
-                        </>
-                      )}
-                    </button>
-                  </td>
-
-                  {/* Last Login */}
-                  <td className="py-3.5 px-4 text-[11px] text-slate-500 font-mono">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{formatLastLogin(member.lastLoginAt)}</span>
-                    </div>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="py-3.5 px-4 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleResetAndShare(member)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all"
-                        title="Gerar nova senha provisória e copiar dados para WhatsApp"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Acesso WhatsApp</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleOpenEdit(member)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Editar</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                <TeamMemberRow
+                  key={member.id}
+                  member={member}
+                  onToggleActive={handleToggleActive}
+                  onResetAndShare={handleResetAndShare}
+                  onOpenEdit={handleOpenEdit}
+                  formatLastLogin={formatLastLogin}
+                  locale={locale}
+                />
               ))}
             </tbody>
           </table>

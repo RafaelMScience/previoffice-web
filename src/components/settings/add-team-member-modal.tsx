@@ -8,11 +8,8 @@ import {
   Phone,
   Shield,
   KeyRound,
-  CheckCircle2,
   Lock,
-  Scale,
   Users,
-  GraduationCap,
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
@@ -22,6 +19,7 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
 import { generateRandomPassword } from '@/lib/auth/password-generator';
 import { maskPhone } from '@/lib/utils/masks';
+import { TeamRoleSelector, TeamPermissionsMatrix } from './team/index';
 
 export { generateRandomPassword };
 
@@ -70,7 +68,8 @@ export function AddTeamMemberModal({
   existingEmails,
   onSave,
 }: AddTeamMemberModalProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isEn = locale === 'en-US';
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -155,7 +154,11 @@ export function AddTeamMemberModal({
 
     const cleanEmail = email.trim().toLowerCase();
     if (existingEmails && existingEmails.includes(cleanEmail)) {
-      setErrorMsg(`O e-mail "${cleanEmail}" já está cadastrado para outro membro.`);
+      setErrorMsg(
+        isEn
+          ? `The email "${cleanEmail}" is already registered for another member.`
+          : `O e-mail "${cleanEmail}" já está cadastrado para outro membro.`
+      );
       return;
     }
 
@@ -175,7 +178,10 @@ export function AddTeamMemberModal({
       });
       onClose();
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Erro ao salvar colaborador.');
+      setErrorMsg(
+        err?.message ||
+          (isEn ? 'Error saving team member.' : 'Erro ao salvar colaborador.')
+      );
     } finally {
       setIsSaving(false);
     }
@@ -211,68 +217,17 @@ export function AddTeamMemberModal({
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {errorMsg && (
             <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2.5 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
               <span className="font-medium">{errorMsg}</span>
             </div>
           )}
+
           {/* Member Classification Selection */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2">
-              {t.settings.lblMemberType} <span className="text-rose-500">*</span>
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => handleMemberTypeChange('LAWYER')}
-                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
-                  memberType === 'LAWYER'
-                    ? 'border-[#082A52] bg-[#082A52]/5 text-[#082A52] ring-1 ring-[#082A52]'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <Scale className={`w-4 h-4 ${memberType === 'LAWYER' ? 'text-[#C89543]' : 'text-slate-400'}`} />
-                  {memberType === 'LAWYER' && <CheckCircle2 className="w-4 h-4 text-[#082A52]" />}
-                </div>
-                <span className="text-xs font-bold">{t.settings.lawyer}</span>
-                <span className="text-[10px] text-slate-500">Possui OAB e assina peças</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleMemberTypeChange('ASSISTANT')}
-                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
-                  memberType === 'ASSISTANT'
-                    ? 'border-[#082A52] bg-[#082A52]/5 text-[#082A52] ring-1 ring-[#082A52]'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <User className={`w-4 h-4 ${memberType === 'ASSISTANT' ? 'text-[#C89543]' : 'text-slate-400'}`} />
-                  {memberType === 'ASSISTANT' && <CheckCircle2 className="w-4 h-4 text-[#082A52]" />}
-                </div>
-                <span className="text-xs font-bold">{t.settings.assistant}</span>
-                <span className="text-[10px] text-slate-500">Recepção e triagem inicial</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleMemberTypeChange('INTERN')}
-                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col gap-1.5 ${
-                  memberType === 'INTERN'
-                    ? 'border-[#082A52] bg-[#082A52]/5 text-[#082A52] ring-1 ring-[#082A52]'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <GraduationCap className={`w-4 h-4 ${memberType === 'INTERN' ? 'text-[#C89543]' : 'text-slate-400'}`} />
-                  {memberType === 'INTERN' && <CheckCircle2 className="w-4 h-4 text-[#082A52]" />}
-                </div>
-                <span className="text-xs font-bold">{t.settings.intern}</span>
-                <span className="text-[10px] text-slate-500">Apoio a processos e minutas</span>
-              </button>
-            </div>
-          </div>
+          <TeamRoleSelector
+            memberType={memberType}
+            onChange={handleMemberTypeChange}
+            locale={locale}
+          />
 
           {/* Personal Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -287,7 +242,7 @@ export function AddTeamMemberModal({
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nome completo do colaborador"
+                  placeholder={isEn ? 'Full name of the team member' : 'Nome completo do colaborador'}
                   className="w-full pl-10 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] outline-hidden font-medium text-slate-800 transition-all"
                 />
               </div>
@@ -372,11 +327,11 @@ export function AddTeamMemberModal({
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                   <KeyRound className="w-4 h-4 text-[#C89543]" />
-                  <span>Senha Provisória de Acesso</span>
+                  <span>{isEn ? 'Temporary Access Password' : 'Senha Provisória de Acesso'}</span>
                 </label>
                 <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                   <ShieldAlert className="w-3 h-3 text-amber-600" />
-                  <span>Troca obrigatória no 1º login</span>
+                  <span>{isEn ? 'Mandatory change on 1st login' : 'Troca obrigatória no 1º login'}</span>
                 </span>
               </div>
 
@@ -396,180 +351,46 @@ export function AddTeamMemberModal({
                   type="button"
                   onClick={() => setTempPassword(generateRandomPassword())}
                   className="px-3 py-2 rounded-xl text-xs font-bold bg-white border border-slate-300 hover:border-[#C89543] text-slate-700 hover:text-[#082A52] flex items-center gap-1.5 transition-all shadow-2xs"
-                  title="Gerar outra senha aleatória segura"
+                  title={isEn ? 'Generate another secure random password' : 'Gerar outra senha aleatória segura'}
                 >
                   <RefreshCw className="w-3.5 h-3.5 text-[#C89543]" />
-                  <span>Gerar Outra</span>
+                  <span>{isEn ? 'Generate Another' : 'Gerar Outra'}</span>
                 </button>
               </div>
 
               <p className="text-[11px] text-slate-500">
-                Senha aleatória gerada com segurança. Ao salvar, você poderá copiar a mensagem formatada para enviar via WhatsApp com custo R$ 0,00.
+                {isEn
+                  ? 'Random password generated securely. You will be able to copy the formatted credentials message to send via WhatsApp with R$ 0.00 cost.'
+                  : 'Senha aleatória gerada com segurança. Ao salvar, você poderá copiar a mensagem formatada para enviar via WhatsApp com custo R$ 0,00.'}
               </p>
             </div>
           )}
 
-          {/* Granular Permissions Matrix (Checkboxes) */}
-          <div className="pt-2 border-t border-slate-100">
-            <h4 className="text-xs font-bold text-slate-900 mb-1">
-              {t.settings.permSectionTitle}
-            </h4>
-            <p className="text-[11px] text-slate-500 mb-3">
-              {isAdminLawyer
-                ? 'Como Sócio / Administrador, este usuário possui permissão total e irrestrita a todos os módulos.'
-                : 'Marque os módulos e funções que este colaborador está autorizado a acessar:'}
-            </p>
+          {/* Granular Permissions Matrix */}
+          <TeamPermissionsMatrix
+            permissions={permissions}
+            isAdminLawyer={isAdminLawyer}
+            onTogglePermission={handleTogglePermission}
+            locale={locale}
+          />
 
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${isAdminLawyer ? 'opacity-50 pointer-events-none select-none' : ''}`}>
-              {/* Reception */}
-              <label className={`flex items-start gap-3 p-3 rounded-xl border border-slate-200 transition-all ${isAdminLawyer ? 'bg-slate-100/80 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  disabled={isAdminLawyer}
-                  checked={isAdminLawyer || permissions.receptionDesk}
-                  onChange={() => handleTogglePermission('receptionDesk')}
-                  className="mt-0.5 rounded text-[#082A52] focus:ring-[#C89543] w-4 h-4 disabled:opacity-75"
-                />
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{t.settings.permReception}</div>
-                  <div className="text-[10px] text-slate-500">{t.settings.permReceptionDesc}</div>
-                </div>
-              </label>
-
-              {/* Clients */}
-              <label className={`flex items-start gap-3 p-3 rounded-xl border border-slate-200 transition-all ${isAdminLawyer ? 'bg-slate-100/80 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  disabled={isAdminLawyer}
-                  checked={isAdminLawyer || permissions.clientsManage}
-                  onChange={() => handleTogglePermission('clientsManage')}
-                  className="mt-0.5 rounded text-[#082A52] focus:ring-[#C89543] w-4 h-4 disabled:opacity-75"
-                />
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{t.settings.permClients}</div>
-                  <div className="text-[10px] text-slate-500">{t.settings.permClientsDesc}</div>
-                </div>
-              </label>
-
-              {/* Cases */}
-              <label className={`flex items-start gap-3 p-3 rounded-xl border border-slate-200 transition-all ${isAdminLawyer ? 'bg-slate-100/80 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  disabled={isAdminLawyer}
-                  checked={isAdminLawyer || permissions.casesManage}
-                  onChange={() => handleTogglePermission('casesManage')}
-                  className="mt-0.5 rounded text-[#082A52] focus:ring-[#C89543] w-4 h-4 disabled:opacity-75"
-                />
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{t.settings.permCases}</div>
-                  <div className="text-[10px] text-slate-500">{t.settings.permCasesDesc}</div>
-                </div>
-              </label>
-
-              {/* Contracts & Financial */}
-              <label className={`flex items-start gap-3 p-3 rounded-xl border border-slate-200 transition-all ${isAdminLawyer ? 'bg-slate-100/80 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  disabled={isAdminLawyer}
-                  checked={isAdminLawyer || permissions.contractsAndFinancial}
-                  onChange={() => handleTogglePermission('contractsAndFinancial')}
-                  className="mt-0.5 rounded text-[#082A52] focus:ring-[#C89543] w-4 h-4 disabled:opacity-75"
-                />
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{t.settings.permContracts}</div>
-                  <div className="text-[10px] text-slate-500">{t.settings.permContractsDesc}</div>
-                </div>
-              </label>
-
-              {/* Templates */}
-              <label className={`flex items-start gap-3 p-3 rounded-xl border border-slate-200 transition-all ${isAdminLawyer ? 'bg-slate-100/80 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  disabled={isAdminLawyer}
-                  checked={isAdminLawyer || permissions.templatesManage}
-                  onChange={() => handleTogglePermission('templatesManage')}
-                  className="mt-0.5 rounded text-[#082A52] focus:ring-[#C89543] w-4 h-4 disabled:opacity-75"
-                />
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{t.settings.permTemplates}</div>
-                  <div className="text-[10px] text-slate-500">{t.settings.permTemplatesDesc}</div>
-                </div>
-              </label>
-
-              {/* Admin */}
-              <label className={`flex items-start gap-3 p-3 rounded-xl border border-slate-200 transition-all ${isAdminLawyer ? 'bg-slate-100/80 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  disabled={isAdminLawyer}
-                  checked={isAdminLawyer || permissions.adminSettings}
-                  onChange={() => handleTogglePermission('adminSettings')}
-                  className="mt-0.5 rounded text-[#082A52] focus:ring-[#C89543] w-4 h-4 disabled:opacity-75"
-                />
-                <div>
-                  <div className="text-xs font-bold text-slate-800">{t.settings.permAdmin}</div>
-                  <div className="text-[10px] text-slate-500">{t.settings.permAdminDesc}</div>
-                </div>
-              </label>
-
-              {/* Security & Forensic Audit (LGPD) */}
-              <label className={`flex items-start gap-3 p-3 rounded-xl border border-[#C89543]/40 transition-all md:col-span-2 ${isAdminLawyer ? 'bg-slate-100/80 cursor-not-allowed' : 'bg-[#FDF8ED]/50 hover:bg-[#FDF8ED] cursor-pointer'}`}>
-                <input
-                  type="checkbox"
-                  disabled={isAdminLawyer}
-                  checked={isAdminLawyer || permissions.securityAudit}
-                  onChange={() => handleTogglePermission('securityAudit')}
-                  className="mt-0.5 rounded text-[#082A52] focus:ring-[#C89543] w-4 h-4 disabled:opacity-75 cursor-pointer"
-                />
-                <div>
-                  <div className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#C89543]" />
-                    <span>{t.settings.permSecurityAudit}</span>
-                    <span className="text-[10px] font-bold text-[#8C6218] bg-[#C89543]/20 border border-[#C89543]/40 px-1.5 py-0.2 rounded">
-                      LGPD & Sigilo
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-slate-600 mt-0.5">{t.settings.permSecurityAuditDesc}</div>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          {/* Active status */}
-          <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-            <div>
-              <div className="text-xs font-bold text-slate-800">Status do Colaborador</div>
-              <div className="text-[11px] text-slate-500">Membros inativos não conseguem realizar login no sistema</div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setActive(!active)}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                active
-                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                  : 'bg-slate-200 text-slate-600 border border-slate-300'
-              }`}
-            >
-              {active ? 'ATIVO' : 'INATIVO'}
-            </button>
-          </div>
-
-          {/* Footer buttons */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+          {/* Form Actions */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={isSaving}
               className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
             >
-              Cancelar
+              {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#082A52] text-white hover:bg-[#0B3A70] active:scale-98 transition-all shadow-xs flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#082A52] hover:bg-[#0B3A70] text-white active:scale-98 transition-all shadow-xs disabled:opacity-50 flex items-center gap-2"
             >
-              {isSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-              <span>{isSaving ? 'Salvando...' : t.settings.btnSaveMember}</span>
+              {isSaving && <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C89543]" />}
+              <span>{memberToEdit ? t.settings.btnSaveMember : (isEn ? 'Add Member' : 'Cadastrar Membro')}</span>
             </button>
           </div>
         </form>
