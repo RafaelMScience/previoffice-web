@@ -25,6 +25,9 @@ import {
   Loader2,
 } from 'lucide-react';
 import { AvatarCropModal } from './avatar-crop-modal';
+import { LegalPreAnalysisSidebar } from './form-sections/legal-pre-analysis-sidebar';
+import { AddressSection } from './form-sections/address-section';
+import { InssAccessSection } from './form-sections/inss-access-section';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { maskCpf, maskPhone, maskCep, maskBenefitNumber } from '@/lib/utils/masks';
 import { compressAvatarPhoto } from '@/lib/utils/image-compressor';
@@ -411,80 +414,13 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
   return (
     <div className="flex gap-8 relative">
       {/* Anchor Navigation Sidebar (Sticky) */}
-      <aside className="w-56 hidden xl:block flex-shrink-0 sticky top-20 self-start">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
-            {t.clientForm.secNav}
-          </div>
-          <nav className="flex flex-col gap-1 text-xs font-medium text-slate-600">
-            <a
-              href="#personal"
-              className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>{t.clientForm.sec1}</span>
-            </a>
-            <a
-              href="#address"
-              className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              <span>{t.clientForm.sec2}</span>
-            </a>
-            <a
-              href="#contact"
-              className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span>{t.clientForm.sec3}</span>
-            </a>
-            <a
-              href="#inss"
-              className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>{t.clientForm.sec4}</span>
-            </a>
-            <a
-              href="#benefit"
-              className="px-2.5 py-1.5 rounded-lg hover:bg-slate-50 hover:text-[#C89543] flex items-center gap-2"
-            >
-              <Award className="w-3.5 h-3.5" />
-              <span>{t.clientForm.sec5}</span>
-            </a>
-          </nav>
-
-          {/* Quick Legal Pre-Analysis Box */}
-          <div className="mt-6 pt-4 border-t border-slate-100">
-            <div className="text-[11px] font-bold text-[#0B192E] flex items-center gap-1.5 mb-2">
-              <Calculator className="w-3.5 h-3.5 text-[#C89543]" />
-              <span>{t.clientForm.rulesEngineTitle}</span>
-            </div>
-            {age !== null ? (
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span>{t.clientForm.computedAgeLabel}</span>
-                  <span className="font-bold text-slate-900">{age} {t.clientForm.yearsOld}</span>
-                </div>
-                {isLoasElderlyAge && (
-                  <div className="bg-emerald-50 text-emerald-800 p-2 rounded text-[11px] font-medium border border-emerald-200">
-                    {t.clientForm.loasEligibleNotice}
-                  </div>
-                )}
-                {ruralRetirementCheck && ruralRetirementCheck.isEligibleAge && (
-                  <div className="bg-amber-50 text-amber-800 p-2 rounded text-[11px] font-medium border border-amber-200">
-                    {t.clientForm.ruralEligibleNotice} ({gender === 'F' ? '55' : '60'} {t.clientForm.yearsOld}).
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-[11px] text-slate-400">
-                {t.clientForm.fillBirthDateHint}
-              </p>
-            )}
-          </div>
-        </div>
-      </aside>
+      <LegalPreAnalysisSidebar
+        t={t}
+        age={age}
+        isLoasElderlyAge={isLoasElderlyAge}
+        ruralRetirementCheck={ruralRetirementCheck}
+        gender={gender}
+      />
 
       {/* Main Form Area */}
       <div className="flex-1 max-w-4xl">
@@ -799,92 +735,23 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           </div>
 
           {/* Section 2: Address & Residence */}
-          <div id="address" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <MapPin className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec2}</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.zipCodeLabel}</label>
-                <input
-                  type="text"
-                  maxLength={9}
-                  value={postalCode}
-                  onChange={(e) => setPostalCode(maskCep(e.target.value))}
-                  placeholder="58000-000"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.streetLabel}</label>
-                <input
-                  type="text"
-                  value={street}
-                  onChange={(e) => setStreet(e.target.value)}
-                  placeholder={t.clientForm.streetPlaceholder}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.numberLabel}</label>
-                <input
-                  type="text"
-                  value={streetNumber}
-                  onChange={(e) => setStreetNumber(e.target.value)}
-                  placeholder="123 or S/N"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.complementLabel}</label>
-                <input
-                  type="text"
-                  value={complement}
-                  onChange={(e) => setComplement(e.target.value)}
-                  placeholder="Apt 201, Bloco B"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.neighborhoodLabel}</label>
-                <input
-                  type="text"
-                  value={neighborhood}
-                  onChange={(e) => setNeighborhood(e.target.value)}
-                  placeholder="Centro, Zona Rural..."
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.cityLabel}</label>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="João Pessoa, Campina Grande..."
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.stateLabel}</label>
-                <input
-                  type="text"
-                  value={state}
-                  maxLength={2}
-                  onChange={(e) => setState(e.target.value.toUpperCase())}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-            </div>
-          </div>
+          <AddressSection
+            t={t}
+            postalCode={postalCode}
+            setPostalCode={setPostalCode}
+            street={street}
+            setStreet={setStreet}
+            streetNumber={streetNumber}
+            setStreetNumber={setStreetNumber}
+            complement={complement}
+            setComplement={setComplement}
+            neighborhood={neighborhood}
+            setNeighborhood={setNeighborhood}
+            city={city}
+            setCity={setCity}
+            state={state}
+            setState={setState}
+          />
 
           {/* Section 3: Contact Details */}
           <div id="contact" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
@@ -937,104 +804,20 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           </div>
 
           {/* Section 4: Social Security Credentials */}
-          <div id="inss" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Lock className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec4}</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.benefitNumberLabel}</label>
-                <input
-                  type="text"
-                  maxLength={13}
-                  value={benefitNumber}
-                  onChange={(e) => setBenefitNumber(maskBenefitNumber(e.target.value))}
-                  placeholder="123.456.789-0"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    {t.clientForm.inssPasswordLabel}
-                  </label>
-                  {inssPassword && (
-                    <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3" />
-                      AES-256
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <input
-                    type={showInssPassword ? 'text' : 'password'}
-                    value={inssPassword}
-                    onChange={(e) => setInssPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="new-password"
-                    spellCheck={false}
-                    className="w-full pl-3.5 pr-20 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono tracking-wider"
-                  />
-                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      disabled={isRevealingInss}
-                      onClick={toggleShowInssPassword}
-                      className="p-1.5 text-slate-400 hover:text-slate-700 rounded-md hover:bg-slate-200/60 transition-colors disabled:opacity-50"
-                      title={
-                        showInssPassword
-                          ? t.clientForm.inssPasswordToggleHide
-                          : t.clientForm.inssPasswordToggleShow
-                      }
-                    >
-                      {isRevealingInss ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-[#C89543]" />
-                      ) : showInssPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                    {inssPassword && (
-                      <button
-                        type="button"
-                        onClick={handleCopyInssPassword}
-                        className="p-1.5 text-slate-400 hover:text-[#C89543] rounded-md hover:bg-slate-200/60 transition-colors"
-                        title={
-                          isCopiedInss
-                            ? t.clientForm.inssPasswordCopied
-                            : 'Copiar senha do Meu INSS'
-                        }
-                      >
-                        {isCopiedInss ? (
-                          <Check className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <p className="mt-1 text-[11px] text-slate-500 leading-tight">
-                  {t.clientForm.inssPasswordEncryptedHelp}
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.physicalLocationLabel}</label>
-                <input
-                  type="text"
-                  value={physicalFileLocation}
-                  onChange={(e) => setPhysicalFileLocation(e.target.value)}
-                  placeholder={t.clientForm.physicalLocationPlaceholder}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-            </div>
-          </div>
+          <InssAccessSection
+            t={t}
+            benefitNumber={benefitNumber}
+            setBenefitNumber={setBenefitNumber}
+            inssPassword={inssPassword}
+            setInssPassword={setInssPassword}
+            showInssPassword={showInssPassword}
+            toggleShowInssPassword={toggleShowInssPassword}
+            isRevealingInss={isRevealingInss}
+            handleCopyInssPassword={handleCopyInssPassword}
+            isCopiedInss={isCopiedInss}
+            physicalFileLocation={physicalFileLocation}
+            setPhysicalFileLocation={setPhysicalFileLocation}
+          />
 
           {/* Section 5: Benefit & Special Category */}
           <div id="benefit" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
