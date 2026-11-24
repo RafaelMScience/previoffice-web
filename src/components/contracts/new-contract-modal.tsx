@@ -1,21 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   FileSignature,
-  Percent,
-  Layers,
-  FolderLock,
-  Sparkles,
-  UserCheck,
   CheckCircle2,
-  UploadCloud,
-  FileText,
-  Trash2,
-  ShieldCheck,
-  Clock,
-  Check,
 } from 'lucide-react';
 import type {
   Contract,
@@ -29,7 +18,14 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { fetchClientsFromDb } from '@/lib/services/client-service';
 import { maskCpf } from '@/lib/utils/masks';
 import { generateFeeInstallments } from '@/lib/utils/template-engine';
-import { formatBenefitType, formatDocumentCategory } from '@/lib/utils/benefit-translations';
+import { formatBenefitType } from '@/lib/utils/benefit-translations';
+import {
+  ContractClientSelector,
+  type ClientOption,
+  ContractTemplateBenefitSection,
+  ContractFeeRegimeSection,
+  ContractPdfUploadSection,
+} from './new-contract-sections';
 
 interface NewContractModalProps {
   isOpen: boolean;
@@ -39,15 +35,6 @@ interface NewContractModalProps {
   onContractCreated: (contractData: Omit<Contract, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
-interface ClientOption {
-  id: string;
-  name: string;
-  cpf: string;
-  phone: string;
-  location: string;
-  benefit: string;
-}
-
 export function NewContractModal({
   isOpen,
   onClose,
@@ -55,9 +42,9 @@ export function NewContractModal({
   selectedTemplateFromLibrary,
   onContractCreated,
 }: NewContractModalProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { currentUser } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isEn = locale === 'en-US';
 
   // Clients state
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
@@ -85,7 +72,6 @@ export function NewContractModal({
   const [uploadedFileSizeFormatted, setUploadedFileSizeFormatted] = useState('');
   const [documentCategory, setDocumentCategory] = useState<'FEE_CONTRACT' | 'POWER_OF_ATTORNEY' | 'OTHER'>('FEE_CONTRACT');
   const [isSignedDocument, setIsSignedDocument] = useState<boolean>(false);
-  const [isDragging, setIsDragging] = useState(false);
 
   // Load real clients from database on mount or when tenant changes
   useEffect(() => {
@@ -111,14 +97,14 @@ export function NewContractModal({
               const formatted = formatBenefitType(mapped[0].benefit, 'pt-BR');
               setBenefitSpecies(formatted);
               const matched = templates.find(
-                (t) =>
-                  (formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit) &&
-                  t.isDefault &&
-                  (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory)
+                (tpl) =>
+                  (formatBenefitType(tpl.benefitSpecies, 'pt-BR') === formatted || tpl.benefitSpecies === mapped[0].benefit) &&
+                  tpl.isDefault &&
+                  (tpl.documentCategory === 'FEE_CONTRACT' || !tpl.documentCategory)
               ) || templates.find(
-                (t) => (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory) && t.isDefault
+                (tpl) => (tpl.documentCategory === 'FEE_CONTRACT' || !tpl.documentCategory) && tpl.isDefault
               ) || templates.find(
-                (t) => formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === mapped[0].benefit
+                (tpl) => formatBenefitType(tpl.benefitSpecies, 'pt-BR') === formatted || tpl.benefitSpecies === mapped[0].benefit
               ) || templates[0];
 
               if (matched) {
@@ -170,14 +156,14 @@ export function NewContractModal({
   const autoSelectDefaultTemplate = (targetBenefit: string) => {
     const formatted = formatBenefitType(targetBenefit, 'pt-BR');
     const matched = templates.find(
-      (t) =>
-        (formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === targetBenefit) &&
-        t.isDefault &&
-        (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory)
+      (tpl) =>
+        (formatBenefitType(tpl.benefitSpecies, 'pt-BR') === formatted || tpl.benefitSpecies === targetBenefit) &&
+        tpl.isDefault &&
+        (tpl.documentCategory === 'FEE_CONTRACT' || !tpl.documentCategory)
     ) || templates.find(
-      (t) => (t.documentCategory === 'FEE_CONTRACT' || !t.documentCategory) && t.isDefault
+      (tpl) => (tpl.documentCategory === 'FEE_CONTRACT' || !tpl.documentCategory) && tpl.isDefault
     ) || templates.find(
-      (t) => formatBenefitType(t.benefitSpecies, 'pt-BR') === formatted || t.benefitSpecies === targetBenefit
+      (tpl) => formatBenefitType(tpl.benefitSpecies, 'pt-BR') === formatted || tpl.benefitSpecies === targetBenefit
     ) || templates[0];
 
     if (matched) {
@@ -204,7 +190,7 @@ export function NewContractModal({
 
   const handleTemplateChange = (tplId: string) => {
     setTemplateId(tplId);
-    const tpl = templates.find((t) => t.id === tplId);
+    const tpl = templates.find((item) => item.id === tplId);
     if (tpl) {
       setBenefitSpecies(formatBenefitType(tpl.benefitSpecies, 'pt-BR'));
       setFeeModel(tpl.defaultFeeModel);
@@ -218,12 +204,12 @@ export function NewContractModal({
     const isPdfExt = file.name.toLowerCase().endsWith('.pdf');
     const isPdfMime = file.type === 'application/pdf' || file.type.includes('pdf');
     if (!isPdfExt || (!isPdfMime && file.type !== '')) {
-      alert('Por favor, selecione apenas arquivos válidos no formato PDF.');
+      alert(isEn ? 'Please select a valid PDF file.' : 'Por favor, selecione apenas arquivos válidos no formato PDF.');
       return;
     }
 
     if (file.size > 15 * 1024 * 1024) {
-      alert('O arquivo selecionado ultrapassa o limite máximo permitido de 15MB.');
+      alert(isEn ? 'The selected file exceeds the 15MB limit.' : 'O arquivo selecionado ultrapassa o limite máximo permitido de 15MB.');
       return;
     }
 
@@ -243,16 +229,17 @@ export function NewContractModal({
     setUploadedDataUrl(null);
     setUploadedFileName('');
     setUploadedFileSizeFormatted('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentClient || clientOptions.length === 0) {
-      alert('Nenhum cliente selecionado. Cadastre um cliente no sistema antes de formalizar um contrato.');
+      alert(
+        isEn
+          ? 'No client selected. Register a client before issuing a contract.'
+          : 'Nenhum cliente selecionado. Cadastre um cliente no sistema antes de formalizar um contrato.'
+      );
       return;
     }
 
@@ -262,15 +249,13 @@ export function NewContractModal({
         ? (estimatedRetroactive * quotaLitisPercentage) / 100
         : undefined;
 
-    // Generate schedule with precise cent-rounding and date clamping
     const installments: FeeInstallment[] =
       feeModel !== 'QUOTA_LITIS'
         ? generateFeeInstallments(fixedAmount, installmentsCount, firstDueDate, contractNumber)
         : [];
 
-    const tpl = templates.find((t) => t.id === templateId);
+    const tpl = templates.find((item) => item.id === templateId);
 
-    // Build custom attachment if lawyer uploaded a PDF
     let customAttachment: PhysicalDocumentAttachment | undefined = undefined;
     if (uploadedFile && uploadedDataUrl) {
       customAttachment = {
@@ -340,12 +325,12 @@ export function NewContractModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-[#082A52] text-[#C89543] rounded-xl shadow-sm">
+            <div className="p-2.5 bg-[#082A52] text-[#C89543] rounded-xl shadow-xs">
               <FileSignature className="w-5 h-5" />
             </div>
             <div>
@@ -360,6 +345,7 @@ export function NewContractModal({
           <button
             type="button"
             onClick={onClose}
+            aria-label={isEn ? 'Close' : 'Fechar'}
             className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -368,425 +354,53 @@ export function NewContractModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1">
-          {/* Client Selection (Real DB clients) */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
-              <UserCheck className="w-3.5 h-3.5 text-[#0B78D0]" />
-              <span>1. Selecionar Cliente da Banca *</span>
-            </label>
-            {clientOptions.length === 0 ? (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-                Nenhum cliente cadastrado neste escritório. Cadastre um cliente antes de formalizar um contrato.
-              </div>
-            ) : (
-              <select
-                value={selectedClientId}
-                onChange={(e) => handleClientChange(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30 font-medium"
-              >
-                {clientOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} • CPF: {c.cpf} {c.benefit ? `(${formatBenefitType(c.benefit, 'pt-BR')})` : ''}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+          <ContractClientSelector
+            clientOptions={clientOptions}
+            selectedClientId={selectedClientId}
+            onClientChange={handleClientChange}
+            locale={locale}
+          />
 
-          {/* Template & Benefit */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#C89543]" />
-                <span>2. Minuta Padrão Vinculada</span>
-              </label>
-              <select
-                value={templateId}
-                onChange={(e) => handleTemplateChange(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30 font-medium"
-              >
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {tpl.isDefault ? '★ [PADRÃO] ' : ''}
-                    {formatDocumentCategory(tpl.documentCategory, tpl.customCategoryName)}: {tpl.title}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <ContractTemplateBenefitSection
+            templates={templates}
+            templateId={templateId}
+            onTemplateChange={handleTemplateChange}
+            benefitSpecies={benefitSpecies}
+            onBenefitChange={setBenefitSpecies}
+            onBenefitBlur={() => autoSelectDefaultTemplate(benefitSpecies)}
+            locale={locale}
+          />
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-[#0B78D0]" />
-                <span>Benefício / Objeto Contratual *</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={benefitSpecies}
-                onChange={(e) => setBenefitSpecies(e.target.value)}
-                onBlur={() => autoSelectDefaultTemplate(benefitSpecies)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0B78D0]/30"
-              />
-            </div>
-          </div>
+          <ContractFeeRegimeSection
+            feeModel={feeModel}
+            onFeeModelChange={setFeeModel}
+            quotaLitisPercentage={quotaLitisPercentage}
+            onQuotaLitisChange={setQuotaLitisPercentage}
+            estimatedRetroactive={estimatedRetroactive}
+            onEstimatedRetroactiveChange={setEstimatedRetroactive}
+            fixedAmount={fixedAmount}
+            onFixedAmountChange={setFixedAmount}
+            installmentsCount={installmentsCount}
+            onInstallmentsCountChange={setInstallmentsCount}
+            firstDueDate={firstDueDate}
+            onFirstDueDateChange={setFirstDueDate}
+            locale={locale}
+          />
 
-          {/* Fee Regime */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-[#082A52] uppercase mb-2">
-                3. Regime de Remuneração e Honorários Advocatícios
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFeeModel('QUOTA_LITIS')}
-                  className={`p-3 rounded-lg border text-left transition-all ${
-                    feeModel === 'QUOTA_LITIS'
-                      ? 'border-[#082A52] bg-white ring-2 ring-[#082A52]/20 shadow-sm'
-                      : 'border-slate-200 bg-white/60 text-slate-600 hover:bg-white'
-                  }`}
-                >
-                  <div className="font-bold text-xs text-[#082A52]">Quota Litis</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">
-                    Êxito puro sobre atrasados
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFeeModel('FIXED_INSTALLMENT')}
-                  className={`p-3 rounded-lg border text-left transition-all ${
-                    feeModel === 'FIXED_INSTALLMENT'
-                      ? 'border-[#082A52] bg-white ring-2 ring-[#082A52]/20 shadow-sm'
-                      : 'border-slate-200 bg-white/60 text-slate-600 hover:bg-white'
-                  }`}
-                >
-                  <div className="font-bold text-xs text-[#082A52]">Parcelamento</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">
-                    Carnê / parcelas mensais
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFeeModel('HYBRID')}
-                  className={`p-3 rounded-lg border text-left transition-all ${
-                    feeModel === 'HYBRID'
-                      ? 'border-[#082A52] bg-white ring-2 ring-[#082A52]/20 shadow-sm'
-                      : 'border-slate-200 bg-white/60 text-slate-600 hover:bg-white'
-                  }`}
-                >
-                  <div className="font-bold text-xs text-[#082A52]">Híbrido</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">
-                    Entrada + Quota Litis
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Quota Litis Inputs */}
-            {feeModel !== 'FIXED_INSTALLMENT' && (
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                    Percentual de Êxito (%)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min={10}
-                      max={50}
-                      value={quotaLitisPercentage}
-                      onChange={(e) => setQuotaLitisPercentage(Number(e.target.value))}
-                      className="w-full pl-3 pr-8 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800"
-                    />
-                    <Percent className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                    Estimativa de Atrasados (R$)
-                  </label>
-                  <input
-                    type="number"
-                    step="500"
-                    value={estimatedRetroactive}
-                    onChange={(e) => setEstimatedRetroactive(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800"
-                  />
-                  <div className="text-[10px] text-emerald-700 mt-1 font-semibold">
-                    Êxito previsto: R${' '}
-                    {((estimatedRetroactive * quotaLitisPercentage) / 100).toLocaleString('pt-BR', {
-                      minimumFractionDigits: 2,
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Installments Inputs */}
-            {feeModel !== 'QUOTA_LITIS' && (
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-200">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                    Valor Fixo Total (R$)
-                  </label>
-                  <input
-                    type="number"
-                    step="100"
-                    value={fixedAmount}
-                    onChange={(e) => setFixedAmount(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                    Nº de Parcelas
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={24}
-                    value={installmentsCount}
-                    onChange={(e) => setInstallmentsCount(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-bold text-slate-800"
-                  />
-                  <div className="text-[10px] text-slate-500 mt-1">
-                    {installmentsCount}x de R${' '}
-                    {(fixedAmount / (installmentsCount || 1)).toLocaleString('pt-BR', {
-                      minimumFractionDigits: 2,
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                    1º Vencimento
-                  </label>
-                  <input
-                    type="date"
-                    value={firstDueDate}
-                    onChange={(e) => setFirstDueDate(e.target.value)}
-                    className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-800"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Custom PDF Upload Section (Replaces mandatory physical location) */}
-          <div className="p-4 bg-slate-50/90 border border-slate-300 rounded-xl space-y-3.5">
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-[#082A52] uppercase flex items-center gap-1.5">
-                <UploadCloud className="w-4 h-4 text-[#0B78D0]" />
-                <span>4. Substituir Minuta por PDF Próprio do Escritório (Opcional)</span>
-              </label>
-              {uploadedFile && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  <Check className="w-3 h-3 text-emerald-600" />
-                  PDF Vinculado
-                </span>
-              )}
-            </div>
-
-            <p className="text-[11px] text-slate-600 leading-relaxed">
-              Caso você já possua um modelo próprio formatado com sua identidade visual (logotipo, cores, fontes ou cabeçalho próprio), envie o arquivo em PDF para <strong>substituir o modelo gerado pelo sistema</strong> como padrão deste cliente.
-            </p>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,application/pdf"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleProcessFile(file);
-              }}
-            />
-
-            {!uploadedFile ? (
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleProcessFile(file);
-                }}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-5 text-center transition-all cursor-pointer ${
-                  isDragging
-                    ? 'border-[#0B78D0] bg-blue-50/70 scale-[0.99]'
-                    : 'border-slate-300 hover:border-[#0B78D0] bg-white hover:bg-slate-50/50'
-                }`}
-              >
-                <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-1.5" />
-                <p className="text-xs font-bold text-slate-700">
-                  Arraste e solte o arquivo PDF aqui ou clique para selecionar
-                </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Suporta arquivos .PDF de até 15MB com sua formatação personalizada
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {/* File summary card */}
-                <div className="p-3 bg-white border border-emerald-300 rounded-lg flex items-center justify-between shadow-2xs">
-                  <div className="flex items-center gap-2.5">
-                    <FileText className="w-7 h-7 text-emerald-600 shrink-0" />
-                    <div>
-                      <div className="font-bold text-xs text-slate-800 truncate max-w-sm">
-                        {uploadedFileName}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {uploadedFileSizeFormatted} • Documento PDF pronto para armazenamento seguro
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveFile}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                    title="Remover arquivo"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Purpose / Category of Document */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1.5">
-                    Finalidade do Documento PDF Enviado:
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDocumentCategory('FEE_CONTRACT')}
-                      className={`p-2.5 rounded-lg border text-left transition-all ${
-                        documentCategory === 'FEE_CONTRACT'
-                          ? 'border-[#082A52] bg-white ring-2 ring-[#082A52]/20 font-bold text-[#082A52]'
-                          : 'border-slate-200 bg-white/70 text-slate-600 hover:bg-white'
-                      }`}
-                    >
-                      <div className="text-xs">Contrato de Honorários</div>
-                      <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-                        Substitui o contrato OAB
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setDocumentCategory('POWER_OF_ATTORNEY')}
-                      className={`p-2.5 rounded-lg border text-left transition-all ${
-                        documentCategory === 'POWER_OF_ATTORNEY'
-                          ? 'border-[#082A52] bg-white ring-2 ring-[#082A52]/20 font-bold text-[#082A52]'
-                          : 'border-slate-200 bg-white/70 text-slate-600 hover:bg-white'
-                      }`}
-                    >
-                      <div className="text-xs">Procuração Ad Judicia</div>
-                      <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-                        Substitui a procuração
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setDocumentCategory('OTHER')}
-                      className={`p-2.5 rounded-lg border text-left transition-all ${
-                        documentCategory === 'OTHER'
-                          ? 'border-[#082A52] bg-white ring-2 ring-[#082A52]/20 font-bold text-[#082A52]'
-                          : 'border-slate-200 bg-white/70 text-slate-600 hover:bg-white'
-                      }`}
-                    >
-                      <div className="text-xs">Outros Documentos</div>
-                      <div className="text-[10px] text-slate-500 font-normal mt-0.5">
-                        Dossiê ou anexo advocatício
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Signature status radio */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1.5">
-                    Estado da Assinatura do Documento Enviado:
-                  </label>
-                  <div className="space-y-2">
-                    <label
-                      className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-all ${
-                        isSignedDocument
-                          ? 'border-emerald-500 bg-emerald-50/70'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="signatureStatus"
-                        checked={isSignedDocument}
-                        onChange={() => setIsSignedDocument(true)}
-                        className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <div>
-                        <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Já está assinado pelo cliente</span>
-                        </div>
-                        <p className="text-[11px] text-emerald-800/90 mt-0.5">
-                          O contrato será gerado com status <strong>Assinado / Ativo</strong> e este PDF personalizado será o documento padrão definitivo do cliente na plataforma.
-                        </p>
-                      </div>
-                    </label>
-
-                    <label
-                      className={`flex items-start gap-2.5 p-3 rounded-lg border cursor-pointer transition-all ${
-                        !isSignedDocument
-                          ? 'border-amber-500 bg-amber-50/70'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="signatureStatus"
-                        checked={!isSignedDocument}
-                        onChange={() => setIsSignedDocument(false)}
-                        className="mt-0.5 text-amber-600 focus:ring-amber-500"
-                      />
-                      <div>
-                        <div className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-amber-600" />
-                          <span>Não está assinado (Minuta personalizada para colher assinatura)</span>
-                        </div>
-                        <p className="text-[11px] text-amber-800/90 mt-0.5">
-                          Substitui a minuta padrão do sistema pelo seu PDF customizado. O status ficará <strong>Pendente de Assinatura</strong>, e ao colher a assinatura bastará anexar a via finalizada pelo ícone de anexo da tabela.
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Optional Physical Cabinet location */}
-            <div className="pt-2 border-t border-slate-200">
-              <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1 flex items-center gap-1.5">
-                <FolderLock className="w-3.5 h-3.5 text-amber-600" />
-                <span>Localização da Pasta no Arquivo Físico (Opcional)</span>
-              </label>
-              <input
-                type="text"
-                value={cabinetLocation}
-                onChange={(e) => setCabinetLocation(e.target.value)}
-                placeholder="Ex: Armário B - Gaveta 03 - Pasta 2026-042"
-                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-800 bg-white"
-              />
-            </div>
-          </div>
+          <ContractPdfUploadSection
+            uploadedFile={uploadedFile}
+            uploadedFileName={uploadedFileName}
+            uploadedFileSizeFormatted={uploadedFileSizeFormatted}
+            documentCategory={documentCategory}
+            onDocumentCategoryChange={setDocumentCategory}
+            isSignedDocument={isSignedDocument}
+            onIsSignedDocumentChange={setIsSignedDocument}
+            cabinetLocation={cabinetLocation}
+            onCabinetLocationChange={setCabinetLocation}
+            onProcessFile={handleProcessFile}
+            onRemoveFile={handleRemoveFile}
+            locale={locale}
+          />
 
           {/* Submit */}
           <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-2">
@@ -795,7 +409,7 @@ export function NewContractModal({
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-100"
             >
-              Cancelar
+              {isEn ? 'Cancel' : 'Cancelar'}
             </button>
             <button
               type="submit"
@@ -807,7 +421,7 @@ export function NewContractModal({
               }`}
             >
               <CheckCircle2 className="w-4 h-4 text-[#C89543]" />
-              <span>Formalizar e Gerar Contrato</span>
+              <span>{isEn ? 'Issue and Generate Contract' : 'Formalizar e Gerar Contrato'}</span>
             </button>
           </div>
         </form>
