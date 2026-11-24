@@ -1,6 +1,12 @@
 export { ContractPrintModal } from './contract-print-modal';
 export { NewContractModal } from './new-contract-modal';
 export { TemplatesManagementView } from './templates-management-view';
+export {
+  TemplateCard,
+  TemplatePreviewModal,
+  TemplateEditorModal,
+  TemplatePlaceholdersToolbar,
+} from './templates-management';
 export { ContractsTable } from './contracts-table';
 export { ContractsKpiCards } from './contracts-kpi-cards';
 export { ContractsTableSkeleton } from './contracts-skeleton';

@@ -33,6 +33,12 @@ export {
 export type { ClientOption } from '@/components/contracts/new-contract-sections';
 
 export { TemplatesManagementView } from '@/components/contracts/templates-management-view';
+export {
+  TemplateCard,
+  TemplatePreviewModal,
+  TemplateEditorModal,
+  TemplatePlaceholdersToolbar,
+} from '@/components/contracts/templates-management';
 
 // Domain Types
 export type { ContractTemplate, FeeModel, DocumentCategory, Contract } from '@/types/contract';
