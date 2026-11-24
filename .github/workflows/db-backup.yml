@@ -1,0 +1,85 @@
+name: Automated Database Backup (Encrypted Offsite)
+
+on:
+  schedule:
+    # Executa todos os dias às 04:00 UTC (01:00 Horário de Brasília)
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Motivo do acionamento manual do backup'
+        required: false
+        default: 'Rotina manual de segurança preventiva'
+
+jobs:
+  backup-database:
+    name: Dump, Compress & Encrypt PostgreSQL
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL Client & GPG
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client gpg gzip
+
+      - name: Execute Backup, Compress & Encrypt
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::Secret SUPABASE_DB_URL não configurada no repositório. O backup não pode prosseguir."
+            exit 1
+          fi
+
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Secret BACKUP_PASSPHRASE não configurada. Criptografia militar obrigatória ausente."
+            exit 1
+          fi
+
+          DATE_STAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+          BACKUP_DIR="backups"
+          mkdir -p "$BACKUP_DIR"
+
+          RAW_DUMP="$BACKUP_DIR/previoffice_backup_${DATE_STAMP}.sql"
+          COMPRESSED_DUMP="$RAW_DUMP.gz"
+          ENCRYPTED_ARCHIVE="$COMPRESSED_DUMP.gpg"
+
+          echo "Iniciando extração do banco de dados PreviOffice..."
+          pg_dump "$DB_URL" \
+            --clean \
+            --if-exists \
+            --no-owner \
+            --no-privileges \
+            --format=plain \
+            --file="$RAW_DUMP"
+
+          echo "Compactando arquivo com nível máximo (gzip -9)..."
+          gzip -9 "$RAW_DUMP"
+
+          echo "Criptografando com padrão AES-256 (GPG simétrico)..."
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --passphrase "$BACKUP_PASSPHRASE" \
+            --output "$ENCRYPTED_ARCHIVE" "$COMPRESSED_DUMP"
+
+          # Remove os arquivos não criptografados da máquina de execução
+          rm -f "$COMPRESSED_DUMP"
+
+          ARCHIVE_SIZE=$(ls -lh "$ENCRYPTED_ARCHIVE" | awk '{print $5}')
+          echo "Backup concluído com sucesso!"
+          echo "Arquivo final criptografado: $ENCRYPTED_ARCHIVE ($ARCHIVE_SIZE)"
+          echo "CHECKSUM SHA-256:"
+          sha256sum "$ENCRYPTED_ARCHIVE"
+
+          echo "BACKUP_PATH=$ENCRYPTED_ARCHIVE" >> $GITHUB_ENV
+          echo "BACKUP_NAME=previoffice_backup_${DATE_STAMP}.sql.gz.gpg" >> $GITHUB_ENV
+
+      - name: Store Encrypted Backup as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_NAME }}
+          path: ${{ env.BACKUP_PATH }}
+          retention-days: 30
+          if-no-files-found: error

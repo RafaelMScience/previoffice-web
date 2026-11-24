@@ -1,0 +1,87 @@
+name: CI/CD Quality & Security Gate
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-and-security:
+    name: Security & Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Verify No Sensitive Files Committed
+        run: |
+          echo "Scanning repository for accidentally committed sensitive files..."
+          FORBIDDEN_FILES=(".env.local" ".env.production" ".env" "service-account.json" "credentials.json")
+          FOUND=0
+          for file in "${FORBIDDEN_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "::error file=$file::Forbidden sensitive file committed to repository: $file"
+              FOUND=1
+            fi
+          done
+          if [ $FOUND -eq 1 ]; then
+            exit 1
+          fi
+          echo "No forbidden sensitive files detected."
+
+  typecheck-and-test:
+    name: Typecheck & Automated Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Typecheck
+        run: npm run typecheck
+
+      - name: Run Test Suite (210 tests)
+        run: npm test
+
+  build-verification:
+    name: Production Build Verification
+    runs-on: ubuntu-latest
+    needs: [audit-and-security, typecheck-and-test]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Next.js Application
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+          NODE_ENV: production
+          NEXT_PUBLIC_SUPABASE_URL: "https://mock-ci-project.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.mock-ci-key"
+          SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.mock-service-role-key"
+        run: npm run build
