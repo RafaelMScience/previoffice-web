@@ -45,7 +45,7 @@ export default function AdminProvisioningPage() {
   const [lawyerOabUf, setLawyerOabUf] = useState('AM');
   const [lawyerPhone, setLawyerPhone] = useState('');
   const [lawyerEmail, setLawyerEmail] = useState('');
-  const [lawyerPassword, setLawyerPassword] = useState('');
+  const [lawyerPassword, setLawyerPassword] = useState(() => generateRandomPassword());
   const [copiedPassword, setCopiedPassword] = useState(false);
   const [planType, setPlanType] = useState('TRIAL_90_DAYS');
 
@@ -85,6 +85,9 @@ export default function AdminProvisioningPage() {
       }
 
       setIsUnlocked(true);
+      if (!lawyerPassword) {
+        setLawyerPassword(generateRandomPassword());
+      }
       setVerifyingGate(false);
     } catch {
       setGateError('Network or server error validating master key.');
@@ -117,7 +120,7 @@ export default function AdminProvisioningPage() {
           lawyerOabUf,
           lawyerPhone: lawyerPhone || phone,
           lawyerEmail,
-          lawyerPassword,
+          lawyerPassword: lawyerPassword || generateRandomPassword(),
           planType,
         }),
       });
@@ -542,6 +545,8 @@ export default function AdminProvisioningPage() {
                     <input
                       type="email"
                       required
+                      name="admin_provision_lawyer_email"
+                      autoComplete="off"
                       value={lawyerEmail}
                       onChange={(e) => setLawyerEmail(e.target.value)}
                       placeholder={t.adminProvisioning.lawyerEmailPlaceholder}
@@ -553,7 +558,7 @@ export default function AdminProvisioningPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                         <KeyRound className="w-4 h-4 text-[#C89543]" />
-                        <span>Senha Provisória de Acesso (Gerada Automaticamente)</span>
+                        <span>Senha Provisória de Acesso</span>
                       </label>
                       <span className="text-[10px] font-bold text-amber-300 bg-amber-950/70 border border-amber-600/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                         <ShieldAlert className="w-3 h-3 text-amber-400" />
@@ -568,9 +573,13 @@ export default function AdminProvisioningPage() {
                           type="text"
                           required
                           minLength={8}
+                          name="temp_lawyer_password"
+                          autoComplete="new-password"
+                          data-lpignore="true"
+                          data-1p-ignore="true"
                           value={lawyerPassword}
                           onChange={(e) => setLawyerPassword(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-emerald-400 focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] focus:outline-none"
+                          className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-emerald-400 focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] focus:outline-none select-all"
                           placeholder="Prev#..."
                         />
                       </div>
@@ -581,7 +590,7 @@ export default function AdminProvisioningPage() {
                           setLawyerPassword(generateRandomPassword());
                           setCopiedPassword(false);
                         }}
-                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                         title="Gerar nova senha provisória aleatória"
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-[#C89543]" />
@@ -600,7 +609,7 @@ export default function AdminProvisioningPage() {
                               .catch(() => {});
                           }
                         }}
-                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                         title="Copiar senha para a área de transferência"
                       >
                         {copiedPassword ? (
@@ -618,7 +627,7 @@ export default function AdminProvisioningPage() {
                     </div>
 
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Esta credencial provisória possui alta entropia criptográfica. O titular receberá esta senha para o primeiro acesso e o sistema exigirá obrigatoriamente a troca por uma senha pessoal definitiva na página <code className="text-[#C89543] font-mono bg-slate-950 px-1 py-0.5 rounded">/definir-senha</code>.
+                      Senha aleatória provisória gerada com segurança. O advogado titular deverá obrigatoriamente cadastrar sua nova senha pessoal no primeiro login.
                     </p>
                   </div>
                 </div>
