@@ -15,6 +15,10 @@ import {
   RefreshCw,
   AlertTriangle,
   Scale,
+  Eye,
+  EyeOff,
+  MessageCircle,
+  X,
 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
@@ -46,7 +50,10 @@ export default function AdminProvisioningPage() {
   const [lawyerPhone, setLawyerPhone] = useState('');
   const [lawyerEmail, setLawyerEmail] = useState('');
   const [lawyerPassword, setLawyerPassword] = useState(() => generateRandomPassword());
+  const [showPassword, setShowPassword] = useState(true);
   const [copiedPassword, setCopiedPassword] = useState(false);
+  const [copiedShareText, setCopiedShareText] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [planType, setPlanType] = useState('TRIAL_90_DAYS');
 
   useEffect(() => {
@@ -141,21 +148,36 @@ export default function AdminProvisioningPage() {
     }
   };
 
+  const getShareText = (isFinalSuccess = false) => {
+    const firmName = (isFinalSuccess ? provisionSuccess?.officeName : officeName)?.trim() || 'Escritório de Advocacia';
+    const targetLawyer = (isFinalSuccess ? provisionSuccess?.lawyerName : lawyerName)?.trim() || 'Dr(a). Advogado(a)';
+    const targetEmail = (isFinalSuccess ? provisionSuccess?.lawyerEmail : lawyerEmail)?.trim() || 'seu e-mail de acesso';
+    const pass = isFinalSuccess ? (provisionSuccess?.temporaryPassword || lawyerPassword) : lawyerPassword;
+    const loginUrl = typeof window !== 'undefined' ? `${window.location.origin}/login` : 'https://previoffice.vercel.app/login';
+
+    return `🏛️ *PreviOffice - ${firmName}*\n` +
+      `Olá, ${targetLawyer}! Seu acesso ao sistema do escritório foi configurado com sucesso:\n\n` +
+      `🔗 *Link de Acesso:* ${loginUrl}\n` +
+      `👤 *Login:* ${targetEmail}\n` +
+      `🔑 *Senha Inicial de Acesso:* ${pass}\n\n` +
+      `⚠️ *Atenção:* No seu 1º acesso, o sistema exigirá a troca desta senha provisória por uma senha pessoal definitiva para garantir a segurança dos dados do escritório.`;
+  };
+
+  const getWhatsAppUrl = (isFinalSuccess = false) => {
+    const rawPhone = isFinalSuccess ? (provisionSuccess?.lawyerPhone || lawyerPhone || phone) : (lawyerPhone || phone);
+    const cleanPhone = (rawPhone || '').replace(/\D/g, '');
+    const ddiPhone = cleanPhone.startsWith('55') && cleanPhone.length > 11 ? cleanPhone : `55${cleanPhone}`;
+    const text = getShareText(isFinalSuccess);
+    return cleanPhone
+      ? `https://api.whatsapp.com/send?phone=${ddiPhone}&text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  };
+
   const copyCredentials = () => {
-    if (!provisionSuccess) return;
-    const finalPass = provisionSuccess.temporaryPassword || lawyerPassword;
-    const text = `PREVIOFFICE - CREDENCIAIS DE PRIMEIRO ACESSO\n\n` +
-      `Escritório: ${provisionSuccess.officeName}\n` +
-      `CNPJ: ${provisionSuccess.officeCnpj || 'N/A'}\n` +
-      `Advogado Titular: ${provisionSuccess.lawyerName}\n` +
-      `CPF: ${provisionSuccess.lawyerCpf || 'N/A'}\n` +
-      `OAB: ${provisionSuccess.lawyerOab}\n\n` +
-      `Login: ${provisionSuccess.lawyerEmail}\n` +
-      `Senha Provisória: ${finalPass}\n\n` +
-      `⚠️ Importante: Por segurança, no seu primeiro login o sistema exigirá a troca desta senha provisória por uma senha pessoal definitiva.\n\n` +
-      `Link de Acesso: https://previoffice.vercel.app/login`;
+    const text = getShareText(Boolean(provisionSuccess));
     navigator.clipboard.writeText(text).then(() => {
-      alert('Credenciais de primeiro acesso copiadas para a área de transferência!');
+      setCopiedShareText(true);
+      setTimeout(() => setCopiedShareText(false), 3000);
     }).catch(() => {
       alert('Erro ao copiar credenciais. Por favor, selecione e copie o texto manualmente.');
     });
@@ -303,13 +325,23 @@ export default function AdminProvisioningPage() {
             </div>
 
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                href={getWhatsAppUrl(true)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Enviar via WhatsApp (R$ 0,00)</span>
+              </a>
+
               <button
                 type="button"
                 onClick={copyCredentials}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
-                <Copy className="w-4 h-4" />
-                <span>{t.adminProvisioning.copyAccessData}</span>
+                {copiedShareText ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                <span>{copiedShareText ? 'Mensagem Copiada!' : t.adminProvisioning.copyAccessData}</span>
               </button>
 
               <Link
@@ -558,7 +590,7 @@ export default function AdminProvisioningPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                         <KeyRound className="w-4 h-4 text-[#C89543]" />
-                        <span>Senha Provisória de Acesso</span>
+                        <span>Senha Inicial de Acesso</span>
                       </label>
                       <span className="text-[10px] font-bold text-amber-300 bg-amber-950/70 border border-amber-600/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                         <ShieldAlert className="w-3 h-3 text-amber-400" />
@@ -566,11 +598,11 @@ export default function AdminProvisioningPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="relative flex-1 min-w-[200px]">
                         <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <input
-                          type="text"
+                          type={showPassword ? 'text' : 'password'}
                           required
                           minLength={8}
                           name="temp_lawyer_password"
@@ -579,9 +611,21 @@ export default function AdminProvisioningPage() {
                           data-1p-ignore="true"
                           value={lawyerPassword}
                           onChange={(e) => setLawyerPassword(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-emerald-400 focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] focus:outline-none select-all"
+                          className="w-full pl-9 pr-9 py-2 text-xs bg-slate-950 border border-slate-700 rounded-lg font-mono font-bold text-emerald-400 focus:border-[#C89543] focus:ring-1 focus:ring-[#C89543] focus:outline-none select-all tracking-wider"
                           placeholder="Prev#..."
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 transition-colors cursor-pointer"
+                          title={showPassword ? 'Ocultar senha' : 'Exibir senha visível'}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4 text-slate-400 hover:text-white" />
+                          ) : (
+                            <Eye className="w-4 h-4 text-slate-400 hover:text-white" />
+                          )}
+                        </button>
                       </div>
 
                       <button
@@ -590,7 +634,7 @@ export default function AdminProvisioningPage() {
                           setLawyerPassword(generateRandomPassword());
                           setCopiedPassword(false);
                         }}
-                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                         title="Gerar nova senha provisória aleatória"
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-[#C89543]" />
@@ -609,8 +653,8 @@ export default function AdminProvisioningPage() {
                               .catch(() => {});
                           }
                         }}
-                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                        title="Copiar senha para a área de transferência"
+                        className="px-3 py-2 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                        title="Copiar apenas a senha para a área de transferência"
                       >
                         {copiedPassword ? (
                           <>
@@ -620,14 +664,24 @@ export default function AdminProvisioningPage() {
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Copiar</span>
+                            <span>Copiar Senha</span>
                           </>
                         )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowShareModal(true)}
+                        className="px-3 py-2 rounded-lg text-xs font-bold bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                        title="Compartilhar dados de acesso via WhatsApp ou mensagem formatada"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Compartilhar</span>
                       </button>
                     </div>
 
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Senha aleatória provisória gerada com segurança. O advogado titular deverá obrigatoriamente cadastrar sua nova senha pessoal no primeiro login.
+                      Senha gerada automaticamente com alta segurança e visível por padrão (use o ícone de olho para ocultar/exibir). Clique em <strong>Compartilhar</strong> para enviar a mensagem pronta com link de login via WhatsApp com custo R$ 0,00.
                     </p>
                   </div>
                 </div>
@@ -652,6 +706,91 @@ export default function AdminProvisioningPage() {
           </div>
         )}
       </main>
+
+      {/* Share Credentials Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center">
+                  <KeyRound className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>Compartilhar Senha Inicial de Acesso</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Envie as credenciais com custo R$ 0,00 via WhatsApp
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShareModal(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-white">{lawyerName.trim() || 'Advogado Titular'}</div>
+                  <div className="text-[11px] text-slate-400">{lawyerEmail.trim() || 'E-mail não informado'}</div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block">Senha Inicial</span>
+                  <span className="font-mono font-extrabold text-emerald-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-700">
+                    {lawyerPassword}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-600/30 text-amber-200 text-xs flex items-start gap-2.5">
+                <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                  <strong className="text-amber-200">Troca Obrigatória:</strong> No primeiro acesso, o advogado será forçado a definir uma senha definitiva pessoal.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5 mb-1.5">
+                  <MessageCircle className="w-4 h-4 text-emerald-400" />
+                  <span>Mensagem Pronta para WhatsApp</span>
+                </label>
+                <pre className="p-3.5 bg-slate-950 rounded-xl text-[11px] font-sans text-slate-300 border border-slate-800 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                  {getShareText(false)}
+                </pre>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                <a
+                  href={getWhatsAppUrl(false)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Enviar via WhatsApp (R$ 0,00)</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={copyCredentials}
+                  className="py-2.5 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 hover:text-white flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                >
+                  {copiedShareText ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedShareText ? 'Mensagem Copiada!' : 'Copiar Mensagem'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="text-center py-2 text-xs text-slate-500">
