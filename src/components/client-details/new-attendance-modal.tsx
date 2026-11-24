@@ -20,6 +20,8 @@ import { settingsStore } from '@/lib/data/mock-settings';
 import type { TeamMember } from '@/types/settings';
 import { createAttendanceInDb } from '@/lib/services/client-service';
 import type { Attendance, AttendanceType, PendingPhysicalDocument } from '@/types/attendance';
+import { AttendanceAttendantSection } from '@/components/attendances/attendance-attendant-section';
+import { AttendanceChecklistSection } from '@/components/attendances/attendance-checklist-section';
 import {
   COMMON_DOCUMENT_SHORTCUTS,
   getDefaultDocumentsForBenefit,
@@ -492,89 +494,26 @@ export function NewAttendanceModal({
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Tipo de Atendimento */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {t.clientDetails.attendanceTypeLabel}
-              </label>
-              <select
-                value={attendanceType}
-                onChange={(e) => setAttendanceType(e.target.value as AttendanceType)}
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-medium"
-              >
-                <option value="RETURN">{t.clientDetails.attendanceTypeReturn}</option>
-                <option value="RETURN_DOCUMENTS">{t.clientDetails.attendanceTypeDocs}</option>
-                <option value="PROCESS_TRACKING">{t.clientDetails.attendanceTypeProcess}</option>
-                <option value="FIRST_CONSULTATION">{t.clientDetails.attendanceTypeFirst}</option>
-                <option value="GUIDANCE">{t.clientDetails.attendanceTypeGuidance}</option>
-              </select>
-            </div>
-
-            {/* Registrado por (Início do Atendimento) */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Registrado por (Início do Atendimento)
-              </label>
-              <select
-                value={createdById}
-                onChange={(e) => {
-                  const newCreatedId = e.target.value;
-                  setCreatedById(newCreatedId);
-                  const member = teamMembers.find((m) => m.id === newCreatedId);
-                  if (member?.memberType === 'LAWYER') {
-                    setAssignedLawyerId(newCreatedId);
-                  }
-                }}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-medium"
-              >
-                {teamMembers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.fullName} ({m.memberType === 'LAWYER' ? 'Advogado' : m.memberType === 'ASSISTANT' ? 'Assistente' : 'Estagiário'})
-                    {currentUser?.id === m.id ? ' ★ (Você)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Advogado Responsável pelo Atendimento */}
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-800">
-                Advogado Responsável pelo Atendimento <span className="text-rose-500">*</span>
-              </label>
-              {teamMembers.find((m) => m.id === createdById)?.memberType !== 'LAWYER' && (
-                <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                  Atribuição obrigatória (Operador não-advogado)
-                </span>
-              )}
-            </div>
-            <select
-              required
-              value={assignedLawyerId}
-              onChange={(e) => setAssignedLawyerId(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-white border border-[#082A52] rounded-lg font-bold text-[#082A52] focus:ring-2 focus:ring-[#C89543]"
-            >
-              {lawyerOptions.map((lawyer) => (
-                <option key={lawyer.id} value={lawyer.id}>
-                  {lawyer.fullName} ({lawyer.oabNumber || 'OAB'})
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] text-slate-500 mt-1">
-              {teamMembers.find((m) => m.id === createdById)?.memberType === 'LAWYER'
-                ? 'Advogados podem atender diretamente ou transferir para outro colega da banca.'
-                : 'Assistentes e estagiários devem obrigatoriamente indicar o advogado que conduzirá o atendimento.'}
-            </p>
-          </div>
+          {/* Attendant & Lawyer Assignment Section */}
+          <AttendanceAttendantSection
+            t={t}
+            attendanceType={attendanceType}
+            setAttendanceType={setAttendanceType}
+            createdById={createdById}
+            setCreatedById={setCreatedById}
+            assignedLawyerId={assignedLawyerId}
+            setAssignedLawyerId={setAssignedLawyerId}
+            teamMembers={teamMembers}
+            lawyerOptions={lawyerOptions}
+            currentUserId={currentUser?.id}
+          />
 
           {/* Objetivo / Benefício Tratado (Dropdown + Campo Outros) */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
               <span>{t.clientDetails.objectiveLabel} *</span>
               {selectedBenefitKey === 'OTHER' && (
-                <span className="text-[10px] text-[#C89543] font-bold">Modo Personalizado</span>
+                <span className="text-[10px] text-[#C89543] font-bold">{t.clientDetails.customModeBadge}</span>
               )}
             </label>
             <select
@@ -593,14 +532,14 @@ export function NewAttendanceModal({
             {selectedBenefitKey === 'OTHER' && (
               <div className="mt-2 space-y-1 animate-in fade-in slide-in-from-top-1 duration-150">
                 <label className="block text-[11px] font-bold text-[#C89543]">
-                  Especifique o Benefício ou Demanda *
+                  {t.clientDetails.customBenefitLabel}
                 </label>
                 <input
                   type="text"
                   required
                   value={customBenefitText}
                   onChange={(e) => setCustomBenefitText(e.target.value)}
-                  placeholder="Digite o nome do benefício ou serviço jurídico a ser anotado no banco..."
+                  placeholder={t.clientDetails.customBenefitPlaceholder}
                   className="w-full px-3.5 py-2 text-sm bg-white border border-[#C89543] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] text-slate-900 font-medium shadow-xs"
                 />
               </div>
@@ -636,187 +575,19 @@ export function NewAttendanceModal({
             />
           </div>
 
-          {/* ========================================================================= */}
-          {/* DOCUMENTOS DO ATENDIMENTO (PADRÃO DE ENTRADA RÁPIDA - IDÊNTICO À IMAGEM 1) */}
-          {/* ========================================================================= */}
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#C89543]" />
-                <span className="text-xs font-bold text-slate-800">
-                  Documentos do Atendimento
-                </span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-                  {totalExigidos} exigido(s)
-                  {totalPendentes > 0 ? ` • ${totalPendentes} pendente(s)` : ' • 0 pendente(s)'}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleSelectAllDocs}
-                  className="text-[11px] font-medium text-blue-700 hover:text-blue-900 transition-colors cursor-pointer"
-                >
-                  Marcar Todos
-                </button>
-                <span className="text-slate-300">|</span>
-                <button
-                  type="button"
-                  onClick={handleDeselectAllDocs}
-                  className="text-[11px] font-medium text-rose-600 hover:text-rose-800 transition-colors cursor-pointer"
-                >
-                  Nenhum Documento
-                </button>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-slate-500 leading-tight">
-              Marque os documentos que serão cobrados neste atendimento. Defina como <strong>Recebido</strong> se o cliente já trouxe, ou <strong>Pendente</strong> caso precise entregar depois.
-            </p>
-
-            {/* Checklist de Documentos */}
-            <div className="max-h-52 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100">
-              {documents.length === 0 ? (
-                <div className="py-4 text-center text-xs text-slate-400">
-                  Nenhum documento adicionado para este atendimento.
-                </div>
-              ) : (
-                documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className={`pt-2 first:pt-0 flex items-center justify-between gap-2 p-2 rounded-lg transition-all ${
-                      doc.isSelected
-                        ? 'bg-white border border-slate-200 shadow-2xs'
-                        : 'bg-slate-100/70 border border-dashed border-slate-200 opacity-60'
-                    }`}
-                  >
-                    {/* Checkbox + Rótulo */}
-                    <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={doc.isSelected}
-                        onChange={() => handleToggleSelectDoc(doc.id)}
-                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 accent-blue-600 shrink-0 cursor-pointer"
-                      />
-                      <span
-                        className={`text-xs truncate ${
-                          doc.isSelected
-                            ? 'font-semibold text-slate-800'
-                            : 'text-slate-400 line-through'
-                        }`}
-                        title={doc.description}
-                      >
-                        {doc.description}
-                      </span>
-                    </label>
-
-                    {/* Botões de Status Recebido / Pendente e Excluir */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {doc.isSelected ? (
-                        <div className="inline-flex rounded-md shadow-2xs border border-slate-200 overflow-hidden bg-slate-50 p-0.5 text-[11px]">
-                          <button
-                            type="button"
-                            aria-pressed={doc.isDelivered}
-                            onClick={() => handleToggleDeliveredDoc(doc.id, true)}
-                            className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
-                              doc.isDelivered
-                                ? 'bg-emerald-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                            }`}
-                          >
-                            ✓ Recebido
-                          </button>
-                          <button
-                            type="button"
-                            aria-pressed={!doc.isDelivered}
-                            onClick={() => handleToggleDeliveredDoc(doc.id, false)}
-                            className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
-                              !doc.isDelivered
-                                ? 'bg-amber-500 text-white shadow-xs'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-                            }`}
-                          >
-                            ⏳ Pendente
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 italic px-1.5">
-                          Não exigido
-                        </span>
-                      )}
-
-                      {/* Excluir da lista */}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDoc(doc.id)}
-                        aria-label={`Remover documento ${doc.description} da lista`}
-                        title="Remover documento da lista"
-                        className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Atalhos Rápidos para Adicionar */}
-            <div className="pt-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-                Atalhos rápidos para adicionar:
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {COMMON_DOCUMENT_SHORTCUTS.map((shortcut) => {
-                  const isAlreadyAdded = documents.some(
-                    (d) => d.description.toLowerCase() === shortcut.toLowerCase() && d.isSelected
-                  );
-                  return (
-                    <button
-                      key={shortcut}
-                      type="button"
-                      onClick={() => handleAddCustomDoc(shortcut)}
-                      disabled={isAlreadyAdded}
-                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
-                        isAlreadyAdded
-                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-default'
-                          : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300 hover:border-slate-400'
-                      }`}
-                    >
-                      + {shortcut}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Input para Digitar Outro Documento */}
-            <div className="flex gap-1.5 pt-1">
-              <input
-                type="text"
-                value={customDocName}
-                aria-label="Digitar outro documento"
-                onChange={(e) => setCustomDocName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddCustomDoc(customDocName);
-                  }
-                }}
-                placeholder="Digitar outro documento (ex: Certidão de Casamento)..."
-                className="flex-1 px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#C89543]"
-              />
-              <button
-                type="button"
-                onClick={() => handleAddCustomDoc(customDocName)}
-                className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#0B192E] hover:bg-[#152a4a] rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Adicionar</span>
-              </button>
-            </div>
-          </div>
+          {/* Checklist de Documentos do Atendimento */}
+          <AttendanceChecklistSection
+            t={t}
+            documents={documents}
+            onSelectAll={handleSelectAllDocs}
+            onDeselectAll={handleDeselectAllDocs}
+            onToggleSelectDoc={handleToggleSelectDoc}
+            onToggleDeliveredDoc={handleToggleDeliveredDoc}
+            onRemoveDoc={handleRemoveDoc}
+            onAddCustomDoc={handleAddCustomDoc}
+            customDocName={customDocName}
+            setCustomDocName={setCustomDocName}
+          />
 
           {/* Action buttons */}
           <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">

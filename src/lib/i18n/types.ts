@@ -455,6 +455,27 @@ export interface Translations {
     oabRecordLabel: string;
     physicalFileLabel: string;
     digitalEmissionPageLabel: string;
+    registeredByLabel: string;
+    responsibleLawyerLabel: string;
+    mandatoryLawyerAssignment: string;
+    lawyerAssignmentHelpLawyer: string;
+    lawyerAssignmentHelpStaff: string;
+    attendanceDocsTitle: string;
+    attendanceDocsHelp: string;
+    selectAllDocs: string;
+    clearAllDocs: string;
+    docsRequiredCount: string;
+    docsPendingCount: string;
+    noDocsAdded: string;
+    docStatusReceived: string;
+    docStatusPending: string;
+    docStatusNotRequired: string;
+    quickShortcutsTitle: string;
+    customDocPlaceholder: string;
+    btnAddDoc: string;
+    customBenefitLabel: string;
+    customBenefitPlaceholder: string;
+    customModeBadge: string;
   };
   caseUpdates: {
     panelTitle: string;
