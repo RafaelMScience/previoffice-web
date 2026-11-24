@@ -1,2 +1,10 @@
 export { AttendanceAttendantSection } from './attendance-attendant-section';
 export { AttendanceChecklistSection } from './attendance-checklist-section';
+export { AttendanceTypeBadge } from './attendance-type-badge';
+export { AttendancesMetricsRow } from './attendances-metrics-row';
+export type { AttendanceFilterType } from './attendances-metrics-row';
+export { AttendancesSearchBar } from './attendances-search-bar';
+export { AttendancesTableView } from './attendances-table-view';
+export { AttendancesTimelineView } from './attendances-timeline-view';
+export { AttendancesTableSkeleton } from './attendances-table-skeleton';
+export { NewGeneralAttendanceModal } from './new-general-attendance-modal';

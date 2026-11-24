@@ -1,14 +1,15 @@
 /**
- * Feature Module: Attendances & Atendimentos Previdenciários (PreviOffice)
- * Encapsulates attendance registration, attendant/lawyer assignment,
- * document checklist requirements, narrative histories, and strategy notes.
+ * Attendances Feature Module
+ * Encapsulates attendance modal sections, attendant selector, checklist, metrics, search bar, table and timeline views.
  */
 
-export { NewAttendanceModal } from '@/components/client-details/new-attendance-modal';
 export { AttendanceAttendantSection } from '@/components/attendances/attendance-attendant-section';
 export { AttendanceChecklistSection } from '@/components/attendances/attendance-checklist-section';
-
-// Types
-export type { Attendance, AttendanceType, PendingPhysicalDocument } from '@/types/attendance';
-export type { DocumentChecklistItem } from '@/lib/domain/document-presets';
-export { COMMON_DOCUMENT_SHORTCUTS, getDefaultDocumentsForBenefit } from '@/lib/domain/document-presets';
+export { AttendanceTypeBadge } from '@/components/attendances/attendance-type-badge';
+export { AttendancesMetricsRow } from '@/components/attendances/attendances-metrics-row';
+export type { AttendanceFilterType } from '@/components/attendances/attendances-metrics-row';
+export { AttendancesSearchBar } from '@/components/attendances/attendances-search-bar';
+export { AttendancesTableView } from '@/components/attendances/attendances-table-view';
+export { AttendancesTimelineView } from '@/components/attendances/attendances-timeline-view';
+export { AttendancesTableSkeleton } from '@/components/attendances/attendances-table-skeleton';
+export { NewGeneralAttendanceModal } from '@/components/attendances/new-general-attendance-modal';
