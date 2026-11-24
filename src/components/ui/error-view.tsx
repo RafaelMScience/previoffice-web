@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Home,
-  Users,
   RefreshCw,
   Scale,
   ShieldCheck,
@@ -28,7 +27,6 @@ export interface ErrorViewProps {
   description?: string;
   reset?: () => void;
   showHomeButton?: boolean;
-  showClientsButton?: boolean;
   showBackButton?: boolean;
   showRetryButton?: boolean;
   referenceCode?: string;
@@ -52,7 +50,6 @@ export function ErrorView({
   description,
   reset,
   showHomeButton = true,
-  showClientsButton = true,
   showBackButton = true,
   showRetryButton,
   referenceCode,
@@ -154,21 +151,11 @@ export function ErrorView({
             </Link>
           )}
 
-          {showClientsButton && (
-            <Link
-              href="/clientes"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 active:scale-98 transition-all"
-            >
-              <Users className="w-3.5 h-3.5 text-slate-500" />
-              <span>Ver Meus Clientes</span>
-            </Link>
-          )}
-
           {showBackButton && (
             <button
               type="button"
               onClick={handleBack}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200/80 rounded-xl transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200/80 transition-all cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Voltar</span>

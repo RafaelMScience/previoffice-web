@@ -6,8 +6,8 @@ describe('ErrorView Component & Configuration Tests', () => {
   it('should return correct configuration for HTTP 400 Bad Request', () => {
     const config = getErrorConfig(400);
     assert.ok(config.badge.includes('400'));
-    assert.strictEqual(config.defaultTitle, 'Parâmetros Incompletos ou Inválidos');
-    assert.ok(config.defaultDescription.includes('parâmetros'));
+    assert.strictEqual(config.defaultTitle, 'Requisição Inválida');
+    assert.ok(config.defaultDescription.includes('solicitação'));
     assert.strictEqual(config.iconType, 'alert');
     assert.ok(config.iconBg.includes('amber'));
   });
@@ -15,8 +15,8 @@ describe('ErrorView Component & Configuration Tests', () => {
   it('should return correct configuration for HTTP 404 Not Found', () => {
     const config = getErrorConfig(404);
     assert.ok(config.badge.includes('404'));
-    assert.strictEqual(config.defaultTitle, 'Página ou Registro Não Encontrado');
-    assert.ok(config.defaultDescription.includes('não existe'));
+    assert.strictEqual(config.defaultTitle, 'Página Não Encontrada');
+    assert.strictEqual(config.defaultDescription, 'O endereço acessado não existe ou foi removido.');
     assert.strictEqual(config.iconType, 'file-question');
     assert.ok(config.iconBg.includes('sky'));
   });
@@ -24,8 +24,8 @@ describe('ErrorView Component & Configuration Tests', () => {
   it('should return correct configuration for HTTP 500 Internal Server Error', () => {
     const config = getErrorConfig(500);
     assert.ok(config.badge.includes('500'));
-    assert.strictEqual(config.defaultTitle, 'Instabilidade Momentânea de Processamento');
-    assert.ok(config.defaultDescription.includes('falha inesperada'));
+    assert.strictEqual(config.defaultTitle, 'Instabilidade no Servidor');
+    assert.ok(config.defaultDescription.includes('instabilidade temporária'));
     assert.strictEqual(config.iconType, 'server-crash');
     assert.ok(config.iconBg.includes('rose'));
   });
@@ -37,7 +37,7 @@ describe('ErrorView Component & Configuration Tests', () => {
     assert.ok(config.iconBg.includes('slate'));
   });
 
-  it('security invariant: error descriptions must not leak internal database, SQL or stack trace details', () => {
+  it('security invariant: error descriptions must not leak internal database, SQL, tenant clues or stack trace details', () => {
     const codes = [400, 404, 500];
     const forbiddenPatterns = [
       /select\s+/i,
@@ -47,6 +47,8 @@ describe('ErrorView Component & Configuration Tests', () => {
       /stack trace/i,
       /at\s+[\w.]+\s+\(/i,
       /node_modules/i,
+      /outro escritório/i, // Must not hint at other tenants' existence
+      /registro/i,        // Neutralized to "Página Não Encontrada"
     ];
 
     for (const code of codes) {

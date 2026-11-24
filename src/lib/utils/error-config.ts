@@ -15,9 +15,9 @@ export interface StatusConfig {
 export const STATUS_CONFIGS: Record<number, StatusConfig> = {
   400: {
     badge: '400 • Requisição Inválida',
-    defaultTitle: 'Parâmetros Incompletos ou Inválidos',
+    defaultTitle: 'Requisição Inválida',
     defaultDescription:
-      'A requisição enviada ao servidor contém parâmetros corrompidos, ausentes ou formato inconsistente com as regras do sistema.',
+      'Não foi possível processar a solicitação com os parâmetros fornecidos.',
     iconType: 'alert',
     iconBg: 'bg-amber-50',
     iconColor: 'text-amber-600',
@@ -25,9 +25,9 @@ export const STATUS_CONFIGS: Record<number, StatusConfig> = {
   },
   404: {
     badge: '404 • Não Encontrado',
-    defaultTitle: 'Página ou Registro Não Encontrado',
+    defaultTitle: 'Página Não Encontrada',
     defaultDescription:
-      'O endereço acessado não existe, foi movido ou pertence a outro escritório com isolamento de acesso ativo.',
+      'O endereço acessado não existe ou foi removido.',
     iconType: 'file-question',
     iconBg: 'bg-sky-50',
     iconColor: 'text-[#082A52]',
@@ -35,9 +35,9 @@ export const STATUS_CONFIGS: Record<number, StatusConfig> = {
   },
   500: {
     badge: '500 • Instabilidade no Servidor',
-    defaultTitle: 'Instabilidade Momentânea de Processamento',
+    defaultTitle: 'Instabilidade no Servidor',
     defaultDescription:
-      'Ocorreu uma falha inesperada durante a execução da operação. Seus dados continuam seguros e protegidos no banco de dados.',
+      'Ocorreu uma instabilidade temporária. Por favor, tente novamente em instantes.',
     iconType: 'server-crash',
     iconBg: 'bg-rose-50',
     iconColor: 'text-rose-600',
