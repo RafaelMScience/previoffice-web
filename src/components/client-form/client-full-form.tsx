@@ -3,31 +3,20 @@
 import React, { useState, useTransition, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  User,
-  MapPin,
-  Phone,
-  Award,
   Save,
   ArrowLeft,
   CheckCircle,
-  Calculator,
-  Lock,
-  Eye,
-  EyeOff,
-  Copy,
-  Check,
-  ShieldCheck,
-  Camera,
   AlertCircle,
-  Search,
   Sparkles,
-  Move,
   Loader2,
 } from 'lucide-react';
 import { AvatarCropModal } from './avatar-crop-modal';
 import { LegalPreAnalysisSidebar } from './form-sections/legal-pre-analysis-sidebar';
 import { AddressSection } from './form-sections/address-section';
 import { InssAccessSection } from './form-sections/inss-access-section';
+import { PersonalDataSection } from './form-sections/personal-data-section';
+import { ContactSection } from './form-sections/contact-section';
+import { BenefitSection } from './form-sections/benefit-section';
 import { isValidCpf } from '@/lib/domain/cpf-validator';
 import { maskCpf, maskPhone, maskCep, maskBenefitNumber } from '@/lib/utils/masks';
 import { compressAvatarPhoto } from '@/lib/utils/image-compressor';
@@ -84,6 +73,36 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
     }
     setPhotoFile(croppedFile);
     setPhotoPreview(previewUrl);
+  };
+
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setRawFileName(file.name);
+      if (rawImageForCrop?.startsWith('blob:')) {
+        URL.revokeObjectURL(rawImageForCrop);
+      }
+      const objectUrl = URL.createObjectURL(file);
+      setRawImageForCrop(objectUrl);
+      setCropModalOpen(true);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    if (confirm('Deseja remover a foto selecionada deste cadastro?')) {
+      if (photoPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(photoPreview);
+      }
+      if (rawImageForCrop?.startsWith('blob:')) {
+        URL.revokeObjectURL(rawImageForCrop);
+      }
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setRawImageForCrop(null);
+    }
   };
 
   // Form state
@@ -488,251 +507,41 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           )}
 
           {/* Section 1: Personal Identification */}
-          <div id="personal" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <User className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec1}</h2>
-            </div>
-
-            {/* Photo / Avatar Upload */}
-            <div className="flex items-center gap-4 p-3.5 bg-slate-50/80 rounded-xl border border-dashed border-slate-200">
-              <div className="w-14 h-14 rounded-xl bg-slate-200 border border-slate-300 flex items-center justify-center overflow-hidden shrink-0">
-                {photoPreview ? (
-                  <img src={photoPreview} alt="Foto do cliente" className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                ) : (
-                  <User className="w-7 h-7 text-slate-400" />
-                )}
-              </div>
-              <div>
-                <span className="text-xs font-semibold text-slate-700 block mb-1">
-                  Foto ou Imagem do Cliente
-                </span>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100 shadow-2xs transition-all">
-                    <Camera className="w-3.5 h-3.5 text-[#C89543]" />
-                    <span>{photoFile ? photoFile.name : 'Selecionar imagem (PNG/JPG/WebP)'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const file = e.target.files[0];
-                          setRawFileName(file.name);
-                          if (rawImageForCrop?.startsWith('blob:')) {
-                            URL.revokeObjectURL(rawImageForCrop);
-                          }
-                          const objectUrl = URL.createObjectURL(file);
-                          setRawImageForCrop(objectUrl);
-                          setCropModalOpen(true);
-                          e.target.value = '';
-                        }
-                      }}
-                    />
-                  </label>
-                  {photoPreview && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRawImageForCrop((prev) => prev || photoPreview);
-                          setCropModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-medium shadow-2xs transition-all"
-                        title="Ajustar posição e zoom da foto"
-                      >
-                        <Move className="w-3.5 h-3.5 text-[#C89543]" />
-                        <span>Ajustar posição</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm('Deseja remover a foto selecionada deste cadastro?')) {
-                            if (photoPreview?.startsWith('blob:')) {
-                              URL.revokeObjectURL(photoPreview);
-                            }
-                            if (rawImageForCrop?.startsWith('blob:')) {
-                              URL.revokeObjectURL(rawImageForCrop);
-                            }
-                            setPhotoFile(null);
-                            setPhotoPreview(null);
-                            setRawImageForCrop(null);
-                          }
-                        }}
-                        className="px-2.5 py-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-medium transition-all"
-                      >
-                        Remover foto
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 relative">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t.clientForm.fullNameLabel}
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder={t.clientForm.fullNamePlaceholder}
-                    className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                  />
-                  {linkedClientId && (
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
-                      Vinculado
-                    </span>
-                  )}
-                </div>
-
-                {/* Suggestions drop-down for matching prospects from fast intake */}
-                {showSuggestions && nameSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 overflow-hidden divide-y divide-slate-100">
-                    <div className="p-2 bg-slate-50 text-[11px] font-semibold text-slate-600 flex items-center justify-between">
-                      <span>Cadastros encontrados na recepção rápida:</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowSuggestions(false)}
-                        className="text-slate-400 hover:text-slate-600"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    {nameSuggestions.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => applyClientData(item)}
-                        className="w-full p-2.5 text-left hover:bg-amber-50 flex items-center justify-between transition-colors group"
-                      >
-                        <div>
-                          <div className="text-xs font-bold text-slate-900 group-hover:text-[#C89543]">
-                            {item.full_name}
-                          </div>
-                          <div className="text-[11px] text-slate-500 font-mono">
-                            {item.cpf ? `CPF: ${maskCpf(item.cpf)}` : 'Sem CPF informado'} • {maskPhone(item.mobile_phone)}
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-[#082A52] bg-slate-100 group-hover:bg-[#C89543]/20 px-2 py-1 rounded">
-                          Puxar Dados &rarr;
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t.clientForm.cpfLabel}
-                </label>
-                <input
-                  type="text"
-                  maxLength={14}
-                  value={cpf}
-                  onChange={(e) => setCpf(maskCpf(e.target.value))}
-                  placeholder={t.clientForm.cpfPlaceholder}
-                  className={`w-full px-3.5 py-2 text-sm bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 text-slate-900 font-mono ${
-                    cpfValid === false
-                      ? 'border-red-400 focus:ring-red-500'
-                      : 'border-slate-200 focus:ring-[#C89543] focus:bg-white'
-                  }`}
-                />
-                {cpfValid === false && (
-                  <span className="text-[11px] text-red-600 font-medium">{t.clientForm.cpfInvalid}</span>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.rgLabel}</label>
-                <input
-                  type="text"
-                  value={rg}
-                  onChange={(e) => setRg(e.target.value)}
-                  placeholder={t.clientForm.rgPlaceholder}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.birthDateLabel}</label>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.genderLabel}</label>
-                <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value as any)}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                >
-                  <option value="F">{t.clientForm.genderFemale}</option>
-                  <option value="M">{t.clientForm.genderMale}</option>
-                  <option value="OTHER">{t.clientForm.genderOther}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.maritalStatusLabel}</label>
-                <select
-                  value={maritalStatus}
-                  onChange={(e) => setMaritalStatus(e.target.value as MaritalStatus)}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                >
-                  <option value="SINGLE">{t.clientForm.statusSingle}</option>
-                  <option value="MARRIED">{t.clientForm.statusMarried}</option>
-                  <option value="STABLE_UNION">{t.clientForm.statusStableUnion}</option>
-                  <option value="DIVORCED">{t.clientForm.statusDivorced}</option>
-                  <option value="WIDOWED">{t.clientForm.statusWidowed}</option>
-                  <option value="SEPARATED">{t.clientForm.statusSeparated}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.professionLabel}</label>
-                <input
-                  type="text"
-                  value={profession}
-                  onChange={(e) => setProfession(e.target.value)}
-                  placeholder={t.clientForm.professionPlaceholder}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.motherNameLabel}</label>
-                <input
-                  type="text"
-                  value={motherName}
-                  onChange={(e) => setMotherName(e.target.value)}
-                  placeholder={t.clientForm.motherNamePlaceholder}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.fatherNameLabel}</label>
-                <input
-                  type="text"
-                  value={fatherName}
-                  onChange={(e) => setFatherName(e.target.value)}
-                  placeholder={t.clientForm.fatherNamePlaceholder}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-            </div>
-          </div>
+          <PersonalDataSection
+            t={t}
+            fileInputRef={fileInputRef}
+            handlePhotoUpload={handlePhotoUpload}
+            photoPreview={photoPreview}
+            onRemovePhoto={handleRemovePhoto}
+            onAdjustPhotoPosition={() => {
+              setRawImageForCrop((prev) => prev || photoPreview);
+              setCropModalOpen(true);
+            }}
+            fullName={fullName}
+            setFullName={setFullName}
+            linkedClientId={linkedClientId}
+            showSuggestions={showSuggestions}
+            setShowSuggestions={setShowSuggestions}
+            nameSuggestions={nameSuggestions}
+            onApplyClientData={applyClientData}
+            cpf={cpf}
+            setCpf={setCpf}
+            cpfValid={cpfValid}
+            rg={rg}
+            setRg={setRg}
+            birthDate={birthDate}
+            setBirthDate={setBirthDate}
+            gender={gender}
+            setGender={setGender}
+            maritalStatus={maritalStatus}
+            setMaritalStatus={setMaritalStatus}
+            profession={profession}
+            setProfession={setProfession}
+            motherName={motherName}
+            setMotherName={setMotherName}
+            fatherName={fatherName}
+            setFatherName={setFatherName}
+          />
 
           {/* Section 2: Address & Residence */}
           <AddressSection
@@ -754,54 +563,15 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           />
 
           {/* Section 3: Contact Details */}
-          <div id="contact" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Phone className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec3}</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t.clientForm.mobilePhoneLabel}
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={15}
-                  value={mobilePhone}
-                  onChange={(e) => setMobilePhone(maskPhone(e.target.value))}
-                  placeholder="(83) 98888-0000"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t.clientForm.secondaryPhoneLabel}
-                </label>
-                <input
-                  type="text"
-                  maxLength={15}
-                  value={phone}
-                  onChange={(e) => setPhone(maskPhone(e.target.value))}
-                  placeholder="(83) 99999-1111"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.emailLabel}</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="client@email.com"
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-            </div>
-          </div>
+          <ContactSection
+            t={t}
+            mobilePhone={mobilePhone}
+            setMobilePhone={setMobilePhone}
+            phone={phone}
+            setPhone={setPhone}
+            email={email}
+            setEmail={setEmail}
+          />
 
           {/* Section 4: Social Security Credentials */}
           <InssAccessSection
@@ -820,61 +590,15 @@ export function ClientFullForm({ initialData, clientId, onSave }: ClientFullForm
           />
 
           {/* Section 5: Benefit & Special Category */}
-          <div id="benefit" className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Award className="w-5 h-5 text-[#C89543]" />
-              <h2 className="text-base font-bold text-slate-800">{t.clientForm.sec5}</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t.clientForm.desiredBenefitLabel}
-                </label>
-                <select
-                  value={getCanonicalBenefitKey(benefitType)}
-                  onChange={(e) => setBenefitType(e.target.value)}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900 font-medium"
-                >
-                  <option value="BPC/LOAS Elderly">BPC / LOAS - Idoso (≥ 65 anos)</option>
-                  <option value="BPC/LOAS Disability">BPC / LOAS - Pessoa com Deficiência (PCD)</option>
-                  <option value="Rural Special Retirement">Aposentadoria Rural - Segurado Especial</option>
-                  <option value="Age Retirement Urban">Aposentadoria Urbana por Idade</option>
-                  <option value="Temporary Disability">Benefício por Incapacidade Temporária (Auxílio-Doença)</option>
-                  <option value="Permanent Disability">Aposentadoria por Incapacidade Permanente</option>
-                  <option value="Death Pension">Pensão por Morte</option>
-                  <option value="Maternity Benefit">Salário-Maternidade Rural/Urbano</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">{t.clientForm.specialCategoryLabel}</label>
-                <select
-                  value={specialCategory}
-                  onChange={(e) => setSpecialCategory(e.target.value as SpecialCategory)}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                >
-                  <option value="URBAN_COMMON">{t.clientForm.catUrban}</option>
-                  <option value="RURAL">{t.clientForm.catRural}</option>
-                  <option value="PCD">{t.clientForm.catPcd}</option>
-                  <option value="SPECIAL_HAZARDOUS">{t.clientForm.catHazardous}</option>
-                </select>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t.clientForm.notesLabel}
-                </label>
-                <textarea
-                  rows={4}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={t.clientForm.notesPlaceholder}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C89543] focus:bg-white text-slate-900"
-                />
-              </div>
-            </div>
-          </div>
+          <BenefitSection
+            t={t}
+            benefitType={benefitType}
+            setBenefitType={setBenefitType}
+            specialCategory={specialCategory}
+            setSpecialCategory={setSpecialCategory}
+            notes={notes}
+            setNotes={setNotes}
+          />
         </form>
       </div>
 

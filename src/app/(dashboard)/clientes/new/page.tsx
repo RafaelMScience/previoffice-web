@@ -11,7 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { FastIntakeModal, type FastIntakeData } from '@/components/reception/fast-intake-modal';
-import { ClientFullForm } from '@/components/client-form/client-full-form';
+import { ClientFullForm } from '@/features/clients';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AccessDeniedBoundary } from '@/components/ui/access-denied-boundary';
