@@ -5,7 +5,7 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true, // Enables Gzip & Brotli compression on server responses
-  output: 'standalone',
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
   assetPrefix: process.env.NEXT_PUBLIC_CDN_URL || undefined,
   images: {
     formats: ['image/avif', 'image/webp'],

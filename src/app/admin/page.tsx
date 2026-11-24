@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function AdminIndexPage() {
+export default function AdminRootPage() {
   redirect('/admin/provisioning');
 }
+

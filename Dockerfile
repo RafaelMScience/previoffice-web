@@ -16,6 +16,7 @@ COPY . .
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV BUILD_STANDALONE=true
 
 # Provide build-time dummy values for Supabase public keys if not set
 ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
