@@ -32,6 +32,10 @@ import {
 import { maskCpf, maskPhone } from '@/lib/utils/masks';
 import { formatBenefitType, formatDocumentCategory } from '@/lib/utils/benefit-translations';
 import { escapeHtml } from '@/lib/security/xss';
+import {
+  printSingleContract,
+  printBatchContracts,
+} from './contract-modal/contract-printer';
 
 export interface GeneratedDocItem {
   id: string;
@@ -399,67 +403,13 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
 
   // Imprimir folha atual
   const handlePrintSingle = () => {
-    const printableArea = document.getElementById('demo-a4-printable-area');
-    if (!printableArea) {
-      window.print();
-      return;
-    }
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (doc) {
-      doc.open();
-      doc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>${escapeHtml(currentDoc.title)} - ${escapeHtml(client.fullName)}</title>
-            <style>
-              @page { size: A4; margin: 20mm 15mm; }
-              body { font-family: serif; font-size: 13px; line-height: 1.6; color: #111; margin: 0; padding: 0; }
-              .header { text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 12px; margin-bottom: 20px; }
-              .header h3 { font-size: 15px; margin: 0; text-transform: uppercase; font-weight: bold; }
-              .header p { font-size: 11px; margin: 4px 0 0 0; color: #555; }
-              .content { white-space: pre-line; text-align: justify; }
-              .signatures { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-around; text-align: center; font-size: 11px; }
-              .sig-line { width: 220px; border-top: 1px solid #333; margin: 0 auto 6px auto; padding-top: 4px; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h3>${escapeHtml(officeName)}</h3>
-              <p>Sociedade de Advogados inscrita sob a ${escapeHtml(officeOab)} • Advocacia Previdenciária</p>
-            </div>
-            <div class="content">${escapeHtml(currentDoc.content)}</div>
-            <div class="signatures">
-              <div>
-                <div class="sig-line"></div>
-                <strong>${escapeHtml(client.fullName)}</strong><br/>
-                <span>OUTORGANTE / CONTRATANTE</span>
-              </div>
-              <div>
-                <div class="sig-line"></div>
-                <strong>${escapeHtml(selectedLawyer.name)}</strong><br/>
-                <span>${escapeHtml(selectedLawyer.oab)} • ADVOGADO(A)</span>
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
-      doc.close();
-      iframe.contentWindow?.focus();
-      setTimeout(() => {
-        iframe.contentWindow?.print();
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-      }, 300);
-    }
+    printSingleContract(currentDoc, {
+      officeName,
+      officeOab,
+      clientFullName: client.fullName,
+      lawyerName: selectedLawyer.name,
+      lawyerOab: selectedLawyer.oab,
+    });
   };
 
   // Imprimir todo o kit selecionado
@@ -469,72 +419,13 @@ DOCUMENTOS INTEGRANTES DESTE PRONTUÁRIO:
       triggerToast('Nenhum documento selecionado para impressão.');
       return;
     }
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (doc) {
-      const pagesHtml = selectedDocs
-        .map(
-          (d, idx) => `
-          <div style="${idx < selectedDocs.length - 1 ? 'page-break-after: always;' : ''} padding: 10px;">
-            <div class="header">
-              <h3>${escapeHtml(officeName)}</h3>
-              <p>Sociedade de Advogados inscrita sob a ${escapeHtml(officeOab)} • Advocacia Previdenciária</p>
-            </div>
-            <div class="content">${escapeHtml(d.content)}</div>
-            <div class="signatures">
-              <div>
-                <div class="sig-line"></div>
-                <strong>${escapeHtml(client.fullName)}</strong><br/>
-                <span>OUTORGANTE / CONTRATANTE</span>
-              </div>
-              <div>
-                <div class="sig-line"></div>
-                <strong>${escapeHtml(selectedLawyer.name)}</strong><br/>
-                <span>${escapeHtml(selectedLawyer.oab)} • ADVOGADO(A)</span>
-              </div>
-            </div>
-          </div>
-        `
-        )
-        .join('');
-
-      doc.open();
-      doc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Kit de Emissão - ${escapeHtml(client.fullName)}</title>
-            <style>
-              @page { size: A4; margin: 20mm 15mm; }
-              body { font-family: serif; font-size: 13px; line-height: 1.6; color: #111; margin: 0; padding: 0; }
-              .header { text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 12px; margin-bottom: 20px; }
-              .header h3 { font-size: 15px; margin: 0; text-transform: uppercase; font-weight: bold; }
-              .header p { font-size: 11px; margin: 4px 0 0 0; color: #555; }
-              .content { white-space: pre-line; text-align: justify; }
-              .signatures { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; display: flex; justify-content: space-around; text-align: center; font-size: 11px; }
-              .sig-line { width: 220px; border-top: 1px solid #333; margin: 0 auto 6px auto; padding-top: 4px; }
-            </style>
-          </head>
-          <body>
-            ${pagesHtml}
-          </body>
-        </html>
-      `);
-      doc.close();
-      iframe.contentWindow?.focus();
-      setTimeout(() => {
-        iframe.contentWindow?.print();
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-      }, 400);
-    }
+    printBatchContracts(selectedDocs, {
+      officeName,
+      officeOab,
+      clientFullName: client.fullName,
+      lawyerName: selectedLawyer.name,
+      lawyerOab: selectedLawyer.oab,
+    });
   };
 
   // Formalizar e Salvar
