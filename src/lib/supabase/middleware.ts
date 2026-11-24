@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith('/login') ||
     pathname.startsWith('/definir-senha') ||
     pathname.startsWith('/demo-documentos') ||
-    pathname.startsWith('/admin');
+    pathname.startsWith('/admin/provisioning');
 
   // Refresh auth session safely (never crash or block SSR if local Docker is offline)
   let user: any = null;

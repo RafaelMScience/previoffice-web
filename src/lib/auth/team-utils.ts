@@ -25,6 +25,17 @@ export function mapMemberTypeToDbRole(
 }
 
 /**
+ * Strips dangerous HTML and scripts from plain-text user inputs.
+ */
+export function sanitizePlainName(value: string): string {
+  if (!value) return '';
+  return value
+    .replace(/<[^>]*>/g, '') // remove HTML tags
+    .replace(/[<>"'&]/g, '') // strip markup injection characters
+    .trim();
+}
+
+/**
  * Validates team member input payload.
  */
 export function validateTeamMemberInput(input: {
@@ -34,6 +45,11 @@ export function validateTeamMemberInput(input: {
 }): { valid: boolean; error?: string } {
   if (!input.fullName || !input.fullName.trim()) {
     return { valid: false, error: 'Nome completo é obrigatório.' };
+  }
+  // Security: Prevent Stored XSS via user name input (OWASP A03:2021)
+  const dangerousPattern = /<[^>]+>|javascript:|onerror=|onload=|eval\(/i;
+  if (dangerousPattern.test(input.fullName)) {
+    return { valid: false, error: 'O nome contém caracteres ou scripts não permitidos.' };
   }
   if (!input.email || !input.email.trim() || !input.email.includes('@')) {
     return { valid: false, error: 'E-mail institucional válido é obrigatório.' };

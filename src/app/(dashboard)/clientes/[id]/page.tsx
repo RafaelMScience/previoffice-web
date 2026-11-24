@@ -16,11 +16,28 @@ export default async function ClientDetailPage({ params }: ClientPageProps) {
 
   const supabase = await createClientServer();
 
-  // 1. Single-query nested join to eliminate sequential network hops during SSR
+  // Caller authentication & tenant verification (IDOR protection on direct URL access)
+  const { data: authData } = await supabase.auth.getUser();
+  if (!authData?.user) {
+    notFound();
+  }
+
+  const { data: profile } = await (supabase
+    .from('profiles') as any)
+    .select('tenant_id')
+    .eq('id', authData.user.id)
+    .maybeSingle();
+
+  if (!profile?.tenant_id) {
+    notFound();
+  }
+
+  // 1. Single-query nested join scoped strictly to caller's tenant
   const { data: rawClient } = await (supabase
     .from('clients') as any)
     .select('*, attendances(*)')
     .eq('id', id)
+    .eq('tenant_id', profile.tenant_id)
     .is('deleted_at', null)
     .maybeSingle();
 

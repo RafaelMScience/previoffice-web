@@ -29,6 +29,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  // Anti-brute force cooldown countdown timer
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutSeconds((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutSeconds]);
 
   // If already authenticated, redirect to dashboard or definir-senha
   useEffect(() => {
@@ -47,6 +58,13 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    // Brute-force protection: prevent guessing during lockout window
+    if (lockoutSeconds > 0) {
+      setErrorMessage(`Muitas tentativas incorretas. Aguarde ${lockoutSeconds} segundos antes de tentar novamente.`);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -63,14 +81,24 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setErrorMessage(
-          error.message === 'Invalid login credentials'
-            ? 'E-mail ou senha incorretos. Verifique suas credenciais.'
-            : error.message
-        );
+        const nextAttempts = failedAttempts + 1;
+        setFailedAttempts(nextAttempts);
+        if (nextAttempts >= 5) {
+          setLockoutSeconds(60);
+          setErrorMessage('Múltiplas tentativas de login incorretas detectadas. Por segurança, aguarde 60 segundos antes de tentar novamente.');
+        } else {
+          setErrorMessage(
+            error.message === 'Invalid login credentials'
+              ? `E-mail ou senha incorretos (${nextAttempts}/5 tentativas).`
+              : error.message
+          );
+        }
         setLoading(false);
         return;
       }
+
+      setFailedAttempts(0);
+      setLockoutSeconds(0);
 
       if (data.session && data.user) {
         // Fetch profile to verify if user is active
@@ -204,13 +232,18 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || lockoutSeconds > 0}
               className="w-full bg-gradient-to-r from-[#0B192E] to-[#1E293B] hover:from-[#152744] hover:to-[#2A3B52] text-white font-medium py-3 rounded-xl transition-all shadow-lg shadow-black/10 flex items-center justify-center gap-2 group disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-[#C89543]" />
                   <span>Validando Credenciais...</span>
+                </>
+              ) : lockoutSeconds > 0 ? (
+                <>
+                  <Lock className="w-4 h-4 text-amber-400" />
+                  <span>Aguarde {lockoutSeconds}s (Bloqueio Temporário)</span>
                 </>
               ) : (
                 <>

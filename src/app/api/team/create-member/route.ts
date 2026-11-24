@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { checkRateLimit } from '@/lib/security/admin-guard';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClientServer } from '@/lib/supabase/server';
-import { mapMemberTypeToDbRole, validateTeamMemberInput } from '@/lib/auth/team-utils';
+import { mapMemberTypeToDbRole, validateTeamMemberInput, sanitizePlainName } from '@/lib/auth/team-utils';
 import { generateIntegritySeal } from '@/lib/services/audit-service';
 import type { MemberType, TeamMember, TeamPermissions } from '@/types/settings';
 
@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    const cleanFullName = sanitizePlainName(fullName);
 
     // 5. Pre-flight check: Unique email in profiles
     const { data: existingProfile } = await adminClient
@@ -127,7 +128,7 @@ export async function POST(request: NextRequest) {
           role: mappedRole,
         },
         user_metadata: {
-          full_name: fullName.trim(),
+          full_name: cleanFullName,
           phone: phone ? phone.trim() : null,
           oab_number: memberType === 'LAWYER' && oabNumber ? oabNumber.trim() : null,
           member_type: memberType,
@@ -158,7 +159,7 @@ export async function POST(request: NextRequest) {
       .insert({
         id: authData.user.id,
         tenant_id: effectiveTenantId,
-        full_name: fullName.trim(),
+        full_name: cleanFullName,
         email: cleanEmail,
         phone: phone ? phone.trim() : null,
         oab_number: memberType === 'LAWYER' && oabNumber ? oabNumber.trim() : null,

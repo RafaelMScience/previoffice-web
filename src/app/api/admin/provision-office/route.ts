@@ -68,6 +68,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Security: Prevent Stored XSS via inputs (OWASP A03:2021)
+    const dangerousPattern = /<[^>]+>|javascript:|onerror=|onload=|eval\(/i;
+    if (
+      dangerousPattern.test(officeName) ||
+      dangerousPattern.test(lawyerName) ||
+      (societyOab && dangerousPattern.test(societyOab)) ||
+      (lawyerOab && dangerousPattern.test(lawyerOab))
+    ) {
+      return NextResponse.json(
+        { error: 'Caracteres inválidos ou scripts detectados nos campos de cadastro.' },
+        { status: 400 }
+      );
+    }
+
     // Determine secure password: if lawyerPassword provided and >= 8 chars, use it; otherwise generate random temporary password
     const finalLawyerPassword =
       typeof lawyerPassword === 'string' && lawyerPassword.trim().length >= 8

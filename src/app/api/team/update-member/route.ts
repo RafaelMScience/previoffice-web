@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { checkRateLimit } from '@/lib/security/admin-guard';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClientServer } from '@/lib/supabase/server';
-import { mapMemberTypeToDbRole } from '@/lib/auth/team-utils';
+import { mapMemberTypeToDbRole, sanitizePlainName } from '@/lib/auth/team-utils';
 import { generateIntegritySeal } from '@/lib/services/audit-service';
 import type { MemberType, TeamPermissions } from '@/types/settings';
 
@@ -79,6 +79,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'ID do membro é obrigatório.' }, { status: 400 });
     }
 
+    if (fullName) {
+      const dangerousPattern = /<[^>]+>|javascript:|onerror=|onload=|eval\(/i;
+      if (dangerousPattern.test(fullName)) {
+        return NextResponse.json(
+          { error: 'O nome contém caracteres ou scripts não permitidos.' },
+          { status: 400 }
+        );
+      }
+    }
+    const cleanFullName = sanitizePlainName(fullName);
+
     // 0. Strict Multi-Tenant Boundary: verify target member belongs to caller's tenant
     const { data: targetProfile, error: targetError } = await adminClient
       .from('profiles')
@@ -101,7 +112,7 @@ export async function POST(request: NextRequest) {
     const { data: updatedProfile, error: profileError } = await adminClient
       .from('profiles')
       .update({
-        full_name: fullName.trim(),
+        full_name: cleanFullName,
         phone: phone ? phone.trim() : null,
         oab_number: memberType === 'LAWYER' && oabNumber ? oabNumber.trim() : null,
         role: mappedRole,
@@ -128,7 +139,7 @@ export async function POST(request: NextRequest) {
           role: mappedRole,
         },
         user_metadata: {
-          full_name: fullName.trim(),
+          full_name: cleanFullName,
           phone: phone ? phone.trim() : null,
           oab_number: memberType === 'LAWYER' && oabNumber ? oabNumber.trim() : null,
           member_type: memberType,
