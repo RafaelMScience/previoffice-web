@@ -391,6 +391,21 @@ export interface Translations {
     btnClientPdfReport: string;
     clientPdfModalTitle: string;
     clientPdfModalSubtitle: string;
+    pdfPresetModels: string;
+    pdfPresetAll: string;
+    pdfPresetRegistration: string;
+    pdfPresetAttendances: string;
+    pdfPrintButton: string;
+    pdfIncludeHeader: string;
+    pdfSecPersonal: string;
+    pdfSecDocs: string;
+    pdfSecAddress: string;
+    pdfSecSocio: string;
+    pdfSecPrev: string;
+    pdfSecAttendances: string;
+    pdfSecClientSig: string;
+    pdfSecLawyerSig: string;
+    pdfCancel: string;
   };
   caseUpdates: {
     panelTitle: string;

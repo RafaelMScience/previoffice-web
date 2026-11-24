@@ -17,6 +17,8 @@ import { formatCpf } from '@/lib/domain/cpf-validator';
 import { maskPhone } from '@/lib/utils/masks';
 import { formatBenefitType, formatSpecialCategories } from '@/lib/utils/benefit-translations';
 import { escapeHtml } from '@/lib/security/xss';
+import { executeReportPrint } from './pdf-report/pdf-report-printer';
+import { PdfReportControls } from './pdf-report/pdf-report-controls';
 import type { Client, MaritalStatus } from '@/types/client';
 import type { Attendance, AttendanceType } from '@/types/attendance';
 
@@ -101,94 +103,11 @@ export function ClientPdfReportModal({
     }
   };
 
-  /**
-   * Isolated iframe print engine:
-   * Guarantees that ONLY the clean A4 sheet (#client-pdf-printable-area) is sent
-   * to the browser print dialog, completely preventing web dashboard/sidebar leakage.
-   */
   const handlePrint = () => {
-    const printableArea = document.getElementById('client-pdf-printable-area');
-    if (!printableArea) {
-      window.print();
-      return;
-    }
-
-    const iframe = document.createElement('iframe');
-    iframe.setAttribute(
-      'style',
-      'position:fixed;right:0;bottom:0;width:0;height:0;border:none;visibility:hidden;'
-    );
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow?.document;
-    if (!doc) {
-      window.print();
-      return;
-    }
-
-    // Capture active application styles and CSS links
-    const styleTags = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map((tag) => tag.outerHTML)
-      .join('\n');
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="${isEn ? 'en-US' : 'pt-BR'}">
-        <head>
-          <meta charset="utf-8" />
-          <title>${isEn ? 'Client Record' : 'Ficha do Cliente'} - ${escapeHtml(client.fullName)}</title>
-          ${styleTags}
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 10mm 12mm 12mm 12mm;
-            }
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              box-sizing: border-box !important;
-            }
-            html, body {
-              background: #FFFFFF !important;
-              color: #0B192E !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Segoe UI", Roboto, sans-serif !important;
-            }
-            .a4-print-sheet {
-              width: 100% !important;
-              max-width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              box-shadow: none !important;
-              border: none !important;
-              background: #FFFFFF !important;
-            }
-            .break-inside-avoid {
-              break-inside: avoid !important;
-              page-break-inside: avoid !important;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="a4-print-sheet">
-            ${printableArea.innerHTML}
-          </div>
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
-        }
-      }, 1000);
-    }, 250);
+    executeReportPrint({
+      clientFullName: client.fullName,
+      isEn,
+    });
   };
 
   // Helper date parsing (immune to UTC-3 midnight timezone shifts)
@@ -313,168 +232,30 @@ export function ClientPdfReportModal({
         className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-5xl h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
       >
         {/* Top Controls Header (Screen Only Toolbar) */}
-        <div className="bg-[#0B192E] text-white p-4 sm:p-5 relative shrink-0 border-b border-white/10">
-          <button
-            onClick={onClose}
-            aria-label="Fechar"
-            className="absolute top-4 right-4 text-white/60 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-            title="Fechar"
-          >
-            <X className="w-5 h-5" />
-          </button>
-
-          <div className="flex items-center gap-2 text-[#C89543] font-semibold text-xs tracking-wider uppercase mb-1">
-            <Printer className="w-4 h-4" />
-            <span>{t.clientDetails.clientPdfModalTitle}</span>
-          </div>
-
-          <h2 id="client-pdf-title" className="text-xl font-bold tracking-tight">
-            Relatório Oficial do Cliente: {client.fullName}
-          </h2>
-
-          <p className="text-xs text-slate-300 mt-0.5 max-w-2xl">
-            {t.clientDetails.clientPdfModalSubtitle}
-          </p>
-
-          {/* Preset Buttons & Options Bar */}
-          <div className="mt-4 pt-3 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3">
-            {/* Presets */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-                Modelos:
-              </span>
-              <button
-                type="button"
-                onClick={() => handleApplyPreset('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  preset === 'all'
-                    ? 'bg-[#C89543] text-white shadow-xs'
-                    : 'bg-white/10 text-white/80 hover:bg-white/20'
-                }`}
-              >
-                Relatório Completo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPreset('registration')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  preset === 'registration'
-                    ? 'bg-[#C89543] text-white shadow-xs'
-                    : 'bg-white/10 text-white/80 hover:bg-white/20'
-                }`}
-              >
-                Somente Ficha Cadastral
-              </button>
-              <button
-                type="button"
-                onClick={() => handleApplyPreset('attendances')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  preset === 'attendances'
-                    ? 'bg-[#C89543] text-white shadow-xs'
-                    : 'bg-white/10 text-white/80 hover:bg-white/20'
-                }`}
-              >
-                Histórico de Atendimentos
-              </button>
-            </div>
-
-            {/* Print Action Trigger */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="inline-flex items-center gap-2 px-5 py-2 bg-[#C89543] hover:bg-[#b08137] text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Imprimir / Salvar em PDF</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Granular Section Checkboxes */}
-          <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-slate-300">
-            <span className="font-semibold text-slate-400">Incluir no documento:</span>
-            <label className="inline-flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
-              <input
-                type="checkbox"
-                checked={includePersonalData}
-                onChange={(e) => setIncludePersonalData(e.target.checked)}
-                className="rounded text-[#C89543] focus:ring-[#C89543] w-3.5 h-3.5"
-              />
-              <span>Dados Pessoais</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
-              <input
-                type="checkbox"
-                checked={includeDocuments}
-                onChange={(e) => setIncludeDocuments(e.target.checked)}
-                className="rounded text-[#C89543] focus:ring-[#C89543] w-3.5 h-3.5"
-              />
-              <span>Documentos</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
-              <input
-                type="checkbox"
-                checked={includeAddressAndContacts}
-                onChange={(e) => setIncludeAddressAndContacts(e.target.checked)}
-                className="rounded text-[#C89543] focus:ring-[#C89543] w-3.5 h-3.5"
-              />
-              <span>Endereço & Contatos</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
-              <input
-                type="checkbox"
-                checked={includeSocioeconomic}
-                onChange={(e) => setIncludeSocioeconomic(e.target.checked)}
-                className="rounded text-[#C89543] focus:ring-[#C89543] w-3.5 h-3.5"
-              />
-              <span>Socioeconômico</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
-              <input
-                type="checkbox"
-                checked={includePrevidenciary}
-                onChange={(e) => setIncludePrevidenciary(e.target.checked)}
-                className="rounded text-[#C89543] focus:ring-[#C89543] w-3.5 h-3.5"
-              />
-              <span>Previdenciário</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
-              <input
-                type="checkbox"
-                checked={includeAttendanceHistory}
-                onChange={(e) => setIncludeAttendanceHistory(e.target.checked)}
-                className="rounded text-[#C89543] focus:ring-[#C89543] w-3.5 h-3.5"
-              />
-              <span>Atendimentos</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
-              <input
-                type="checkbox"
-                checked={includeClientSignature}
-                onChange={(e) => setIncludeClientSignature(e.target.checked)}
-                className="rounded text-[#C89543] focus:ring-[#C89543] w-3.5 h-3.5"
-              />
-              <span>Assinatura Cliente</span>
-            </label>
-            <label className="inline-flex items-center gap-1.5 cursor-pointer hover:text-white select-none">
-              <input
-                type="checkbox"
-                checked={includeLawyerSignature}
-                onChange={(e) => setIncludeLawyerSignature(e.target.checked)}
-                className="rounded text-[#C89543] focus:ring-[#C89543] w-3.5 h-3.5"
-              />
-              <span>Visto Advogado</span>
-            </label>
-          </div>
-        </div>
+        <PdfReportControls
+          t={t}
+          clientFullName={`${isEn ? 'Client Official Record' : 'Relatório Oficial do Cliente'}: ${client.fullName}`}
+          preset={preset}
+          onApplyPreset={handleApplyPreset}
+          onPrint={handlePrint}
+          onClose={onClose}
+          includePersonalData={includePersonalData}
+          setIncludePersonalData={setIncludePersonalData}
+          includeDocuments={includeDocuments}
+          setIncludeDocuments={setIncludeDocuments}
+          includeAddressAndContacts={includeAddressAndContacts}
+          setIncludeAddressAndContacts={setIncludeAddressAndContacts}
+          includeSocioeconomic={includeSocioeconomic}
+          setIncludeSocioeconomic={setIncludeSocioeconomic}
+          includePrevidenciary={includePrevidenciary}
+          setIncludePrevidenciary={setIncludePrevidenciary}
+          includeAttendanceHistory={includeAttendanceHistory}
+          setIncludeAttendanceHistory={setIncludeAttendanceHistory}
+          includeClientSignature={includeClientSignature}
+          setIncludeClientSignature={setIncludeClientSignature}
+          includeLawyerSignature={includeLawyerSignature}
+          setIncludeLawyerSignature={setIncludeLawyerSignature}
+        />
 
         {/* Gray Preview Drafting Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#CBD5E1]/60 flex justify-center items-start">
