@@ -44,8 +44,6 @@ graph TD
     P14["[[14 - Mesa do Advogado, CRM de Retornos, Ficha Unica e Emissao de Contratos OAB]]"]
     P15["[[15 - Emissao de Ficha Cadastral e Relatorio em PDF (Dados do Cliente e Atendimentos)]]"]
     P16["[[16 - Integracao com Supabase, Deploy na Vercel e Blindagem de Producao]]"]
-    P17["[[17 - Modulo de Contratos, Upload de Minutas PDF e Arquitetura Agnostica de Banco]]"]
-    P18["[[18 - Provisionamento Administrativo, Credenciais Temporarias e Blindagem de Seguranca]]"]
 
     P0 --> P1
     P0 --> P2
@@ -62,8 +60,6 @@ graph TD
     P0 --> P14
     P0 --> P15
     P0 --> P16
-    P0 --> P17
-    P0 --> P18
 ```
 
 1. **[[01 - Requisitos do Sistema, PRD e Regras de Negocio Previdenciarias]]**: Controle de Acesso Baseado em Papéis (RBAC), regras da EC 103/2019, cálculo de renda per capita (LOAS), validação com debounce de CPF e assinatura remota de procuração e contrato.
@@ -81,8 +77,6 @@ graph TD
 13. **[[14 - Mesa do Advogado, CRM de Retornos, Ficha Unica e Emissao de Contratos OAB]]**: Tela de atendimento do advogado (`/clientes/[id]`), histórico cronológico de visitas, contador de frequência, registro de retornos em modal, cofre digital de documentos com upload drag-and-drop, diagnóstico de aposentadorias, emissão vetorial de Procuração, Contrato OAB e Capa de Pasta A4, e painel de andamentos processuais com fluxo direto de entrada no INSS pós-contrato fechado e disparo no WhatsApp.
 14. **[[15 - Emissao de Ficha Cadastral e Relatorio em PDF (Dados do Cliente e Atendimentos)]]**: Relatório executivo do cliente com dados pessoais, documentos, endereço, contatos, dados socioeconômicos, informações previdenciárias, observações, histórico de atendimentos e bloco de assinaturas (com omissão da senha do Meu INSS por sigilo OAB/LGPD).
 15. **[[16 - Integracao com Supabase, Deploy na Vercel e Blindagem de Producao]]**: Conexão com banco PostgreSQL 17 real sem mock, RLS com subquery caching em schema privado (`private.current_tenant_id()`), buckets de Storage (`client-photos` e `client-documents`), Supabase Auth com middleware de sessão `@supabase/ssr`, deploy contínuo em produção na Vercel (`previoffice.vercel.app`) e blindagem anti-reconhecimento eliminando menções a tecnologias (JWT, TLS) e termos sensíveis.
-16. **[[17 - Modulo de Contratos, Upload de Minutas PDF e Arquitetura Agnostica de Banco]]**: Módulo de contratos com substituição de minutas por PDF próprio, desacoplamento por Repository Pattern / Arquitetura Hexagonal, resolução de limites de LocalStorage e auditoria local via Supabase Docker.
-17. **[[18 - Provisionamento Administrativo, Credenciais Temporarias e Blindagem de Seguranca]]**: Portal master `/admin/provisioning`, geração automática de senha com visibilidade aberta e envio WhatsApp (R$ 0,00), troca obrigatória no 1º login (`must_change_password`), remoção do redirect `/admin` e blindagem dos 7 vetores de segurança (anti-IDOR, XSS, Brute-Force, RLS universal e proteção de chaves).
 
 ---
 
