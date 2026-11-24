@@ -42,21 +42,13 @@ export interface LawyerFeeClauseOptions {
   installments?: FeeInstallment[];
 }
 
-export function formatMoneyBRL(val?: number): string {
-  if (val === undefined || isNaN(val)) return 'R$ 0,00';
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-    .format(val)
-    .replace(/\s+/g, ' ');
-}
+import {
+  formatMoneyBRL,
+  formatDatePtBR,
+  formatPaymentMethod,
+} from './formatters.ts';
 
-export function formatDatePtBR(isoDate?: string): string {
-  if (!isoDate) return 'Não informada';
-  const parts = isoDate.split('T')[0].split('-');
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return new Date(isoDate).toLocaleDateString('pt-BR');
-}
+export { formatMoneyBRL, formatDatePtBR, formatPaymentMethod };
 
 /**
  * Generates the full schedule of installments with dates and amounts
@@ -261,7 +253,4 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   RPV_PRECATORIO_RETENTION: 'Retenção de RPV / Precatório',
 };
 
-export function formatPaymentMethod(method?: string): string {
-  if (!method) return 'PIX';
-  return PAYMENT_METHOD_LABELS[method] || method;
-}
+
