@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { ErrorView } from '@/components/ui/error-view';
-import './globals.css';
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
