@@ -19,10 +19,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install PostgreSQL Client & GPG
+      - name: Install Latest PostgreSQL Client (PGDG) & GPG
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y postgresql-client gpg gzip
+          sudo apt-get install -y curl ca-certificates gnupg lsb-release
+          # Adiciona repositório oficial da PostgreSQL Global Development Group (PGDG)
+          # Isso garante que o pg_dump seja versão 16/17, evitando erro de version mismatch com o Supabase
+          sudo install -d /etc/apt/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/keyrings/postgresql.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-16 gpg gzip
 
       - name: Execute Backup, Compress & Encrypt
         env:
@@ -30,13 +37,17 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           if [ -z "$DB_URL" ]; then
-            echo "::error::Secret SUPABASE_DB_URL não configurada no repositório. O backup não pode prosseguir."
+            echo "::error::Secret SUPABASE_DB_URL não configurada no repositório GitHub (Settings > Secrets and variables > Actions). O backup não pode prosseguir."
             exit 1
           fi
 
           if [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "::error::Secret BACKUP_PASSPHRASE não configurada. Criptografia militar obrigatória ausente."
+            echo "::error::Secret BACKUP_PASSPHRASE não configurada no repositório GitHub. Criptografia militar AES-256 obrigatória ausente."
             exit 1
+          fi
+
+          if [[ "$DB_URL" == *":6543"* ]]; then
+            echo "::warning::Detectada porta 6543 (Transaction Pooler). O pg_dump exige a porta 5432 (Session Mode ou Conexão Direta). Se ocorrer falha, altere para a porta 5432 na secret SUPABASE_DB_URL."
           fi
 
           DATE_STAMP=$(date +"%Y-%m-%d_%H-%M-%S")
@@ -47,7 +58,7 @@ jobs:
           COMPRESSED_DUMP="$RAW_DUMP.gz"
           ENCRYPTED_ARCHIVE="$COMPRESSED_DUMP.gpg"
 
-          echo "Iniciando extração do banco de dados PreviOffice..."
+          echo "Iniciando extração do banco de dados PreviOffice via pg_dump..."
           pg_dump "$DB_URL" \
             --clean \
             --if-exists \
@@ -59,8 +70,8 @@ jobs:
           echo "Compactando arquivo com nível máximo (gzip -9)..."
           gzip -9 "$RAW_DUMP"
 
-          echo "Criptografando com padrão AES-256 (GPG simétrico)..."
-          gpg --batch --yes --symmetric --cipher-algo AES256 \
+          echo "Criptografando com padrão AES-256 (GPG simétrico com loopback)..."
+          gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 \
             --passphrase "$BACKUP_PASSPHRASE" \
             --output "$ENCRYPTED_ARCHIVE" "$COMPRESSED_DUMP"
 
