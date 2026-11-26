@@ -32,6 +32,7 @@ jobs:
           sudo apt-get install -y postgresql-client-16 gpg gzip
 
       - name: Execute Backup, Compress & Encrypt
+        id: backup
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
@@ -84,13 +85,13 @@ jobs:
           echo "CHECKSUM SHA-256:"
           sha256sum "$ENCRYPTED_ARCHIVE"
 
-          echo "BACKUP_PATH=$ENCRYPTED_ARCHIVE" >> $GITHUB_ENV
-          echo "BACKUP_NAME=previoffice_backup_${DATE_STAMP}.sql.gz.gpg" >> $GITHUB_ENV
+          echo "backup_path=$ENCRYPTED_ARCHIVE" >> "$GITHUB_OUTPUT"
+          echo "backup_name=previoffice_backup_${DATE_STAMP}.sql.gz.gpg" >> "$GITHUB_OUTPUT"
 
       - name: Store Encrypted Backup as Workflow Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.BACKUP_NAME }}
-          path: ${{ env.BACKUP_PATH }}
+          name: ${{ steps.backup.outputs.backup_name }}
+          path: ${{ steps.backup.outputs.backup_path }}
           retention-days: 30
           if-no-files-found: error
